@@ -1,4 +1,4 @@
-#ifndef FLUTTER_PLUGIN_FLUTTER_ALONE_PLUGIN_H_
+﻿#ifndef FLUTTER_PLUGIN_FLUTTER_ALONE_PLUGIN_H_
 #define FLUTTER_PLUGIN_FLUTTER_ALONE_PLUGIN_H_
 
 #include <flutter/method_channel.h>
@@ -24,6 +24,15 @@ class FlutterAlonePlugin : public flutter::Plugin {
   void HandleMethodCall(
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+	
+	// 중복 실행 체크 및 뮤텍스 생성
+  bool CheckAndCreateMutex();
+  
+  // 리소스 정리
+  void CleanupResources();
+
+  // 뮤텍스 핸들 저장
+  HANDLE mutex_handle_;
 };
 
 }  // namespace flutter_alone

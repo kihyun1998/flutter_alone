@@ -1,4 +1,4 @@
-#include "include/flutter_alone/flutter_alone_plugin_c_api.h"
+﻿#include "include/flutter_alone/flutter_alone_plugin_c_api.h"
 
 #include <flutter/plugin_registrar_windows.h>
 
