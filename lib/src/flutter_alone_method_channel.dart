@@ -17,7 +17,7 @@ class MethodChannelFlutterAlone extends FlutterAlonePlatform {
     } on PlatformException catch (e) {
       throw AloneException(
           code: e.code,
-          message: e.message ?? 'Unknown error occurred',
+          message: e.message ?? 'Error checking application instance',
           details: e.details);
     }
   }
