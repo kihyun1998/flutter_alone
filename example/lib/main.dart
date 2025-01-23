@@ -1,33 +1,30 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 
 void main() async {
-  // Flutter 바인딩 초기화
   WidgetsFlutterBinding.ensureInitialized();
 
-  // FlutterAlone 인스턴스 가져오기
-  final aloneInstance = FlutterAlone.instance;
-
-  try {
-    // 중복 실행 체크
-    final canRun = await aloneInstance.checkAndRun();
-    if (!canRun) {
-      print('앱이 이미 실행 중입니다.');
-      exit(0); // 앱 종료
-    }
-
-    // 앱 실행
-    runApp(const MyApp());
-  } catch (e) {
-    print('오류 발생: $e');
-    exit(1);
+  if (!await FlutterAlone.instance.checkAndRun()) {
+    return;
   }
+
+  runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void dispose() {
+    // 앱 종료 시 리소스 정리
+    FlutterAlone.instance.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
