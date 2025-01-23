@@ -44,10 +44,26 @@ FlutterAlonePlugin::~FlutterAlonePlugin() {
   CleanupResources();
 }
 
+// 실행 중인 프로세스 정보를 MessageBox로 표시
+void FlutterAlonePlugin::ShowAlreadyRunningMessage(const ProcessInfo& processInfo) {
+    std::wstring message = L"이미 다른 사용자가 앱을 실행중입니다.\n";
+    message += L"실행 중인 사용자: " + processInfo.domain + L"\\" + processInfo.userName;
+    message += L"\n프로세스 ID: " + std::to_wstring(processInfo.processId);
+
+    MessageBoxW(
+        NULL,
+        message.c_str(),
+        L"실행 오류",
+        MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL
+    );
+}
+
 // 중복 실행 체크 함수
 bool FlutterAlonePlugin::CheckAndCreateMutex() {
-  // 이미 뮤텍스가 생성되어 있다면 중복 실행으로 처리
   if (g_hMutex != NULL) {
+    // 이미 실행중인 프로세스 정보 가져오기
+    ProcessInfo currentProcess = ProcessUtils::GetCurrentProcessInfo();
+    ShowAlreadyRunningMessage(currentProcess);
     return false;
   }
 
@@ -69,12 +85,13 @@ bool FlutterAlonePlugin::CheckAndCreateMutex() {
   );
 
   if (g_hMutex == NULL) {
-    // 뮤텍스 생성 실패
+    auto errorMessage = ProcessUtils::GetLastErrorMessage();
     return false;
   }
 
-  // 이미 존재하는지 확인
   if (GetLastError() == ERROR_ALREADY_EXISTS) {
+    ProcessInfo currentProcess = ProcessUtils::GetCurrentProcessInfo();
+    ShowAlreadyRunningMessage(currentProcess);
     CleanupResources();
     return false;
   }

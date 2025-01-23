@@ -3,6 +3,7 @@
 
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
+#include "process_utils.h"
 
 #include <memory>
 
@@ -30,6 +31,9 @@ class FlutterAlonePlugin : public flutter::Plugin {
   
   // 리소스 정리
   void CleanupResources();
+
+  // 실행 중인 프로세스 정보를 MessageBox로 표시
+  void ShowAlreadyRunningMessage(const ProcessInfo& processInfo);
 
   // 뮤텍스 핸들 저장
   HANDLE mutex_handle_;
