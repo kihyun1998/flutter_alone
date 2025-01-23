@@ -5,7 +5,6 @@ import 'src/flutter_alone_platform_interface.dart';
 
 export 'src/exception.dart';
 export 'src/models/message_config.dart';
-export 'src/models/message_type.dart';
 
 /// Main class for the Flutter Alone plugin
 class FlutterAlone {
