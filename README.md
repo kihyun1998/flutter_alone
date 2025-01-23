@@ -1,15 +1,17 @@
 # flutter_alone
 
-A Flutter plugin to prevent duplicate execution of desktop applications.
+A robust Flutter plugin for preventing duplicate execution of desktop applications.
 
 [![pub package](https://img.shields.io/pub/v/flutter_alone.svg)](https://pub.dev/packages/flutter_alone)
 
 ## Features
 
-- Prevent multiple instances of your Flutter desktop application
-- Cross-user detection on Windows
-- Safe resource cleanup
+- Prevent multiple instances of Windows desktop applications
+- Cross-user detection support
 - System-wide mutex management
+- Customizable message handling
+- Multi-language support (English, Korean, Custom)
+- Safe resource cleanup
 
 ## Platform Support
 
@@ -17,13 +19,13 @@ A Flutter plugin to prevent duplicate execution of desktop applications.
 |:-------:|:-----:|:-----:|
 |    ✅    |   🚧   |   🚧   |
 
-## Getting started
+## Getting Started
 
 Add flutter_alone to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_alone: ^1.0.0
+  flutter_alone: ^1.1.0
 ```
 
 ## Usage
@@ -38,19 +40,20 @@ Initialize in your main function:
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  final flutterAlone = FlutterAlone.instance;
-  final canRun = await flutterAlone.checkAndRun();
+  final messageConfig = MessageConfig(
+    type: MessageType.en,  // Language selection
+    showMessageBox: true,  // Message box display control
+  );
   
-  if (!canRun) {
-    // Another instance is already running
-    exit(0);
+  if (!await FlutterAlone.instance.checkAndRun(messageConfig: messageConfig)) {
+    exit(0);  // Exit if another instance is running
   }
   
   runApp(const MyApp());
 }
 ```
 
-Clean up resources when your app closes:
+Clean up resources:
 ```dart
 @override
 void dispose() {
@@ -59,23 +62,9 @@ void dispose() {
 }
 ```
 
-## Additional information
+## Additional Information
 
-### Windows Implementation Details
+### Windows Implementation
 - Uses Windows Named Mutex for system-wide instance detection
-- Supports cross-user detection through global mutex naming
-- Proper cleanup of system resources
-
-## Contributing
-
-Feel free to contribute to this project.
-
-1. Fork it
-2. Create your feature branch (git checkout -b feature/fooBar)
-3. Commit your changes (git commit -am 'Add some fooBar')
-4. Push to the branch (git push origin feature/fooBar)
-5. Create a new Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+- Implements cross-user detection through global mutex naming
+- Ensures proper cleanup of system resources

@@ -1,6 +1,6 @@
 name: flutter_alone
 description: "Flutter desktop application single instance plugin"
-version: 1.0.0
+version: 1.1.0
 homepage: https://github.com/kihyun1998/flutter_alone
 repository: https://github.com/kihyun1998/flutter_alone
 
