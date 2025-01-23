@@ -1,5 +1,5 @@
 import 'package:flutter_alone/flutter_alone.dart';
-import 'package:flutter_alone/flutter_alone_platform_interface.dart';
+import 'package:flutter_alone/src/flutter_alone_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 

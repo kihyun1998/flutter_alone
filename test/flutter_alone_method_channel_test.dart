@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:flutter_alone/flutter_alone_method_channel.dart';
+import 'package:flutter_alone/src/flutter_alone_method_channel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

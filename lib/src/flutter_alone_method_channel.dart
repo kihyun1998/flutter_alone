@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
-import 'package:flutter_alone/exception.dart';
 
+import 'exception.dart';
 import 'flutter_alone_platform_interface.dart';
 
 /// MethodChannel을 사용한 플랫폼 구현체

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'flutter_alone_platform_interface.dart';
+import 'src/flutter_alone_platform_interface.dart';
 
 /// Flutter Alone 플러그인의 메인 클래스
 ///
