@@ -1,3 +1,5 @@
-## 0.0.1
+## 1.0.0
 
-* TODO: Describe initial release.
+* Implemented app duplicate execution prevention for Windows
+* Added system-level duplicate execution detection using global mutex
+* Added multi-user account support

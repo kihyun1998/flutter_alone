@@ -1,11 +1,12 @@
 name: flutter_alone
-description: "A new Flutter plugin project."
+description: "Flutter desktop application single instance plugin"
 version: 1.0.0
-homepage: "https://github.com/kihyun1998/flutter_alone"
+homepage: https://github.com/kihyun1998/flutter_alone
+repository: https://github.com/kihyun1998/flutter_alone
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
-  flutter: '>=3.3.0'
+  flutter: '>=3.0.0'
 
 dependencies:
   flutter:
