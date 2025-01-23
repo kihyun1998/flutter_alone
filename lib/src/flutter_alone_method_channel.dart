@@ -7,19 +7,17 @@ import 'flutter_alone_platform_interface.dart';
 /// Platform implementation using method channel
 class MethodChannelFlutterAlone extends FlutterAlonePlatform {
   /// Method channel for platform communication
-
   final MethodChannel _channel = const MethodChannel('flutter_alone');
 
   @override
-  Future<bool> checkAndRun(
-      {MessageConfig messageConfig = const MessageConfig()}) async {
+  Future<bool> checkAndRun({
+    MessageConfig messageConfig = const EnMessageConfig(),
+  }) async {
     try {
-      final result = await _channel.invokeMethod<bool>('checkAndRun', {
-        'type': messageConfig.type.name,
-        'customTitle': messageConfig.customTitle,
-        'customMessage': messageConfig.customMessage,
-        'showMessageBox': messageConfig.showMessageBox,
-      });
+      final result = await _channel.invokeMethod<bool>(
+        'checkAndRun',
+        messageConfig.toMap(),
+      );
       return result ?? false;
     } on PlatformException catch (e) {
       throw AloneException(
@@ -36,9 +34,10 @@ class MethodChannelFlutterAlone extends FlutterAlonePlatform {
       await _channel.invokeMethod<void>('dispose');
     } on PlatformException catch (e) {
       throw AloneException(
-          code: e.code,
-          message: e.message ?? 'Error disposing resources',
-          details: e.details);
+        code: e.code,
+        message: e.message ?? 'Error disposing resources',
+        details: e.details,
+      );
     }
   }
 }

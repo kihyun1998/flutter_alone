@@ -113,9 +113,8 @@ void FlutterAlonePlugin::HandleMethodCall(
   if (method_call.method_name().compare("checkAndRun") == 0) {
     const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
 
+    // Get basic parameters
     std::string typeStr = std::get<std::string>(arguments->at(flutter::EncodableValue("type")));
-    std::string customTitle = std::get<std::string>(arguments->at(flutter::EncodableValue("customTitle")));
-    std::string customMessage = std::get<std::string>(arguments->at(flutter::EncodableValue("customMessage")));
     bool showMessageBox = std::get<bool>(arguments->at(flutter::EncodableValue("showMessageBox")));
 
     // Convert MessageType
@@ -123,22 +122,35 @@ void FlutterAlonePlugin::HandleMethodCall(
     if(typeStr == "ko") type = MessageType::ko;
     else if(typeStr == "en") type = MessageType::en;
     else type = MessageType::custom;
+
+    // Get custom parameters if needed
+    std::wstring customTitle, messageTemplate;
+    if (type == MessageType::custom) {
+        customTitle = MessageUtils::Utf8ToWide(
+            std::get<std::string>(arguments->at(flutter::EncodableValue("customTitle"))));
+        messageTemplate = MessageUtils::Utf8ToWide(
+            std::get<std::string>(arguments->at(flutter::EncodableValue("messageTemplate"))));
+    }
     
+    // Check duplicate instance
     bool canRun = CheckAndCreateMutex();
     if(!canRun && showMessageBox){
       ProcessInfo processInfo = ProcessUtils::GetCurrentProcessInfo();
 
       // Create message
-      std::wstring title = MessageUtils::GetTitle(type, MessageUtils::Utf8ToWide(customTitle));
-      std::wstring message = MessageUtils::GetMessage(type, processInfo, MessageUtils::Utf8ToWide(customMessage));
+      std::wstring title = MessageUtils::GetTitle(type, customTitle);
+      std::wstring message = MessageUtils::GetMessage(type, processInfo, messageTemplate);
 
-      ShowAlreadyRunningMessage(processInfo, title, message,showMessageBox);
+      ShowAlreadyRunningMessage(processInfo, title, message, showMessageBox);
     }
+
     result->Success(flutter::EncodableValue(canRun));
-  } else if (method_call.method_name().compare("dispose") == 0) {
+  } 
+  else if (method_call.method_name().compare("dispose") == 0) {
     CleanupResources();
     result->Success();
-  } else {
+  } 
+  else {
     result->NotImplemented();
   }
 }

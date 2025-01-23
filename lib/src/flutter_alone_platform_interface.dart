@@ -28,8 +28,9 @@ abstract class FlutterAlonePlatform extends PlatformInterface {
   /// Returns:
   /// - true: Application can start
   /// - false: Another instance is already running
-  Future<bool> checkAndRun(
-      {MessageConfig messageConfig = const MessageConfig()}) {
+  Future<bool> checkAndRun({
+    MessageConfig messageConfig = const EnMessageConfig(),
+  }) {
     throw UnimplementedError('checkAndRun() has not been implemented.');
   }
 

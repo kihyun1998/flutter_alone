@@ -1,22 +1,12 @@
-// example/lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // final messageConfig = MessageConfig(
-  //   type: MessageType.custom,
-  //   customTitle: 'Example App',
-  //   customMessage: 'App is already running! ( 이미 실행 중이에요. )',
-  //   showMessageBox: true,
-  // );
-
-  final messageConfig = MessageConfig(
-    type: MessageType.en,
+  final messageConfig = CustomMessageConfig(
     customTitle: 'Example App',
-    customMessage: 'App is already running! ( 이미 실행 중이에요. )',
-    showMessageBox: true,
+    messageTemplate: 'Application is already running by {domain}\\{userName}',
   );
 
   if (!await FlutterAlone.instance.checkAndRun(messageConfig: messageConfig)) {
