@@ -26,13 +26,13 @@ class FlutterAlonePlugin : public flutter::Plugin {
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 	
-	// 중복 실행 체크 및 뮤텍스 생성
+	// check and create mutex
   bool CheckAndCreateMutex();
   
-  // 리소스 정리
+  // cleanup resources
   void CleanupResources();
 
-  // 실행 중인 프로세스 정보를 MessageBox로 표시
+  // show process info
   void ShowAlreadyRunningMessage(const ProcessInfo& processInfo);
 
   // 뮤텍스 핸들 저장

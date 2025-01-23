@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'exception.dart';
 import 'flutter_alone_platform_interface.dart';
 
-/// MethodChannel을 사용한 플랫폼 구현체
+/// Platform implementation using method channel
 class MethodChannelFlutterAlone extends FlutterAlonePlatform {
-  /// 플랫폼과의 통신을 위한 메서드 채널
+  /// Method channel for platform communication
 
   final MethodChannel _channel = const MethodChannel('flutter_alone');
 

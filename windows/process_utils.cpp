@@ -15,7 +15,7 @@ ProcessInfo ProcessUtils::GetCurrentProcessInfo() {
         return info;
     }
 
-    // 사용자 정보 가져오기
+    // Get user from token
     if (!GetUserFromToken(hToken, info.domain, info.userName)) {
         CloseHandle(hToken);
         return info;
@@ -29,19 +29,19 @@ bool ProcessUtils::GetUserFromToken(HANDLE hToken, std::wstring& domain, std::ws
     DWORD dwSize = 0;
     PTOKEN_USER pTokenUser = NULL;
     
-    // 토큰 정보 크기 조회
+    // Get token information
     GetTokenInformation(hToken, TokenUser, NULL, 0, &dwSize);
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
         return false;
     }
     
-    // 메모리 할당
+    // Allocate memory
     pTokenUser = (PTOKEN_USER)LocalAlloc(LPTR, dwSize);
     if (!pTokenUser) {
         return false;
     }
     
-    // 토큰 정보 가져오기
+    // Get token information
     if (!GetTokenInformation(hToken, TokenUser, pTokenUser, dwSize, &dwSize)) {
         LocalFree(pTokenUser);
         return false;
@@ -55,11 +55,11 @@ bool ProcessUtils::GetUserFromToken(HANDLE hToken, std::wstring& domain, std::ws
     
     // SID를 사용자 이름과 도메인으로 변환
     if (!LookupAccountSidW(
-        NULL,                   // 로컬 컴퓨터
+        NULL,                   // Local computer
         pTokenUser->User.Sid,   // SID
-        szUser,                 // 사용자 이름
+        szUser,                 // User Name
         &dwUserSize,           
-        szDomain,              // 도메인 이름
+        szDomain,              // Domain name
         &dwDomainSize,
         &snu)) {
         LocalFree(pTokenUser);

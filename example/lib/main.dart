@@ -21,7 +21,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
-    // 앱 종료 시 리소스 정리
+    // clean up app resources
     FlutterAlone.instance.dispose();
     super.dispose();
   }
@@ -34,7 +34,7 @@ class _MyAppState extends State<MyApp> {
           title: const Text('Flutter Alone Example'),
         ),
         body: const Center(
-          child: Text('앱이 정상적으로 실행되었습니다.'),
+          child: Text('The app ran normally.'),
         ),
       ),
     );

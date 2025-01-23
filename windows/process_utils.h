@@ -14,14 +14,14 @@ struct ProcessInfo {
 
 class ProcessUtils {
 public:
-    // 현재 프로세스의 사용자 정보 조회
+    // Get current process user information
     static ProcessInfo GetCurrentProcessInfo();
     
-    // 에러 메시지 생성
+    // Generate error message
     static std::wstring GetLastErrorMessage();
 
 private:
-    // Windows 보안 토큰에서 사용자 정보 추출
+    // Extract user information from Windows security token
     static bool GetUserFromToken(HANDLE hToken, std::wstring& domain, std::wstring& userName);
 };
 

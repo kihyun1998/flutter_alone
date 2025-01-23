@@ -16,14 +16,15 @@ enum ProcessInfoJsonKey {
   }
 }
 
+/// Model class for process information
 class ProcessInfo {
-  /// 실행 중인 사용자의 도메인 (예: DESKTOP-123)
+  /// Domain of the running user (e.g., DESKTOP-123)
   final String domain;
 
-  /// 실행 중인 사용자의 이름
+  /// Username of the running user
   final String userName;
 
-  /// 프로세스 ID
+  /// Process ID
   final int processId;
 
   ProcessInfo({
@@ -32,7 +33,7 @@ class ProcessInfo {
     required this.processId,
   });
 
-  /// JSON으로부터 ProcessInfo 객체 생성
+  /// Create ProcessInfo from JSON
   factory ProcessInfo.fromJson(Map<String, dynamic> json) {
     return ProcessInfo(
       domain: json[ProcessInfoJsonKey.domain.key] as String,
@@ -41,7 +42,7 @@ class ProcessInfo {
     );
   }
 
-  /// ProcessInfo 객체를 JSON으로 변환
+  /// Convert ProcessInfo to JSON
   Map<String, dynamic> toJson() {
     return {
       ProcessInfoJsonKey.domain.key: domain,

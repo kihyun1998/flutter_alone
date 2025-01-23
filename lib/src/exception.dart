@@ -1,11 +1,11 @@
 class AloneException implements Exception {
-  /// 에러 코드
+  /// error code
   final String code;
 
-  /// 에러 메시지
+  /// error message
   final String message;
 
-  /// 추가 상세 정보
+  /// additional details
   final dynamic details;
 
   AloneException({
