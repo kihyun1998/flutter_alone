@@ -39,8 +39,4 @@ class FlutterAlone {
       rethrow;
     }
   }
-
-  Future<String?> getPlatformVersion() {
-    return FlutterAlonePlatform.instance.getPlatformVersion();
-  }
 }

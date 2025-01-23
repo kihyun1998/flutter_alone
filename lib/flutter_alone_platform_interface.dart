@@ -22,10 +22,6 @@ abstract class FlutterAlonePlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<String?> getPlatformVersion() {
-    throw UnimplementedError('platformVersion() has not been implemented.');
-  }
-
   /// 앱이 실행 가능한지 확인하고 필요한 초기화를 수행
   ///
   /// Returns:
