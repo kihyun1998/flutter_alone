@@ -1,29 +1,43 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 import 'package:flutter_alone/flutter_alone_platform_interface.dart';
-import 'package:flutter_alone/flutter_alone_method_channel.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 class MockFlutterAlonePlatform
     with MockPlatformInterfaceMixin
     implements FlutterAlonePlatform {
+  bool checkAndRunResult = true;
+  bool disposeCalled = false;
 
   @override
-  Future<String?> getPlatformVersion() => Future.value('42');
+  Future<bool> checkAndRun() async => checkAndRunResult;
+  @override
+  Future<void> dispose() async => disposeCalled = true;
 }
 
 void main() {
-  final FlutterAlonePlatform initialPlatform = FlutterAlonePlatform.instance;
+  TestWidgetsFlutterBinding.ensureInitialized();
+  group('FlutterAlone', () {
+    late MockFlutterAlonePlatform fakePlatform;
 
-  test('$MethodChannelFlutterAlone is the default instance', () {
-    expect(initialPlatform, isInstanceOf<MethodChannelFlutterAlone>());
-  });
+    setUp(() {
+      fakePlatform = MockFlutterAlonePlatform();
+      FlutterAlonePlatform.instance = fakePlatform;
+    });
 
-  test('getPlatformVersion', () async {
-    FlutterAlone flutterAlonePlugin = FlutterAlone();
-    MockFlutterAlonePlatform fakePlatform = MockFlutterAlonePlatform();
-    FlutterAlonePlatform.instance = fakePlatform;
+    test('checkAndRun returns true when no instance is running', () async {
+      expect(await FlutterAlone.instance.checkAndRun(), true);
+    });
 
-    expect(await flutterAlonePlugin.getPlatformVersion(), '42');
+    test('checkAndRun returns false when instance is already running',
+        () async {
+      fakePlatform.checkAndRunResult = false;
+      expect(await FlutterAlone.instance.checkAndRun(), false);
+    });
+
+    test('dispose calls platform dispose', () async {
+      await FlutterAlone.instance.dispose();
+      expect(fakePlatform.disposeCalled, true);
+    });
   });
 }
