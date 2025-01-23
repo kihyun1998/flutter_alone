@@ -1,7 +1,8 @@
-#include "process_utils.h"
+﻿#include "process_utils.h"
 #include <windows.h>
 #include <security.h>
 #include <sddl.h>
+#include <sspi.h>
 
 namespace flutter_alone {
 

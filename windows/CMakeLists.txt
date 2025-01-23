@@ -20,6 +20,8 @@ set(PLUGIN_NAME "flutter_alone_plugin")
 list(APPEND PLUGIN_SOURCES
   "flutter_alone_plugin.cpp"
   "flutter_alone_plugin.h"
+  "process_utils.cpp"
+  "process_utils.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
@@ -40,7 +42,7 @@ apply_standard_settings(${PLUGIN_NAME})
 # exported should be explicitly exported with the FLUTTER_PLUGIN_EXPORT macro.
 set_target_properties(${PLUGIN_NAME} PROPERTIES
   CXX_VISIBILITY_PRESET hidden)
-target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
+target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL SECURITY_WIN32)
 
 # Source include directories and library dependencies. Add any plugin-specific
 # dependencies here.
