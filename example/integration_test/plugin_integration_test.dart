@@ -1,27 +1,69 @@
+import 'dart:io';
+
 import 'package:flutter_alone/flutter_alone.dart';
+import 'package:flutter_alone/src/exception.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Test multiple instances', (WidgetTester tester) async {
-    final FlutterAlone instance1 = FlutterAlone.instance;
+  group('중복 실행 방지 플러그인 테스트', () {
+    late FlutterAlone flutterAlone;
 
-    // 첫 번째 인스턴스 실행
-    final bool firstRun = await instance1.checkAndRun();
-    expect(firstRun, true, reason: '첫 번째 인스턴스는 실행될 수 있어야 함');
+    setUp(() {
+      flutterAlone = FlutterAlone.instance;
+    });
 
-    // 동일한 프로세스 내에서 두 번째 체크
-    final bool secondRun = await instance1.checkAndRun();
-    expect(secondRun, false, reason: '두 번째 체크는 실패해야 함');
+    tearDown(() async {
+      await flutterAlone.dispose();
+    });
 
-    // 리소스 정리
-    await instance1.dispose();
-  });
+    testWidgets('첫 번째 실행은 성공해야 함', (tester) async {
+      if (Platform.isWindows) {
+        final result = await flutterAlone.checkAndRun();
+        expect(result, isTrue);
+      }
+    });
 
-  testWidgets('Can dispose resources', (WidgetTester tester) async {
-    final FlutterAlone instance = FlutterAlone.instance;
-    await expectLater(instance.dispose(), completes);
+    testWidgets('중복 실행 시도 시 false를 반환하고 메시지 박스가 표시되어야 함', (tester) async {
+      if (Platform.isWindows) {
+        // 첫 번째 실행
+        await flutterAlone.checkAndRun();
+
+        // 두 번째 실행 시도
+        final result = await flutterAlone.checkAndRun();
+        expect(result, isFalse);
+
+        // MessageBox가 표시되었는지는 OS 레벨에서 직접 확인이 필요
+        // 실제 사용자 시나리오에서 수동으로 테스트 필요
+      }
+    });
+
+    testWidgets('리소스 정리 후 재실행이 가능해야 함', (tester) async {
+      if (Platform.isWindows) {
+        // 첫 번째 실행
+        final firstRun = await flutterAlone.checkAndRun();
+        expect(firstRun, isTrue);
+
+        // 리소스 정리
+        await flutterAlone.dispose();
+
+        // 재실행
+        final secondRun = await flutterAlone.checkAndRun();
+        expect(secondRun, isTrue);
+      }
+    });
+
+    testWidgets('예외 발생 시 AloneException이 throw되어야 함', (tester) async {
+      if (Platform.isWindows) {
+        // 잘못된 상태에서 dispose 호출
+        await flutterAlone.dispose();
+        await flutterAlone.dispose(); // 두 번째 dispose는 예외 발생
+
+        expect(() async => await flutterAlone.checkAndRun(),
+            throwsA(isA<AloneException>()));
+      }
+    });
   });
 }
