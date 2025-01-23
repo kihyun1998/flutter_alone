@@ -1,4 +1,3 @@
-// example/integration_test/plugin_integration_test.dart
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -48,6 +47,19 @@ void main() {
       if (Platform.isWindows) {
         final result = await flutterAlone.checkAndRun();
         expect(result, true);
+      }
+    });
+
+    test('Error handling test', () async {
+      if (Platform.isWindows) {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+          throw PlatformException(code: 'error');
+        });
+
+        // AloneException을 기대하도록 수정
+        expect(() async => await flutterAlone.checkAndRun(),
+            throwsA(isA<AloneException>()));
       }
     });
   });

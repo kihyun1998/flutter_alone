@@ -6,10 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('MethodChannelFlutterAlone', () {
+  group('Method Channel Tests', () {
     late MethodChannelFlutterAlone platform;
     final channel = MethodChannel('flutter_alone');
-    final log = <MethodCall>[];
+    final List<MethodCall> log = <MethodCall>[];
 
     setUp(() {
       platform = MethodChannelFlutterAlone();
@@ -23,8 +23,9 @@ void main() {
             return null;
           default:
             throw PlatformException(
-              code: 'notImplemented',
+              code: 'not_implemented',
               message: 'Method not implemented',
+              details: 'No implementation found for ${methodCall.method}',
             );
         }
       });
@@ -36,41 +37,47 @@ void main() {
       log.clear();
     });
 
-    test('checkAndRun sends correct parameters', () async {
-      final messageConfig = MessageConfig(
-        type: MessageType.custom,
-        customTitle: 'Test Title',
-        customMessage: 'Test Message',
+    test('checkAndRun should handle message configurations correctly',
+        () async {
+      final messageConfig = CustomMessageConfig(
+        customTitle: 'Custom Title',
+        messageTemplate: 'App running as {domain}\\{userName}',
         showMessageBox: true,
       );
 
-      await platform.checkAndRun(messageConfig: messageConfig);
+      final result = await platform.checkAndRun(messageConfig: messageConfig);
 
+      // Verify method call
       expect(log, hasLength(1));
       expect(
         log.first,
         isMethodCall('checkAndRun', arguments: {
           'type': 'custom',
-          'customTitle': 'Test Title',
-          'customMessage': 'Test Message',
+          'customTitle': 'Custom Title',
+          'messageTemplate': 'App running as {domain}\\{userName}',
           'showMessageBox': true,
         }),
       );
+
+      // Verify result
+      expect(result, isTrue);
     });
 
-    test('dispose sends correct method call', () async {
+    test('dispose should clean up resources properly', () async {
       await platform.dispose();
 
+      // Verify method call
       expect(log, hasLength(1));
       expect(log.first, isMethodCall('dispose', arguments: null));
     });
 
-    test('checkAndRun throws AloneException on platform error', () async {
+    test('checkAndRun should throw AloneException on platform error', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
         throw PlatformException(
           code: 'error',
           message: 'Test error message',
+          details: 'Error details',
         );
       });
 
@@ -79,17 +86,19 @@ void main() {
         throwsA(
           isA<AloneException>()
               .having((e) => e.code, 'code', 'error')
-              .having((e) => e.message, 'message', 'Test error message'),
+              .having((e) => e.message, 'message', 'Test error message')
+              .having((e) => e.details, 'details', 'Error details'),
         ),
       );
     });
 
-    test('dispose throws AloneException on platform error', () async {
+    test('dispose should throw AloneException on platform error', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
         throw PlatformException(
           code: 'error',
-          message: 'Dispose error',
+          message: 'Failed to dispose resources',
+          details: 'Cleanup error details',
         );
       });
 
@@ -98,7 +107,9 @@ void main() {
         throwsA(
           isA<AloneException>()
               .having((e) => e.code, 'code', 'error')
-              .having((e) => e.message, 'message', 'Dispose error'),
+              .having(
+                  (e) => e.message, 'message', 'Failed to dispose resources')
+              .having((e) => e.details, 'details', 'Cleanup error details'),
         ),
       );
     });
