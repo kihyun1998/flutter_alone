@@ -3,6 +3,7 @@ import 'package:flutter_alone/src/models/message_config.dart';
 
 import 'src/flutter_alone_platform_interface.dart';
 
+export 'src/exception.dart';
 export 'src/models/message_config.dart';
 export 'src/models/message_type.dart';
 

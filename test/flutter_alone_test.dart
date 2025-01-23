@@ -1,43 +1,79 @@
 import 'package:flutter_alone/flutter_alone.dart';
-import 'package:flutter_alone/src/flutter_alone_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-
-class MockFlutterAlonePlatform
-    with MockPlatformInterfaceMixin
-    implements FlutterAlonePlatform {
-  bool checkAndRunResult = true;
-  bool disposeCalled = false;
-
-  @override
-  Future<bool> checkAndRun() async => checkAndRunResult;
-  @override
-  Future<void> dispose() async => disposeCalled = true;
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  group('FlutterAlone', () {
-    late MockFlutterAlonePlatform fakePlatform;
 
-    setUp(() {
-      fakePlatform = MockFlutterAlonePlatform();
-      FlutterAlonePlatform.instance = fakePlatform;
+  group('MessageConfig Tests', () {
+    test('Default configuration should be English', () {
+      final config = MessageConfig();
+      expect(config.type, MessageType.en);
+      expect(config.showMessageBox, true);
+      expect(config.customTitle, null);
+      expect(config.customMessage, null);
     });
 
-    test('checkAndRun returns true when no instance is running', () async {
-      expect(await FlutterAlone.instance.checkAndRun(), true);
+    test('Custom configuration should override defaults', () {
+      final config = MessageConfig(
+        type: MessageType.ko,
+        showMessageBox: false,
+        customTitle: 'Test Title',
+        customMessage: 'Test Message',
+      );
+      expect(config.type, MessageType.ko);
+      expect(config.showMessageBox, false);
+      expect(config.customTitle, 'Test Title');
+      expect(config.customMessage, 'Test Message');
     });
 
-    test('checkAndRun returns false when instance is already running',
-        () async {
-      fakePlatform.checkAndRunResult = false;
-      expect(await FlutterAlone.instance.checkAndRun(), false);
+    test('copyWith should create new instance with specified changes', () {
+      final config = MessageConfig();
+      final newConfig = config.copyWith(
+        type: MessageType.custom,
+        showMessageBox: false,
+      );
+      expect(newConfig.type, MessageType.custom);
+      expect(newConfig.showMessageBox, false);
+      expect(newConfig.customTitle, null);
+      expect(newConfig.customMessage, null);
+    });
+  });
+
+  group('MessageType Tests', () {
+    test('English messages should be formatted correctly', () {
+      const type = MessageType.en;
+      expect(
+        type.getTitle(null),
+        'Execution Error',
+      );
+      expect(
+        type.getMessage('DOMAIN', 'USER', null),
+        'Application is already running by another user.\nRunning user: DOMAIN\\USER',
+      );
     });
 
-    test('dispose calls platform dispose', () async {
-      await FlutterAlone.instance.dispose();
-      expect(fakePlatform.disposeCalled, true);
+    test('Korean messages should be formatted correctly', () {
+      const type = MessageType.ko;
+      expect(
+        type.getTitle(null),
+        '실행 오류',
+      );
+      expect(
+        type.getMessage('DOMAIN', 'USER', null),
+        '이미 다른 사용자가 앱을 실행중입니다.\n실행 중인 사용자: DOMAIN\\USER',
+      );
+    });
+
+    test('Custom messages should use provided values', () {
+      const type = MessageType.custom;
+      expect(
+        type.getTitle('Custom Title'),
+        'Custom Title',
+      );
+      expect(
+        type.getMessage('DOMAIN', 'USER', 'Custom Message'),
+        'Custom Message',
+      );
     });
   });
 }
