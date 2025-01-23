@@ -1,3 +1,10 @@
+## 1.1.1
+
+* Fixed Korean text encoding issues in message box
+* Improved message configuration architecture
+* Enhanced type safety with dedicated message config classes
+* Added template support for custom messages
+
 ## 1.1.0
 
 * Added message configuration (English/Korean/Custom)
