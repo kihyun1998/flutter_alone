@@ -4,6 +4,7 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include "process_utils.h"
+#include "message_utils.h"
 
 #include <memory>
 

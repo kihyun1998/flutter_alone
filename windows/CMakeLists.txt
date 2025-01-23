@@ -22,6 +22,8 @@ list(APPEND PLUGIN_SOURCES
   "flutter_alone_plugin.h"
   "process_utils.cpp"
   "process_utils.h"
+  "message_utils.cpp"
+  "message_utils.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment

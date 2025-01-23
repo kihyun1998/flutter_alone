@@ -113,18 +113,25 @@ void FlutterAlonePlugin::HandleMethodCall(
   if (method_call.method_name().compare("checkAndRun") == 0) {
     const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
 
-    std::string type = std::get<std::string>(arguments->at(flutter::EncodableValue("type")));
-    auto customTitle = std::get<std::string>(arguments->at(flutter::EncodableValue("customTitle")));
-    auto customMessage = std::get<std::string>(arguments->at(flutter::EncodableValue("customMessage")));
+    std::string typeStr = std::get<std::string>(arguments->at(flutter::EncodableValue("type")));
+    std::string customTitle = std::get<std::string>(arguments->at(flutter::EncodableValue("customTitle")));
+    std::string customMessage = std::get<std::string>(arguments->at(flutter::EncodableValue("customMessage")));
     bool showMessageBox = std::get<bool>(arguments->at(flutter::EncodableValue("showMessageBox")));
-    
-    // Convert strings to wstring for Windows API
-    std::wstring title = std::wstring(customTitle.begin(), customTitle.end());
-    std::wstring message = std::wstring(customMessage.begin(), customMessage.end());
 
+    // Convert MessageType
+    MessageType type;
+    if(typeStr == "ko") type = MessageType::ko;
+    else if(typeStr == "en") type = MessageType::en;
+    else type = MessageType::custom;
+    
     bool canRun = CheckAndCreateMutex();
     if(!canRun && showMessageBox){
       ProcessInfo processInfo = ProcessUtils::GetCurrentProcessInfo();
+
+      // Create message
+      std::wstring title = MessageUtils::GetTitle(type, MessageUtils::Utf8ToWide(customTitle));
+      std::wstring message = MessageUtils::GetMessage(type, processInfo, MessageUtils::Utf8ToWide(customMessage));
+
       ShowAlreadyRunningMessage(processInfo, title, message,showMessageBox);
     }
     result->Success(flutter::EncodableValue(canRun));

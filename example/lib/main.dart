@@ -5,10 +5,17 @@ import 'package:flutter_alone/flutter_alone.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // final messageConfig = MessageConfig(
+  //   type: MessageType.custom,
+  //   customTitle: 'Example App',
+  //   customMessage: 'App is already running! ( 이미 실행 중이에요. )',
+  //   showMessageBox: true,
+  // );
+
   final messageConfig = MessageConfig(
-    type: MessageType.custom,
+    type: MessageType.en,
     customTitle: 'Example App',
-    customMessage: 'App is already running!',
+    customMessage: 'App is already running! ( 이미 실행 중이에요. )',
     showMessageBox: true,
   );
 
