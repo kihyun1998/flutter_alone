@@ -1,10 +1,18 @@
+// example/lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (!await FlutterAlone.instance.checkAndRun()) {
+  final messageConfig = MessageConfig(
+    type: MessageType.custom,
+    customTitle: 'Example App',
+    customMessage: 'App is already running!',
+    showMessageBox: true,
+  );
+
+  if (!await FlutterAlone.instance.checkAndRun(messageConfig: messageConfig)) {
     return;
   }
 
@@ -21,7 +29,6 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
-    // clean up app resources
     FlutterAlone.instance.dispose();
     super.dispose();
   }
@@ -34,7 +41,8 @@ class _MyAppState extends State<MyApp> {
           title: const Text('Flutter Alone Example'),
         ),
         body: const Center(
-          child: Text('The app ran normally.'),
+          child:
+              Text('The app ran normally with custom message configuration.'),
         ),
       ),
     );

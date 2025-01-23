@@ -33,7 +33,11 @@ class FlutterAlonePlugin : public flutter::Plugin {
   void CleanupResources();
 
   // show process info
-  void ShowAlreadyRunningMessage(const ProcessInfo& processInfo);
+  void ShowAlreadyRunningMessage(
+  const ProcessInfo& processInfo,
+  const std::wstring& title,
+  const std::wstring& message,
+  bool showMessageBox);
 
   // 뮤텍스 핸들 저장
   HANDLE mutex_handle_;

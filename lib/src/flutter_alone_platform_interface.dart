@@ -1,3 +1,4 @@
+import 'package:flutter_alone/src/models/message_config.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'flutter_alone_method_channel.dart';
@@ -27,7 +28,8 @@ abstract class FlutterAlonePlatform extends PlatformInterface {
   /// Returns:
   /// - true: Application can start
   /// - false: Another instance is already running
-  Future<bool> checkAndRun() {
+  Future<bool> checkAndRun(
+      {MessageConfig messageConfig = const MessageConfig()}) {
     throw UnimplementedError('checkAndRun() has not been implemented.');
   }
 

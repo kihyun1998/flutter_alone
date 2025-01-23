@@ -45,15 +45,18 @@ FlutterAlonePlugin::~FlutterAlonePlugin() {
 }
 
 // Display running process information in MessageBox
-void FlutterAlonePlugin::ShowAlreadyRunningMessage(const ProcessInfo& processInfo) {
-    std::wstring message = L"이미 다른 사용자가 앱을 실행중입니다.\n";
-    message += L"실행 중인 사용자: " + processInfo.domain + L"\\" + processInfo.userName;
-    message += L"\n프로세스 ID: " + std::to_wstring(processInfo.processId);
+void FlutterAlonePlugin::ShowAlreadyRunningMessage(
+  const ProcessInfo& processInfo,
+  const std::wstring& title,
+  const std::wstring& message,
+  bool showMessageBox) {
 
+    if(!showMessageBox) return;
+    
     MessageBoxW(
         NULL,
         message.c_str(),
-        L"실행 오류",
+        title.c_str(),
         MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL
     );
 }
@@ -61,9 +64,6 @@ void FlutterAlonePlugin::ShowAlreadyRunningMessage(const ProcessInfo& processInf
 // Check for duplicate instance function
 bool FlutterAlonePlugin::CheckAndCreateMutex() {
   if (g_hMutex != NULL) {
-    // get current process info
-    ProcessInfo currentProcess = ProcessUtils::GetCurrentProcessInfo();
-    ShowAlreadyRunningMessage(currentProcess);
     return false;
   }
 
@@ -90,8 +90,6 @@ bool FlutterAlonePlugin::CheckAndCreateMutex() {
   }
 
   if (GetLastError() == ERROR_ALREADY_EXISTS) {
-    ProcessInfo currentProcess = ProcessUtils::GetCurrentProcessInfo();
-    ShowAlreadyRunningMessage(currentProcess);
     CleanupResources();
     return false;
   }
@@ -113,7 +111,22 @@ void FlutterAlonePlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   if (method_call.method_name().compare("checkAndRun") == 0) {
+    const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
+
+    std::string type = std::get<std::string>(arguments->at(flutter::EncodableValue("type")));
+    auto customTitle = std::get<std::string>(arguments->at(flutter::EncodableValue("customTitle")));
+    auto customMessage = std::get<std::string>(arguments->at(flutter::EncodableValue("customMessage")));
+    bool showMessageBox = std::get<bool>(arguments->at(flutter::EncodableValue("showMessageBox")));
+    
+    // Convert strings to wstring for Windows API
+    std::wstring title = std::wstring(customTitle.begin(), customTitle.end());
+    std::wstring message = std::wstring(customMessage.begin(), customMessage.end());
+
     bool canRun = CheckAndCreateMutex();
+    if(!canRun && showMessageBox){
+      ProcessInfo processInfo = ProcessUtils::GetCurrentProcessInfo();
+      ShowAlreadyRunningMessage(processInfo, title, message,showMessageBox);
+    }
     result->Success(flutter::EncodableValue(canRun));
   } else if (method_call.method_name().compare("dispose") == 0) {
     CleanupResources();
