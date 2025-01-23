@@ -15,6 +15,9 @@
 
 namespace flutter_alone {
 
+// 전역 뮤텍스 핸들
+static HANDLE g_hMutex = NULL;
+
 // static
 void FlutterAlonePlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
@@ -43,24 +46,34 @@ FlutterAlonePlugin::~FlutterAlonePlugin() {
 
 // 중복 실행 체크 함수
 bool FlutterAlonePlugin::CheckAndCreateMutex() {
-  // 이미 뮤텍스가 생성되어 있다면 true 반환
-  if (mutex_handle_ != NULL) {
-    return true;
+  // 이미 뮤텍스가 생성되어 있다면 중복 실행으로 처리
+  if (g_hMutex != NULL) {
+    return false;
   }
 
-  // 전역 뮤텍스 생성
-  mutex_handle_ = CreateMutexW(
-      NULL,    // 기본 보안 설정
-      FALSE,   // 초기 소유권 요청하지 않음
-      L"Global\\FlutterAloneApp_Mutex"  // 전역 네임스페이스 사용
+  // 보안 속성 설정 - 모든 사용자가 접근 가능하도록
+  SECURITY_ATTRIBUTES sa;
+  sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+  sa.bInheritHandle = FALSE;
+  
+  SECURITY_DESCRIPTOR sd;
+  InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
+  SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
+  sa.lpSecurityDescriptor = &sd;
+
+  // 전역 뮤텍스 생성 시도
+  g_hMutex = CreateMutexW(
+      &sa,     // 보안 속성
+      TRUE,    // 초기 소유권 요청
+      L"Global\\FlutterAloneApp_UniqueId"  // 고유한 뮤텍스 이름
   );
 
-  if (mutex_handle_ == NULL) {
+  if (g_hMutex == NULL) {
     // 뮤텍스 생성 실패
     return false;
   }
 
-  // ERROR_ALREADY_EXISTS 체크
+  // 이미 존재하는지 확인
   if (GetLastError() == ERROR_ALREADY_EXISTS) {
     CleanupResources();
     return false;
@@ -71,9 +84,10 @@ bool FlutterAlonePlugin::CheckAndCreateMutex() {
 
 // 리소스 정리 함수
 void FlutterAlonePlugin::CleanupResources() {
-  if (mutex_handle_ != NULL) {
-    CloseHandle(mutex_handle_);
-    mutex_handle_ = NULL;
+  if (g_hMutex != NULL) {
+    ReleaseMutex(g_hMutex);  // 뮤텍스 해제
+    CloseHandle(g_hMutex);   // 핸들 닫기
+    g_hMutex = NULL;
   }
 }
 
@@ -81,10 +95,10 @@ void FlutterAlonePlugin::CleanupResources() {
 void FlutterAlonePlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  if (method_call.method_name().compare("checkAndRun")==0) {
+  if (method_call.method_name().compare("checkAndRun") == 0) {
     bool canRun = CheckAndCreateMutex();
     result->Success(flutter::EncodableValue(canRun));
-  } else if (method_call.method_name().compare("dispose")==0) {
+  } else if (method_call.method_name().compare("dispose") == 0) {
     CleanupResources();
     result->Success();
   } else {
@@ -93,3 +107,10 @@ void FlutterAlonePlugin::HandleMethodCall(
 }
 
 }  // namespace flutter_alone
+
+void FlutterAlonePluginRegisterWithRegistrar(
+    FlutterDesktopPluginRegistrarRef registrar) {
+  flutter_alone::FlutterAlonePlugin::RegisterWithRegistrar(
+      flutter::PluginRegistrarManager::GetInstance()
+          ->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
+}
