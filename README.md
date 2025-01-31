@@ -15,6 +15,8 @@ A robust Flutter plugin for preventing duplicate execution of desktop applicatio
   - Automatic window focusing
   - Window restoration handling
   - Bring to front functionality
+  - Enhanced taskbar identification
+  - Rich MessageBox with application icon
 
 - **Customizable Messaging**
   - Multi-language support (English/Korean)
@@ -39,7 +41,7 @@ Add flutter_alone to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_alone: ^2.0.0
+  flutter_alone: ^2.0.1
 ```
 
 ## Usage
@@ -119,6 +121,7 @@ The plugin provides three types of message configurations:
 - Ensures proper cleanup of system resources
 - Full Unicode support for international character sets
 - Advanced window management capabilities
+- Enhanced taskbar and message box icon handling
 
 ## Error Handling
 

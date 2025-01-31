@@ -1,3 +1,11 @@
+## 2.0.1
+
+* **Enhancements**
+ * Improved MessageBox taskbar icon display
+ * Added application icon management system
+ * Enhanced MessageBox window hook implementation
+ * Optimized taskbar visual identification
+
 ## 2.0.0
 
 * **Breaking Changes**
