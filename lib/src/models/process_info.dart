@@ -2,6 +2,9 @@ enum ProcessInfoJsonKey {
   domain,
   userName,
   processId,
+  windowHandle,
+  processPath,
+  startTime,
   ;
 
   String get key => toString().split('.').last;
@@ -18,10 +21,22 @@ class ProcessInfo {
   /// Process ID
   final int processId;
 
+  /// Window handle
+  final int windowHandle;
+
+  /// Process path
+  final String processPath;
+
+  /// Process start time (Windows FILETIME)
+  final int startTime;
+
   ProcessInfo({
     required this.domain,
     required this.userName,
     required this.processId,
+    required this.windowHandle,
+    required this.processPath,
+    required this.startTime,
   });
 
   /// Create ProcessInfo from JSON
@@ -30,6 +45,9 @@ class ProcessInfo {
       domain: json[ProcessInfoJsonKey.domain.key] as String,
       userName: json[ProcessInfoJsonKey.userName.key] as String,
       processId: json[ProcessInfoJsonKey.processId.key] as int,
+      windowHandle: json[ProcessInfoJsonKey.windowHandle.key] as int,
+      processPath: json[ProcessInfoJsonKey.processPath.key] as String,
+      startTime: json[ProcessInfoJsonKey.startTime.key] as int,
     );
   }
 
@@ -39,6 +57,9 @@ class ProcessInfo {
       ProcessInfoJsonKey.domain.key: domain,
       ProcessInfoJsonKey.userName.key: userName,
       ProcessInfoJsonKey.processId.key: processId,
+      ProcessInfoJsonKey.windowHandle.key: windowHandle,
+      ProcessInfoJsonKey.processPath.key: processPath,
+      ProcessInfoJsonKey.startTime.key: startTime,
     };
   }
 
@@ -46,11 +67,17 @@ class ProcessInfo {
     String? domain,
     String? userName,
     int? processId,
+    int? windowHandle,
+    String? processPath,
+    int? startTime,
   }) {
     return ProcessInfo(
       domain: domain ?? this.domain,
       userName: userName ?? this.userName,
       processId: processId ?? this.processId,
+      windowHandle: windowHandle ?? this.windowHandle,
+      processPath: processPath ?? this.processPath,
+      startTime: startTime ?? this.startTime,
     );
   }
 
@@ -65,9 +92,19 @@ class ProcessInfo {
     return other is ProcessInfo &&
         other.domain == domain &&
         other.userName == userName &&
-        other.processId == processId;
+        other.processId == processId &&
+        other.windowHandle == windowHandle &&
+        other.processPath == processPath &&
+        other.startTime == startTime;
   }
 
   @override
-  int get hashCode => Object.hash(domain, userName, processId);
+  int get hashCode => Object.hash(
+        domain,
+        userName,
+        processId,
+        windowHandle,
+        processPath,
+        startTime,
+      );
 }

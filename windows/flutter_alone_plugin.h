@@ -10,6 +10,14 @@
 
 namespace flutter_alone {
 
+struct ProcessCheckResult {
+  bool canRun;        
+  bool isSameUser;    
+  HWND existingWindow;
+
+  ProcessCheckResult() : canRun(true), isSameUser(false), existingWindow(NULL) {}
+};
+
 class FlutterAlonePlugin : public flutter::Plugin {
  public:
   static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
@@ -40,6 +48,9 @@ class FlutterAlonePlugin : public flutter::Plugin {
   const std::wstring& message,
   bool showMessageBox);
 
+  ProcessCheckResult CheckRunningInstance();
+
+ private:
   // 뮤텍스 핸들 저장
   HANDLE mutex_handle_;
 };
