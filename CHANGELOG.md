@@ -1,3 +1,22 @@
+## 2.0.0
+
+* **Breaking Changes**
+  * Restructured platform implementation for better stability
+  * Redesigned message configuration system
+
+* **New Features**
+  * Added process information model with detailed system data
+  * Enhanced Windows mutex handling
+  * Improved window management (restore, focus, bring to front)
+  * Added comprehensive test coverage (unit, integration, method channel)
+  * Added detailed process utilities for Windows
+
+* **Improvements**
+  * Enhanced error handling with custom exceptions
+  * Improved resource cleanup
+  * Better cross-user detection
+  * Added documentation and examples
+
 ## 1.1.1
 
 * Fixed Korean text encoding issues in message box

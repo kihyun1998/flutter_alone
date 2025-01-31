@@ -1,17 +1,31 @@
 # flutter_alone
 
-A robust Flutter plugin for preventing duplicate execution of desktop applications.
+A robust Flutter plugin for preventing duplicate execution of desktop applications, offering advanced process management and cross-user detection.
 
 [![pub package](https://img.shields.io/pub/v/flutter_alone.svg)](https://pub.dev/packages/flutter_alone)
 
 ## Features
 
-- Prevent multiple instances of Windows desktop applications
-- Cross-user detection support
-- System-wide mutex management
-- Customizable message handling with template support
-- Multi-language support (English, Korean)
-- Safe resource cleanup
+- **Duplicate Execution Prevention**
+  - System-wide mutex management
+  - Cross-user account detection
+  - Process-level duplicate checking
+
+- **Window Management**
+  - Automatic window focusing
+  - Window restoration handling
+  - Bring to front functionality
+
+- **Customizable Messaging**
+  - Multi-language support (English/Korean)
+  - Custom message templates
+  - Configurable message box display
+  - UTF-8 text encoding support
+
+- **Process Management**
+  - Detailed process information tracking
+  - Safe resource cleanup
+  - Robust error handling
 
 ## Platform Support
 
@@ -25,7 +39,7 @@ Add flutter_alone to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_alone: ^1.1.1
+  flutter_alone: ^2.0.0
 ```
 
 ## Usage
@@ -35,60 +49,90 @@ Import the package:
 import 'package:flutter_alone/flutter_alone.dart';
 ```
 
-Basic usage with default English messages:
+### Basic Usage with Default Settings
 ```dart
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   if (!await FlutterAlone.instance.checkAndRun()) {  // Uses EnMessageConfig by default
-    return;
+    exit(0);
   }
   
   runApp(const MyApp());
 }
 ```
 
-Using Korean messages:
+### Using Korean Messages
 ```dart
 if (!await FlutterAlone.instance.checkAndRun(
   messageConfig: const KoMessageConfig(),
 )) {
-  return;
+  exit(0);
 }
 ```
 
-Using custom messages with template:
+### Custom Message Configuration
 ```dart
 final messageConfig = CustomMessageConfig(
-  customTitle: 'App Running',
-  messageTemplate: 'Application is already running by {domain}\\{userName}',
+  customTitle: 'Application Notice',
+  customMessage: 'Application is already running',
   showMessageBox: true,  // Optional, defaults to true
 );
 
 if (!await FlutterAlone.instance.checkAndRun(messageConfig: messageConfig)) {
-  return;
+  exit(0);
 }
 ```
 
-Clean up resources:
+### Resource Cleanup
+Always remember to dispose of resources when your application closes:
 ```dart
-@override
-void dispose() {
-  FlutterAlone.instance.dispose();
-  super.dispose();
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void dispose() {
+    FlutterAlone.instance.dispose();
+    super.dispose();
+  }
+
+  // ... rest of your widget implementation
 }
 ```
 
-## Additional Information
+## Advanced Features
 
-### Message Configuration
+### Message Configuration Classes
 The plugin provides three types of message configurations:
 - `EnMessageConfig`: Default English messages
 - `KoMessageConfig`: Korean messages
 - `CustomMessageConfig`: Custom messages with template support
 
-### Windows Implementation
+### Windows Implementation Details
 - Uses Windows Named Mutex for system-wide instance detection
-- Implements cross-user detection through global mutex naming
+- Implements robust cross-user detection through global mutex naming
 - Ensures proper cleanup of system resources
-- Proper Unicode support for all languages
+- Full Unicode support for international character sets
+- Advanced window management capabilities
+
+## Error Handling
+
+The plugin provides detailed error information through the `AloneException` class:
+```dart
+try {
+  await FlutterAlone.instance.checkAndRun();
+} on AloneException catch (e) {
+  print('Error Code: ${e.code}');
+  print('Message: ${e.message}');
+  print('Details: ${e.details}');
+}
+```
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
