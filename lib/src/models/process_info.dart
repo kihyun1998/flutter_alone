@@ -4,16 +4,7 @@ enum ProcessInfoJsonKey {
   processId,
   ;
 
-  String get key {
-    switch (this) {
-      case ProcessInfoJsonKey.domain:
-        return 'domain';
-      case ProcessInfoJsonKey.userName:
-        return 'userName';
-      case ProcessInfoJsonKey.processId:
-        return 'processId';
-    }
-  }
+  String get key => toString().split('.').last;
 }
 
 /// Model class for process information

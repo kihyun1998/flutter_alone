@@ -14,8 +14,7 @@ flutter_alone/
     ├── src/
     │   ├── models/
     │   │   ├── message_config.dart
-    │   │   ├── process_info.dart
-    │   │   └── window_config.dart
+    │   │   └── process_info.dart
     │   ├── exception.dart
     │   ├── flutter_alone_method_channel.dart
     │   └── flutter_alone_platform_interface.dart
@@ -129,8 +128,6 @@ void main() async {
   runApp(const MyApp());
 }
 
-class WindowConfig {}
-
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -202,7 +199,6 @@ import 'src/flutter_alone_platform_interface.dart';
 
 export 'src/exception.dart';
 export 'src/models/message_config.dart';
-export 'src/models/window_config.dart';
 
 /// Main class for the Flutter Alone plugin
 class FlutterAlone {
@@ -359,8 +355,6 @@ abstract class FlutterAlonePlatform extends PlatformInterface {
 ```
 ## lib/src/models/message_config.dart
 ```dart
-import 'package:flutter_alone/src/models/window_config.dart';
-
 enum MessageConfigJsonKey {
   type,
   showMessageBox,
@@ -376,25 +370,13 @@ abstract class MessageConfig {
   /// Whether to show message box
   final bool showMessageBox;
 
-  /// window config
-  final WindowConfig windowConfig;
-
   /// Constructor
   const MessageConfig({
     this.showMessageBox = true,
-    this.windowConfig = const WindowConfig(activateExistingWindow: true),
   });
 
   /// Convert to map for MethodChannel communication
-  Map<String, dynamic> toMap() {
-    final baseMap = {
-      MessageConfigJsonKey.showMessageBox.key: showMessageBox,
-      ...windowConfig.toMap(),
-    };
-    return addTypeSpecificConfig(baseMap);
-  }
-
-  Map<String, dynamic> addTypeSpecificConfig(Map<String, dynamic> baseMap);
+  Map<String, dynamic> toMap();
 }
 
 /// Korean message configuration
@@ -402,12 +384,10 @@ class KoMessageConfig extends MessageConfig {
   /// Constructor
   const KoMessageConfig({
     super.showMessageBox,
-    super.windowConfig,
   });
 
   @override
-  Map<String, dynamic> addTypeSpecificConfig(Map<String, dynamic> baseMap) => {
-        ...baseMap,
+  Map<String, dynamic> toMap() => {
         MessageConfigJsonKey.type.key: 'ko',
         MessageConfigJsonKey.showMessageBox.key: showMessageBox,
       };
@@ -418,12 +398,10 @@ class EnMessageConfig extends MessageConfig {
   /// Constructor
   const EnMessageConfig({
     super.showMessageBox,
-    super.windowConfig,
   });
 
   @override
-  Map<String, dynamic> addTypeSpecificConfig(Map<String, dynamic> baseMap) => {
-        ...baseMap,
+  Map<String, dynamic> toMap() => {
         MessageConfigJsonKey.type.key: 'en',
         MessageConfigJsonKey.showMessageBox.key: showMessageBox,
       };
@@ -455,12 +433,10 @@ class CustomMessageConfig extends MessageConfig {
     required this.customTitle,
     required this.messageTemplate,
     super.showMessageBox,
-    super.windowConfig,
   });
 
   @override
-  Map<String, dynamic> addTypeSpecificConfig(Map<String, dynamic> baseMap) => {
-        ...baseMap,
+  Map<String, dynamic> toMap() => {
         MessageConfigJsonKey.type.key: 'custom',
         MessageConfigJsonKey.customTitle.key: customTitle,
         MessageConfigJsonKey.messageTemplate.key: messageTemplate,
@@ -471,12 +447,10 @@ class CustomMessageConfig extends MessageConfig {
 ```
 ## lib/src/models/process_info.dart
 ```dart
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 enum ProcessInfoJsonKey {
   domain,
   userName,
   processId,
-  windowHandle,
   ;
 
   String get key => toString().split('.').last;
@@ -493,16 +467,10 @@ class ProcessInfo {
   /// Process ID
   final int processId;
 
-  /// Window handle (HWND) as int64
-  /// 0 if window not found
-  final int windowHandle;
-
-  /// Default Constructor
   ProcessInfo({
     required this.domain,
     required this.userName,
     required this.processId,
-    this.windowHandle = 0,
   });
 
   /// Create ProcessInfo from JSON
@@ -511,7 +479,6 @@ class ProcessInfo {
       domain: json[ProcessInfoJsonKey.domain.key] as String,
       userName: json[ProcessInfoJsonKey.userName.key] as String,
       processId: json[ProcessInfoJsonKey.processId.key] as int,
-      windowHandle: json[ProcessInfoJsonKey.windowHandle.key] as int? ?? 0,
     );
   }
 
@@ -521,7 +488,6 @@ class ProcessInfo {
       ProcessInfoJsonKey.domain.key: domain,
       ProcessInfoJsonKey.userName.key: userName,
       ProcessInfoJsonKey.processId.key: processId,
-      ProcessInfoJsonKey.windowHandle.key: windowHandle,
     };
   }
 
@@ -529,19 +495,17 @@ class ProcessInfo {
     String? domain,
     String? userName,
     int? processId,
-    int? windowHandle,
   }) {
     return ProcessInfo(
       domain: domain ?? this.domain,
       userName: userName ?? this.userName,
       processId: processId ?? this.processId,
-      windowHandle: windowHandle ?? this.windowHandle,
     );
   }
 
   @override
   String toString() {
-    return '$domain\\$userName (PID: $processId, HWND: $windowHandle)';
+    return '$domain\\$userName (PID: $processId)';
   }
 
   @override
@@ -550,50 +514,11 @@ class ProcessInfo {
     return other is ProcessInfo &&
         other.domain == domain &&
         other.userName == userName &&
-        other.processId == processId &&
-        other.windowHandle == windowHandle;
+        other.processId == processId;
   }
 
   @override
-  int get hashCode => Object.hash(domain, userName, processId, windowHandle);
-}
-
-```
-## lib/src/models/window_config.dart
-```dart
-enum WindowConfigJsonKey {
-  activateExistingWindow,
-  ;
-
-  String get key => toString().split('.').last;
-}
-
-/// Configuration for window activation when duplicate execution is detected
-class WindowConfig {
-  /// Whether to activate an existing window when running under the same account
-  ///
-  /// true: Finds and activates the existing window
-  /// false: Displays only a message box
-  final bool activateExistingWindow;
-
-  /// Default Constructor
-  const WindowConfig({
-    this.activateExistingWindow = true,
-  });
-
-  /// Converts to a Map for MethodChannel communication
-  Map<String, dynamic> toMap() => {
-        WindowConfigJsonKey.activateExistingWindow.key: activateExistingWindow,
-      };
-
-  WindowConfig copyWith({
-    bool? activateExistingWindow,
-  }) {
-    return WindowConfig(
-      activateExistingWindow:
-          activateExistingWindow ?? this.activateExistingWindow,
-    );
-  }
+  int get hashCode => Object.hash(domain, userName, processId);
 }
 
 ```
@@ -880,34 +805,25 @@ FlutterAlonePlugin::~FlutterAlonePlugin() {
   CleanupResources();
 }
 
-bool FlutterAlonePlugin::TryActivateExistingWindow(const ProcessInfo& processInfo){
-  if(processInfo.windowHandle != NULL){
-    return ProcessUtils::ActivateWindow(processInfo.windowHandle);
-  }
-  return false;
+// Display running process information in MessageBox
+void FlutterAlonePlugin::ShowAlreadyRunningMessage(
+  const ProcessInfo& processInfo,
+  const std::wstring& title,
+  const std::wstring& message,
+  bool showMessageBox) {
+
+    if(!showMessageBox) return;
+    
+    MessageBoxW(
+        NULL,
+        message.c_str(),
+        title.c_str(),
+        MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL
+    );
 }
-
-void FlutterAlonePlugin::HandleDuplicateInstance(
-    const ProcessInfo& processInfo,
-    bool activateExistingWindow,
-    const std::wstring& title,
-    const std::wstring& message,
-    bool showMessageBox){
-  
-  bool activated = false;
-  if(activateExistingWindow && ProcessUtils::IsSameUser(processInfo)){
-    activated = TryActivateExistingWindow(processInfo);
-  }
-
-  // Show message box if window activation failed or if it's a diffrent user
-  if(!activated && showMessageBox){
-    ShowAlreadyRunningMessage(processInfo,title,message,showMessageBox);
-  }
-}
-
 
 // Check for duplicate instance function
-bool FlutterAlonePlugin::CheckAndCreateMutex(bool activateExistingWindow) {
+bool FlutterAlonePlugin::CheckAndCreateMutex() {
   if (g_hMutex != NULL) {
     return false;
   }
@@ -930,6 +846,7 @@ bool FlutterAlonePlugin::CheckAndCreateMutex(bool activateExistingWindow) {
   );
 
   if (g_hMutex == NULL) {
+    auto errorMessage = ProcessUtils::GetLastErrorMessage();
     return false;
   }
 
@@ -939,24 +856,6 @@ bool FlutterAlonePlugin::CheckAndCreateMutex(bool activateExistingWindow) {
   }
 
   return true;
-}
-
-
-// Display running process information in MessageBox
-void FlutterAlonePlugin::ShowAlreadyRunningMessage(
-  const ProcessInfo& processInfo,
-  const std::wstring& title,
-  const std::wstring& message,
-  bool showMessageBox) {
-
-    if(!showMessageBox) return;
-    
-    MessageBoxW(
-        NULL,
-        message.c_str(),
-        title.c_str(),
-        MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL
-    );
 }
 
 // Resource cleanup function
@@ -978,7 +877,6 @@ void FlutterAlonePlugin::HandleMethodCall(
     // Get basic parameters
     std::string typeStr = std::get<std::string>(arguments->at(flutter::EncodableValue("type")));
     bool showMessageBox = std::get<bool>(arguments->at(flutter::EncodableValue("showMessageBox")));
-    bool activateExistingWindow = std::get<bool>(arguments->at(flutter::EncodableValue("activateExistingWindow")));
 
     // Convert MessageType
     MessageType type;
@@ -996,15 +894,15 @@ void FlutterAlonePlugin::HandleMethodCall(
     }
     
     // Check duplicate instance
-    bool canRun = CheckAndCreateMutex(activateExistingWindow);
-    if(!canRun){
+    bool canRun = CheckAndCreateMutex();
+    if(!canRun && showMessageBox){
       ProcessInfo processInfo = ProcessUtils::GetCurrentProcessInfo();
 
       // Create message
       std::wstring title = MessageUtils::GetTitle(type, customTitle);
       std::wstring message = MessageUtils::GetMessage(type, processInfo, messageTemplate);
 
-      HandleDuplicateInstance(processInfo,activateExistingWindow,title,message,showMessageBox);
+      ShowAlreadyRunningMessage(processInfo, title, message, showMessageBox);
     }
 
     result->Success(flutter::EncodableValue(canRun));
@@ -1059,7 +957,7 @@ class FlutterAlonePlugin : public flutter::Plugin {
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 	
 	// check and create mutex
-  bool CheckAndCreateMutex(bool activateExistingWindow);
+  bool CheckAndCreateMutex();
   
   // cleanup resources
   void CleanupResources();
@@ -1071,20 +969,8 @@ class FlutterAlonePlugin : public flutter::Plugin {
   const std::wstring& message,
   bool showMessageBox);
 
- private:
-  // Mutex handle for single instance check
+  // 뮤텍스 핸들 저장
   HANDLE mutex_handle_;
-
-  // Try to activate existing window
-  bool TryActivateExistingWindow(const ProcessInfo& processInfo);
-
-  // Handle duplicate instance case
-  void HandleDuplicateInstance(
-    const ProcessInfo& processInfo,
-    bool activateExistingWindow,
-    const std::wstring& title,
-    const std::wstring& message,
-    bool showMessageBox);
 };
 
 }  // namespace flutter_alone
@@ -1314,7 +1200,6 @@ namespace flutter_alone {
 ProcessInfo ProcessUtils::GetCurrentProcessInfo() {
     ProcessInfo info;
     info.processId = GetCurrentProcessId();
-    info.windowHandle = FindMainWindow();
     
     HANDLE hToken = NULL;
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
@@ -1329,33 +1214,6 @@ ProcessInfo ProcessUtils::GetCurrentProcessInfo() {
 
     CloseHandle(hToken);
     return info;
-}
-
-BOOL CALLBACK ProcessUtils::EnumWindowsCallback(HWND hwnd, LPARAM lParam) {
-    auto* params = reinterpret_cast<EnumWindowsCallbackParams*>(lParam);
-    DWORD processId = 0;
-
-    // Get process ID for the current window
-    GetWindowThreadProcessId(hwnd, &processId);
-    if(processId == params->processId && IsWindowVisible(hwnd)){
-        // Check if window has a title 
-        int length = GetWindowTextLength(hwnd);
-        if (length >0 ){
-            params->resultHandle = hwnd;
-            return FALSE;
-        }
-    }
-    return TRUE;
-}
-
-HWND ProcessUtils::FindMainWindow(){
-    EnumWindowsCallbackParams params;
-    params.processId = GetCurrentProcessId();
-    params.resultHandle = NULL;
-
-    // enumerate all windows to find our main window.
-    EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&params));
-    return params.resultHandle;
 }
 
 bool ProcessUtils::GetUserFromToken(HANDLE hToken, std::wstring& domain, std::wstring& userName) {
@@ -1406,40 +1264,6 @@ bool ProcessUtils::GetUserFromToken(HANDLE hToken, std::wstring& domain, std::ws
     return true;
 }
 
-bool ProcessUtils::IsSameUser(const ProcessInfo& processInfo){
-    ProcessInfo currentInfo = GetCurrentProcessInfo();
-    return (currentInfo.domain == processInfo.domain && currentInfo.userName == processInfo.userName);
-}
-
-bool ProcessUtils::ActivateWindow(HWND hWnd) {
-    if (!hWnd || !IsWindow(hWnd)) {
-        return false;
-    }
-
-    // If window is minimized, restore it
-    if (IsIconic(hWnd)) {
-        ShowWindow(hWnd, SW_RESTORE);
-    }
-
-    // Bring window to front
-    if (!SetForegroundWindow(hWnd)) {
-        // If SetForegroundWindow fails, try alternative method
-        DWORD foregroundThread = GetWindowThreadProcessId(
-            GetForegroundWindow(), NULL);
-        DWORD currentThread = GetCurrentThreadId();
-
-        if (foregroundThread != currentThread) {
-            AttachThreadInput(currentThread, foregroundThread, TRUE);
-            SetForegroundWindow(hWnd);
-            AttachThreadInput(currentThread, foregroundThread, FALSE);
-        }
-    }
-
-    // Set focus to the window
-    SetFocus(hWnd);
-    return true;
-}
-
 std::wstring ProcessUtils::GetLastErrorMessage() {
     DWORD error = GetLastError();
     LPWSTR messageBuffer = nullptr;
@@ -1478,22 +1302,12 @@ struct ProcessInfo {
     std::wstring domain;
     std::wstring userName;
     DWORD processId;
-    HWND windowHandle;
 };
 
 class ProcessUtils {
 public:
     // Get current process user information
     static ProcessInfo GetCurrentProcessInfo();
-
-    // Find main window handle for the current process
-    static HWND FindMainWindow();
-
-    // Check if the given process belongs to the current user
-    static bool IsSameUser(const ProcessInfo& processInfo);
-
-    // Activate the window if it exists
-    static bool ActivateWindow(HWND hwnd);
     
     // Generate error message
     static std::wstring GetLastErrorMessage();
@@ -1501,15 +1315,6 @@ public:
 private:
     // Extract user information from Windows security token
     static bool GetUserFromToken(HANDLE hToken, std::wstring& domain, std::wstring& userName);
-
-    // Callback function for EnumWindow
-    static BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam);
-
-    // Internal structure for window enumeration
-    struct EnumWindowsCallbackParams {
-        DWORD processId;
-        HWND resultHandle;
-    };
 };
 
 }  // namespace flutter_alone

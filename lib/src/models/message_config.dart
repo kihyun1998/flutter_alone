@@ -1,3 +1,13 @@
+enum MessageConfigJsonKey {
+  type,
+  showMessageBox,
+  customTitle,
+  messageTemplate,
+  ;
+
+  String get key => toString().split('.').last;
+}
+
 /// Base abstract class for message configuration
 abstract class MessageConfig {
   /// Whether to show message box
@@ -21,8 +31,8 @@ class KoMessageConfig extends MessageConfig {
 
   @override
   Map<String, dynamic> toMap() => {
-        'type': 'ko',
-        'showMessageBox': showMessageBox,
+        MessageConfigJsonKey.type.key: 'ko',
+        MessageConfigJsonKey.showMessageBox.key: showMessageBox,
       };
 }
 
@@ -35,8 +45,8 @@ class EnMessageConfig extends MessageConfig {
 
   @override
   Map<String, dynamic> toMap() => {
-        'type': 'en',
-        'showMessageBox': showMessageBox,
+        MessageConfigJsonKey.type.key: 'en',
+        MessageConfigJsonKey.showMessageBox.key: showMessageBox,
       };
 }
 
@@ -70,9 +80,9 @@ class CustomMessageConfig extends MessageConfig {
 
   @override
   Map<String, dynamic> toMap() => {
-        'type': 'custom',
-        'customTitle': customTitle,
-        'messageTemplate': messageTemplate,
-        'showMessageBox': showMessageBox,
+        MessageConfigJsonKey.type.key: 'custom',
+        MessageConfigJsonKey.customTitle.key: customTitle,
+        MessageConfigJsonKey.messageTemplate.key: messageTemplate,
+        MessageConfigJsonKey.showMessageBox.key: showMessageBox,
       };
 }
