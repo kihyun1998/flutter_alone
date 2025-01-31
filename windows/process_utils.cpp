@@ -96,7 +96,13 @@ FILETIME ProcessUtils::GetProcessStartTime(HANDLE hProcess) {
     return creation;
 }
 
-
+HICON ProcessUtils::GetExecutableIcon() {
+    WCHAR exePath[MAX_PATH];
+    if (GetModuleFileNameW(NULL, exePath, MAX_PATH)) {
+        return ExtractIconW(GetModuleHandleW(NULL), exePath, 0);
+    }
+    return NULL;
+}
 
 
 std::wstring ProcessUtils::GetLastErrorMessage() {

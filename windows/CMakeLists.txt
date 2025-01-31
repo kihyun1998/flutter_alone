@@ -26,6 +26,8 @@ list(APPEND PLUGIN_SOURCES
   "message_utils.h"
   "window_utils.cpp"
   "window_utils.h"
+  "icon_utils.cpp"
+  "icon_utils.h"    
 )
 
 # Define the plugin library target. Its name must not be changed (see comment

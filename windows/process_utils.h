@@ -46,6 +46,8 @@ public:
      */
     static FILETIME GetProcessStartTime(HANDLE hProcess);
     
+    static HICON GetExecutableIcon();
+
     /**
      * Get last error message
      */

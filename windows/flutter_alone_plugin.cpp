@@ -10,6 +10,7 @@
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
 #include "window_utils.h"
+#include "icon_utils.h"
 
 #include <memory>
 #include <sstream>
@@ -50,18 +51,54 @@ void FlutterAlonePlugin::ShowAlreadyRunningMessage(
     const std::wstring& title,
     const std::wstring& message,
     bool showMessageBox) {
-    if(!showMessageBox) {
-        OutputDebugStringW(L"[DEBUG] showMessageBox is false, skipping message display\n");
-        return;
-    }
     
-    MessageBoxW(
-        NULL,
-        message.c_str(),
-        title.c_str(),
-        MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL
-    );
+    MessageBoxInfo info;
+    info.title = title;
+    info.message = message;
+    info.showMessageBox = showMessageBox;
+    info.hIcon = IconUtils::GetAppIcon();
+
+    ShowMessageBox(info);
 }
+
+void FlutterAlonePlugin::ShowMessageBox(const MessageBoxInfo& info) {
+   if(!info.showMessageBox) {
+       return;
+   }
+   
+   HICON hIcon = ProcessUtils::GetExecutableIcon();
+   
+   static HHOOK g_hook = NULL;
+   static HICON g_icon = hIcon;
+
+   // Hook when creating message box window
+   g_hook = SetWindowsHookEx(
+       WH_CBT, 
+       [](int nCode, WPARAM wParam, LPARAM lParam) -> LRESULT {
+           if (nCode == HCBT_ACTIVATE && g_icon) {
+               // Set window icon
+               SendMessage((HWND)wParam, WM_SETICON, ICON_SMALL, (LPARAM)g_icon);
+               SendMessage((HWND)wParam, WM_SETICON, ICON_BIG, (LPARAM)g_icon);
+               UnhookWindowsHookEx(g_hook);
+           }
+           return CallNextHookEx(g_hook, nCode, wParam, lParam);
+       },
+       NULL, 
+       GetCurrentThreadId()
+   );
+   
+   MessageBoxW(
+       NULL,
+       info.message.c_str(),
+       info.title.c_str(),
+       MB_OK | MB_ICONINFORMATION
+   );
+
+   if (hIcon) {
+       DestroyIcon(hIcon);
+   }
+}
+
 ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance() {
     ProcessCheckResult result;
     result.canRun = true;
@@ -74,7 +111,7 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance() {
         CloseHandle(existingMutex);
         result.canRun = false;
         
-        // 기존 프로세스 찾기 - 같은 사용자인지 확인용
+        // Find existing process - To check if it's the same user
         auto existingProcess = ProcessUtils::FindExistingProcess();
         if (existingProcess.has_value()) {
             result.existingWindow = existingProcess->windowHandle;
@@ -134,11 +171,11 @@ void FlutterAlonePlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
     if (method_call.method_name().compare("checkAndRun") == 0) {
-        OutputDebugStringW(L"[DEBUG] HandleMethodCall: checkAndRun 시작\n");
+        OutputDebugStringW(L"[DEBUG] HandleMethodCall: checkAndRun start\n");
         
         const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
         
-        // 메시지 설정 가져오기
+        // Get message settings
         std::string typeStr = std::get<std::string>(arguments->at(flutter::EncodableValue("type")));
         bool showMessageBox = std::get<bool>(arguments->at(flutter::EncodableValue("showMessageBox")));
         
@@ -155,19 +192,20 @@ void FlutterAlonePlugin::HandleMethodCall(
                 std::get<std::string>(arguments->at(flutter::EncodableValue("customMessage"))));
         }
 
-        // 실행 중인 인스턴스 확인
+        // Check for running instance
         auto checkResult = CheckRunningInstance();
 
         
           if (!checkResult.canRun) {
-            // 같은 창인 경우 - 창 활성화
+            // If same window - Activate window
             if (checkResult.existingWindow != NULL) {
                 OutputDebugStringW(L"[DEBUG] Existing window found - activating window\n");
                 WindowUtils::RestoreWindow(checkResult.existingWindow);
                 WindowUtils::BringWindowToFront(checkResult.existingWindow);
                 WindowUtils::FocusWindow(checkResult.existingWindow);
+
             } 
-            // 다른 계정에서 실행 중인 경우 - 메시지 표시
+            // If running in different account - Show message
             else {
                 OutputDebugStringW(L"[DEBUG] No existing window - showing message\n");
                 std::wstring title = MessageUtils::GetTitle(type, customTitle);
@@ -179,7 +217,7 @@ void FlutterAlonePlugin::HandleMethodCall(
             return;
         }
 
-        // 새로운 뮤텍스 생성
+        // Create new mutex
         bool success = CheckAndCreateMutex();
         result->Success(flutter::EncodableValue(success));
     } 

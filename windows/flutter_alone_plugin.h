@@ -20,6 +20,17 @@ struct ProcessCheckResult {
 
 class FlutterAlonePlugin : public flutter::Plugin {
  public:
+  struct MessageBoxInfo {
+    std::wstring title;
+    std::wstring message;
+    bool showMessageBox;
+    HICON hIcon;  // Added: App icon handle
+
+    MessageBoxInfo() : showMessageBox(true), hIcon(NULL) {}
+  };
+
+  void ShowMessageBox(const MessageBoxInfo& info);
+
   static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
 
   FlutterAlonePlugin();
@@ -50,7 +61,7 @@ class FlutterAlonePlugin : public flutter::Plugin {
   ProcessCheckResult CheckRunningInstance();
 
  private:
-  // 뮤텍스 핸들 저장
+  // Store mutex handle
   HANDLE mutex_handle_;
 };
 

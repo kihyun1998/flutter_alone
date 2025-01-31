@@ -6,7 +6,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 class MockFlutterAlonePlatform
     with MockPlatformInterfaceMixin
     implements FlutterAlonePlatform {
-  // mock 메서드 호출 기록
+  // Record mock method calls
   bool checkAndRunCalled = false;
   bool disposeCalled = false;
   MessageConfig? lastMessageConfig;
@@ -36,8 +36,8 @@ void main() {
     flutterAlone = FlutterAlone.instance;
   });
 
-  group('메시지 설정 테스트', () {
-    test('한국어 메시지 설정이 올바르게 생성되어야 함', () {
+  group('Message configuration tests', () {
+    test('Korean message config should be created correctly', () {
       const config = KoMessageConfig();
       final map = config.toMap();
 
@@ -45,7 +45,7 @@ void main() {
       expect(map['showMessageBox'], true);
     });
 
-    test('영어 메시지 설정이 올바르게 생성되어야 함', () {
+    test('English message config should be created correctly', () {
       const config = EnMessageConfig();
       final map = config.toMap();
 
@@ -53,22 +53,22 @@ void main() {
       expect(map['showMessageBox'], true);
     });
 
-    test('커스텀 메시지가 올바르게 처리되어야 함', () {
-      const config =
-          CustomMessageConfig(customTitle: '테스트 제목', customMessage: '테스트 메시지');
+    test('Custom message should be handled correctly', () {
+      const config = CustomMessageConfig(
+          customTitle: 'Test Title', customMessage: 'Test Message');
       final map = config.toMap();
 
       expect(map['type'], 'custom');
-      expect(map['customTitle'], '테스트 제목');
-      expect(map['customMessage'], '테스트 메시지');
+      expect(map['customTitle'], 'Test Title');
+      expect(map['customMessage'], 'Test Message');
       expect(map['showMessageBox'], true);
     });
   });
 
-  group('플러그인 기본 기능 테스트', () {
-    test('checkAndRun이 올바르게 호출되어야 함', () async {
+  group('Plugin basic functionality tests', () {
+    test('checkAndRun should be called correctly', () async {
       const messageConfig =
-          CustomMessageConfig(customTitle: '테스트', customMessage: '메시지');
+          CustomMessageConfig(customTitle: 'Test', customMessage: 'Message');
 
       final result =
           await flutterAlone.checkAndRun(messageConfig: messageConfig);
@@ -78,7 +78,7 @@ void main() {
       expect(mockPlatform.lastMessageConfig, messageConfig);
     });
 
-    test('dispose가 올바르게 호출되어야 함', () async {
+    test('dispose should be called correctly', () async {
       await flutterAlone.dispose();
       expect(mockPlatform.disposeCalled, true);
     });
