@@ -536,6 +536,8 @@ class ProcessInfo {
 ```
 ## test/flutter_alone_method_channel_test.dart
 ```dart
+// test/flutter_alone_method_channel_test.dart
+
 import 'package:flutter/services.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 import 'package:flutter_alone/src/flutter_alone_method_channel.dart';
@@ -544,16 +546,22 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('Method Channel Tests', () {
+  group('MethodChannelFlutterAlone Tests', () {
     late MethodChannelFlutterAlone platform;
-    final channel = MethodChannel('flutter_alone');
-    final List<MethodCall> log = <MethodCall>[];
+    late List<MethodCall> log;
+
+    // Set up test method channel
+    const channel = MethodChannel('flutter_alone');
 
     setUp(() {
       platform = MethodChannelFlutterAlone();
+      log = <MethodCall>[];
+
+      // Configure method channel handler
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
         log.add(methodCall);
+
         switch (methodCall.method) {
           case 'checkAndRun':
             return true;
@@ -563,59 +571,88 @@ void main() {
             throw PlatformException(
               code: 'not_implemented',
               message: 'Method not implemented',
-              details: 'No implementation found for ${methodCall.method}',
+              details: 'Method: ${methodCall.method}',
             );
         }
       });
     });
 
     tearDown(() {
+      // Reset handler after test
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null);
       log.clear();
     });
 
-    test('checkAndRun should handle message configurations correctly',
-        () async {
-      final messageConfig = CustomMessageConfig(
-        customTitle: 'Custom Title',
-        customMessage: 'App running as {domain}\\{userName}',
+    test('checkAndRun with Korean message config', () async {
+      const messageConfig = KoMessageConfig(showMessageBox: true);
+
+      final result = await platform.checkAndRun(messageConfig: messageConfig);
+
+      expect(log, hasLength(1));
+      expect(
+        log.first,
+        isMethodCall('checkAndRun', arguments: {
+          'type': 'ko',
+          'showMessageBox': true,
+        }),
+      );
+      expect(result, true);
+    });
+
+    test('checkAndRun with English message config', () async {
+      const messageConfig = EnMessageConfig(showMessageBox: false);
+
+      final result = await platform.checkAndRun(messageConfig: messageConfig);
+
+      expect(log, hasLength(1));
+      expect(
+        log.first,
+        isMethodCall('checkAndRun', arguments: {
+          'type': 'en',
+          'showMessageBox': false,
+        }),
+      );
+      expect(result, true);
+    });
+
+    test('checkAndRun with custom message config', () async {
+      const messageConfig = CustomMessageConfig(
+        customTitle: 'Notice',
+        customMessage: 'Program is already running',
         showMessageBox: true,
       );
 
       final result = await platform.checkAndRun(messageConfig: messageConfig);
 
-      // Verify method call
       expect(log, hasLength(1));
       expect(
         log.first,
         isMethodCall('checkAndRun', arguments: {
           'type': 'custom',
-          'customTitle': 'Custom Title',
-          'messageTemplate': 'App running as {domain}\\{userName}',
+          'customTitle': 'Notice',
+          'customMessage': 'Program is already running',
           'showMessageBox': true,
         }),
       );
-
-      // Verify result
-      expect(result, isTrue);
+      expect(result, true);
     });
 
-    test('dispose should clean up resources properly', () async {
+    test('dispose method call', () async {
       await platform.dispose();
 
-      // Verify method call
       expect(log, hasLength(1));
       expect(log.first, isMethodCall('dispose', arguments: null));
     });
 
-    test('checkAndRun should throw AloneException on platform error', () async {
+    test('checkAndRun platform error handling', () async {
+      // Change to error-throwing handler
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
         throw PlatformException(
           code: 'error',
-          message: 'Test error message',
-          details: 'Error details',
+          message: 'Error checking for duplicate execution',
+          details: 'Failed to access system resources',
         );
       });
 
@@ -624,19 +661,28 @@ void main() {
         throwsA(
           isA<AloneException>()
               .having((e) => e.code, 'code', 'error')
-              .having((e) => e.message, 'message', 'Test error message')
-              .having((e) => e.details, 'details', 'Error details'),
+              .having(
+                (e) => e.message,
+                'message',
+                'Error checking for duplicate execution',
+              )
+              .having(
+                (e) => e.details,
+                'details',
+                'Failed to access system resources',
+              ),
         ),
       );
     });
 
-    test('dispose should throw AloneException on platform error', () async {
+    test('dispose platform error handling', () async {
+      // Change to error-throwing handler
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
         throw PlatformException(
           code: 'error',
-          message: 'Failed to dispose resources',
-          details: 'Cleanup error details',
+          message: 'Error while cleaning up resources',
+          details: 'Failed to release system mutex',
         );
       });
 
@@ -646,9 +692,31 @@ void main() {
           isA<AloneException>()
               .having((e) => e.code, 'code', 'error')
               .having(
-                  (e) => e.message, 'message', 'Failed to dispose resources')
-              .having((e) => e.details, 'details', 'Cleanup error details'),
+                (e) => e.message,
+                'message',
+                'Error while cleaning up resources',
+              )
+              .having(
+                (e) => e.details,
+                'details',
+                'Failed to release system mutex',
+              ),
         ),
+      );
+    });
+
+    test('invalid method call', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        throw PlatformException(
+          code: 'not_implemented',
+          message: 'Method not implemented',
+        );
+      });
+
+      expect(
+        () => channel.invokeMethod<void>('invalidMethod'),
+        throwsA(isA<PlatformException>()),
       );
     });
   });
@@ -658,13 +726,45 @@ void main() {
 ## test/flutter_alone_test.dart
 ```dart
 import 'package:flutter_alone/flutter_alone.dart';
+import 'package:flutter_alone/src/flutter_alone_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+
+class MockFlutterAlonePlatform
+    with MockPlatformInterfaceMixin
+    implements FlutterAlonePlatform {
+  // mock 메서드 호출 기록
+  bool checkAndRunCalled = false;
+  bool disposeCalled = false;
+  MessageConfig? lastMessageConfig;
+
+  @override
+  Future<bool> checkAndRun({
+    MessageConfig messageConfig = const EnMessageConfig(),
+  }) async {
+    checkAndRunCalled = true;
+    lastMessageConfig = messageConfig;
+    return true;
+  }
+
+  @override
+  Future<void> dispose() async {
+    disposeCalled = true;
+  }
+}
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  late FlutterAlone flutterAlone;
+  late MockFlutterAlonePlatform mockPlatform;
 
-  group('Message Configuration Tests', () {
-    test('Korean message configuration should be created correctly', () {
+  setUp(() {
+    mockPlatform = MockFlutterAlonePlatform();
+    FlutterAlonePlatform.instance = mockPlatform;
+    flutterAlone = FlutterAlone.instance;
+  });
+
+  group('메시지 설정 테스트', () {
+    test('한국어 메시지 설정이 올바르게 생성되어야 함', () {
       const config = KoMessageConfig();
       final map = config.toMap();
 
@@ -672,7 +772,7 @@ void main() {
       expect(map['showMessageBox'], true);
     });
 
-    test('English message configuration should be created correctly', () {
+    test('영어 메시지 설정이 올바르게 생성되어야 함', () {
       const config = EnMessageConfig();
       final map = config.toMap();
 
@@ -680,26 +780,34 @@ void main() {
       expect(map['showMessageBox'], true);
     });
 
-    test('Custom message configuration should handle placeholders', () {
-      const config = CustomMessageConfig(
-          customTitle: 'Test Title',
-          customMessage: 'Running as {domain}\\{userName}');
+    test('커스텀 메시지가 올바르게 처리되어야 함', () {
+      const config =
+          CustomMessageConfig(customTitle: '테스트 제목', customMessage: '테스트 메시지');
       final map = config.toMap();
 
       expect(map['type'], 'custom');
-      expect(map['customTitle'], 'Test Title');
-      expect(map['messageTemplate'], 'Running as {domain}\\{userName}');
+      expect(map['customTitle'], '테스트 제목');
+      expect(map['customMessage'], '테스트 메시지');
       expect(map['showMessageBox'], true);
     });
+  });
 
-    test('Message configurations should respect showMessageBox parameter', () {
-      const config = CustomMessageConfig(
-          customTitle: 'Title',
-          customMessage: 'Message',
-          showMessageBox: false);
-      final map = config.toMap();
+  group('플러그인 기본 기능 테스트', () {
+    test('checkAndRun이 올바르게 호출되어야 함', () async {
+      const messageConfig =
+          CustomMessageConfig(customTitle: '테스트', customMessage: '메시지');
 
-      expect(map['showMessageBox'], false);
+      final result =
+          await flutterAlone.checkAndRun(messageConfig: messageConfig);
+
+      expect(result, true);
+      expect(mockPlatform.checkAndRunCalled, true);
+      expect(mockPlatform.lastMessageConfig, messageConfig);
+    });
+
+    test('dispose가 올바르게 호출되어야 함', () async {
+      await flutterAlone.dispose();
+      expect(mockPlatform.disposeCalled, true);
     });
   });
 }

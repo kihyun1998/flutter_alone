@@ -1,3 +1,5 @@
+// test/flutter_alone_method_channel_test.dart
+
 import 'package:flutter/services.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 import 'package:flutter_alone/src/flutter_alone_method_channel.dart';
@@ -6,16 +8,22 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('Method Channel Tests', () {
+  group('MethodChannelFlutterAlone Tests', () {
     late MethodChannelFlutterAlone platform;
-    final channel = MethodChannel('flutter_alone');
-    final List<MethodCall> log = <MethodCall>[];
+    late List<MethodCall> log;
+
+    // Set up test method channel
+    const channel = MethodChannel('flutter_alone');
 
     setUp(() {
       platform = MethodChannelFlutterAlone();
+      log = <MethodCall>[];
+
+      // Configure method channel handler
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
         log.add(methodCall);
+
         switch (methodCall.method) {
           case 'checkAndRun':
             return true;
@@ -25,59 +33,88 @@ void main() {
             throw PlatformException(
               code: 'not_implemented',
               message: 'Method not implemented',
-              details: 'No implementation found for ${methodCall.method}',
+              details: 'Method: ${methodCall.method}',
             );
         }
       });
     });
 
     tearDown(() {
+      // Reset handler after test
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null);
       log.clear();
     });
 
-    test('checkAndRun should handle message configurations correctly',
-        () async {
-      final messageConfig = CustomMessageConfig(
-        customTitle: 'Custom Title',
-        customMessage: 'App running as {domain}\\{userName}',
+    test('checkAndRun with Korean message config', () async {
+      const messageConfig = KoMessageConfig(showMessageBox: true);
+
+      final result = await platform.checkAndRun(messageConfig: messageConfig);
+
+      expect(log, hasLength(1));
+      expect(
+        log.first,
+        isMethodCall('checkAndRun', arguments: {
+          'type': 'ko',
+          'showMessageBox': true,
+        }),
+      );
+      expect(result, true);
+    });
+
+    test('checkAndRun with English message config', () async {
+      const messageConfig = EnMessageConfig(showMessageBox: false);
+
+      final result = await platform.checkAndRun(messageConfig: messageConfig);
+
+      expect(log, hasLength(1));
+      expect(
+        log.first,
+        isMethodCall('checkAndRun', arguments: {
+          'type': 'en',
+          'showMessageBox': false,
+        }),
+      );
+      expect(result, true);
+    });
+
+    test('checkAndRun with custom message config', () async {
+      const messageConfig = CustomMessageConfig(
+        customTitle: 'Notice',
+        customMessage: 'Program is already running',
         showMessageBox: true,
       );
 
       final result = await platform.checkAndRun(messageConfig: messageConfig);
 
-      // Verify method call
       expect(log, hasLength(1));
       expect(
         log.first,
         isMethodCall('checkAndRun', arguments: {
           'type': 'custom',
-          'customTitle': 'Custom Title',
-          'messageTemplate': 'App running as {domain}\\{userName}',
+          'customTitle': 'Notice',
+          'customMessage': 'Program is already running',
           'showMessageBox': true,
         }),
       );
-
-      // Verify result
-      expect(result, isTrue);
+      expect(result, true);
     });
 
-    test('dispose should clean up resources properly', () async {
+    test('dispose method call', () async {
       await platform.dispose();
 
-      // Verify method call
       expect(log, hasLength(1));
       expect(log.first, isMethodCall('dispose', arguments: null));
     });
 
-    test('checkAndRun should throw AloneException on platform error', () async {
+    test('checkAndRun platform error handling', () async {
+      // Change to error-throwing handler
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
         throw PlatformException(
           code: 'error',
-          message: 'Test error message',
-          details: 'Error details',
+          message: 'Error checking for duplicate execution',
+          details: 'Failed to access system resources',
         );
       });
 
@@ -86,19 +123,28 @@ void main() {
         throwsA(
           isA<AloneException>()
               .having((e) => e.code, 'code', 'error')
-              .having((e) => e.message, 'message', 'Test error message')
-              .having((e) => e.details, 'details', 'Error details'),
+              .having(
+                (e) => e.message,
+                'message',
+                'Error checking for duplicate execution',
+              )
+              .having(
+                (e) => e.details,
+                'details',
+                'Failed to access system resources',
+              ),
         ),
       );
     });
 
-    test('dispose should throw AloneException on platform error', () async {
+    test('dispose platform error handling', () async {
+      // Change to error-throwing handler
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
         throw PlatformException(
           code: 'error',
-          message: 'Failed to dispose resources',
-          details: 'Cleanup error details',
+          message: 'Error while cleaning up resources',
+          details: 'Failed to release system mutex',
         );
       });
 
@@ -108,9 +154,31 @@ void main() {
           isA<AloneException>()
               .having((e) => e.code, 'code', 'error')
               .having(
-                  (e) => e.message, 'message', 'Failed to dispose resources')
-              .having((e) => e.details, 'details', 'Cleanup error details'),
+                (e) => e.message,
+                'message',
+                'Error while cleaning up resources',
+              )
+              .having(
+                (e) => e.details,
+                'details',
+                'Failed to release system mutex',
+              ),
         ),
+      );
+    });
+
+    test('invalid method call', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        throw PlatformException(
+          code: 'not_implemented',
+          message: 'Method not implemented',
+        );
+      });
+
+      expect(
+        () => channel.invokeMethod<void>('invalidMethod'),
+        throwsA(isA<PlatformException>()),
       );
     });
   });
