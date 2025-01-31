@@ -2,7 +2,7 @@ enum MessageConfigJsonKey {
   type,
   showMessageBox,
   customTitle,
-  messageTemplate,
+  customMessage,
   ;
 
   String get key => toString().split('.').last;
@@ -52,15 +52,11 @@ class EnMessageConfig extends MessageConfig {
 
 /// Custom message configuration
 ///
-/// Available placeholders in [messageTemplate]:
-/// - {domain}: User domain
-/// - {userName}: User name
-///
 /// Example:
 /// ```dart
 /// final config = CustomMessageConfig(
-///   customTitle: "Running",
-///   messageTemplate: "Program is running by {domain}\\{userName}",
+///   customTitle: "Notice",
+///   customMessage: "Application is already running in another account.",
 /// );
 /// ```
 class CustomMessageConfig extends MessageConfig {
@@ -68,13 +64,12 @@ class CustomMessageConfig extends MessageConfig {
   final String customTitle;
 
   /// Message template string
-  /// Can use {domain} and {userName} placeholders
-  final String messageTemplate;
+  final String customMessage;
 
   /// Constructor
   const CustomMessageConfig({
     required this.customTitle,
-    required this.messageTemplate,
+    required this.customMessage,
     super.showMessageBox,
   });
 
@@ -82,7 +77,7 @@ class CustomMessageConfig extends MessageConfig {
   Map<String, dynamic> toMap() => {
         MessageConfigJsonKey.type.key: 'custom',
         MessageConfigJsonKey.customTitle.key: customTitle,
-        MessageConfigJsonKey.messageTemplate.key: messageTemplate,
+        MessageConfigJsonKey.customMessage.key: customMessage,
         MessageConfigJsonKey.showMessageBox.key: showMessageBox,
       };
 }

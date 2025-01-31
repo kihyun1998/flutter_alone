@@ -47,17 +47,11 @@ FlutterAlonePlugin::~FlutterAlonePlugin() {
 
 // Display running process information in MessageBox
 void FlutterAlonePlugin::ShowAlreadyRunningMessage(
-    const ProcessInfo& processInfo,
     const std::wstring& title,
     const std::wstring& message,
     bool showMessageBox) {
-    
-    OutputDebugStringW(L"[DEBUG] ShowAlreadyRunningMessage 호출\n");
-    OutputDebugStringW((L"[DEBUG] 제목: " + title + L"\n").c_str());
-    OutputDebugStringW((L"[DEBUG] 메시지: " + message + L"\n").c_str());
-    
     if(!showMessageBox) {
-        OutputDebugStringW(L"[DEBUG] showMessageBox가 false라서 메시지 표시 안함\n");
+        OutputDebugStringW(L"[DEBUG] showMessageBox is false, skipping message display\n");
         return;
     }
     
@@ -72,39 +66,19 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance() {
     ProcessCheckResult result;
     result.canRun = true;
     
-    OutputDebugStringW(L"[DEBUG] CheckRunningInstance started:\n");
-    
-    // 전역 뮤텍스 존재 확인
+    // Check for global mutex
     HANDLE existingMutex = OpenMutexW(MUTEX_ALL_ACCESS, FALSE, L"Global\\FlutterAloneApp_UniqueId");
 
     if (existingMutex != NULL) {
         OutputDebugStringW(L"[DEBUG] Existing mutex found\n");
         CloseHandle(existingMutex);
-        
-        // 뮤텍스가 있다는 것 자체가 다른 프로세스가 실행중이라는 의미
-        result.canRun = false;  // 여기서 바로 false로 설정
-        
-        // 현재 프로세스 정보 가져오기
-        ProcessInfo currentProcess = ProcessUtils::GetCurrentProcessInfo();
-        OutputDebugStringW((L"[DEBUG] Current process info - Domain: " + 
-            currentProcess.domain + L", User: " + currentProcess.userName + L"\n").c_str());
+        result.canRun = false;
         
         // 기존 프로세스 찾기 - 같은 사용자인지 확인용
         auto existingProcess = ProcessUtils::FindExistingProcess();
         if (existingProcess.has_value()) {
-            OutputDebugStringW(L"[DEBUG] Existing process found\n");
-            OutputDebugStringW((L"[DEBUG] Existing process info - Domain: " + 
-                existingProcess->domain + L", User: " + existingProcess->userName + L"\n").c_str());
-            
-            result.isSameUser = ProcessUtils::IsSameUser(currentProcess, existingProcess.value());
-            
-            if (result.isSameUser) {
-                result.existingWindow = existingProcess->windowHandle;
-            }
-        } else {
-            OutputDebugStringW(L"[DEBUG] No existing process found - but mutex exists\n");
-            // 프로세스를 못찾더라도 뮤텍스가 있으므로 다른 사용자가 실행중인 것으로 간주
-            result.isSameUser = false;
+            result.existingWindow = existingProcess->windowHandle;
+            OutputDebugStringW(L"[DEBUG] Existing process window found\n");
         }
     }
 
@@ -135,7 +109,6 @@ bool FlutterAlonePlugin::CheckAndCreateMutex() {
   );
 
   if (g_hMutex == NULL) {
-    auto errorMessage = ProcessUtils::GetLastErrorMessage();
     return false;
   }
 
@@ -174,58 +147,35 @@ void FlutterAlonePlugin::HandleMethodCall(
         else if(typeStr == "en") type = MessageType::en;
         else type = MessageType::custom;
         
-        std::wstring customTitle, messageTemplate;
+        std::wstring customTitle, customMessage;
         if (type == MessageType::custom) {
             customTitle = MessageUtils::Utf8ToWide(
                 std::get<std::string>(arguments->at(flutter::EncodableValue("customTitle"))));
-            messageTemplate = MessageUtils::Utf8ToWide(
-                std::get<std::string>(arguments->at(flutter::EncodableValue("messageTemplate"))));
+            customMessage = MessageUtils::Utf8ToWide(
+                std::get<std::string>(arguments->at(flutter::EncodableValue("customMessage"))));
         }
 
         // 실행 중인 인스턴스 확인
         auto checkResult = CheckRunningInstance();
-        OutputDebugStringW(L"[DEBUG] CheckRunningInstance 결과:\n");
-        OutputDebugStringW((L"canRun: " + std::to_wstring(checkResult.canRun) + L"\n").c_str());
-        OutputDebugStringW((L"isSameUser: " + std::to_wstring(checkResult.isSameUser) + L"\n").c_str());
-        OutputDebugStringW((L"existingWindow: " + std::to_wstring((UINT_PTR)checkResult.existingWindow) + L"\n").c_str());
 
         
-        if (!checkResult.canRun) {
-            if (checkResult.isSameUser) {
-                OutputDebugStringW(L"[DEBUG] Same user's process detected\n");
-                // 같은 사용자 - 기존 창 활성화
+          if (!checkResult.canRun) {
+            // 같은 창인 경우 - 창 활성화
+            if (checkResult.existingWindow != NULL) {
+                OutputDebugStringW(L"[DEBUG] Existing window found - activating window\n");
                 WindowUtils::RestoreWindow(checkResult.existingWindow);
                 WindowUtils::BringWindowToFront(checkResult.existingWindow);
                 WindowUtils::FocusWindow(checkResult.existingWindow);
-                result->Success(flutter::EncodableValue(false));
-            } else {
-                OutputDebugStringW(L"[DEBUG] Another user's process detected\n");
-
-
-
-                // 다른 사용자 - 메시지 표시
-                auto existingProcess = ProcessUtils::FindExistingProcess();
-                if (existingProcess.has_value()) {
-                    std::wstring title = MessageUtils::GetTitle(type, customTitle);
-                    std::wstring message = MessageUtils::GetMessage(type, existingProcess.value(), messageTemplate);
-                    
-                    // 메시지 박스를 표시하고 결과를 반환
-                    ShowAlreadyRunningMessage(existingProcess.value(), title, message, showMessageBox);
-                }else{
-                  // 기본 ProcessInfo 생성
-                  ProcessInfo defaultInfo;
-                  defaultInfo.domain = L"Unknown";  // 또는 현재 도메인 사용
-                  defaultInfo.userName = L"another user";
-
-                  std::wstring title = MessageUtils::GetTitle(type, customTitle);
-                  std::wstring message = MessageUtils::GetMessage(type, defaultInfo, messageTemplate);
-
-                  // 메시지 박스를 표시하고 결과를 반환
-                  ShowAlreadyRunningMessage(defaultInfo, title, message, showMessageBox);
-
-                }
-                result->Success(flutter::EncodableValue(false));
+            } 
+            // 다른 계정에서 실행 중인 경우 - 메시지 표시
+            else {
+                OutputDebugStringW(L"[DEBUG] No existing window - showing message\n");
+                std::wstring title = MessageUtils::GetTitle(type, customTitle);
+                std::wstring message = MessageUtils::GetMessage(type, customMessage);
+                ShowAlreadyRunningMessage(title, message, showMessageBox);
             }
+            
+            result->Success(flutter::EncodableValue(false));
             return;
         }
 

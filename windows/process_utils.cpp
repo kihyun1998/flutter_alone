@@ -15,11 +15,6 @@ ProcessInfo ProcessUtils::GetProcessInfoById(DWORD processId) {
     
     HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, TRUE, processId);
     if (hProcess) {
-        HANDLE hToken = NULL;
-        if (OpenProcessToken(hProcess, TOKEN_QUERY, &hToken)) {
-            GetUserFromToken(hToken, info.domain, info.userName);
-            CloseHandle(hToken);
-        }
         info.startTime = GetProcessStartTime(hProcess);
         info.processPath = GetProcessPath(processId);
         CloseHandle(hProcess);
@@ -62,7 +57,6 @@ bool ProcessUtils::IsSameExecutable(const std::wstring& path1, const std::wstrin
         return false;
     }
     
-    // Normalize paths and compare
     WCHAR fullPath1[MAX_PATH];
     WCHAR fullPath2[MAX_PATH];
     
@@ -76,10 +70,6 @@ bool ProcessUtils::IsSameExecutable(const std::wstring& path1, const std::wstrin
 
 ProcessInfo ProcessUtils::GetCurrentProcessInfo() {
     return GetProcessInfoById(GetCurrentProcessId());
-}
-
-bool ProcessUtils::IsSameUser(const ProcessInfo& p1, const ProcessInfo& p2) {
-    return (p1.domain == p2.domain && p1.userName == p2.userName);
 }
 
 std::wstring ProcessUtils::GetProcessPath(DWORD processId) {
@@ -107,63 +97,7 @@ FILETIME ProcessUtils::GetProcessStartTime(HANDLE hProcess) {
 }
 
 
-bool ProcessUtils::GetUserFromToken(HANDLE hToken, std::wstring& domain, std::wstring& userName) {
-    // Set Security attributes
-    SECURITY_ATTRIBUTES sa;
-    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
-    sa.bInheritHandle = TRUE;
 
-    SECURITY_DESCRIPTOR sd;
-    InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
-    SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
-    sa.lpSecurityDescriptor = &sd;
-    
-    DWORD dwSize = 0;
-    PTOKEN_USER pTokenUser = NULL;
-    
-    // Get token information
-    GetTokenInformation(hToken, TokenUser, NULL, 0, &dwSize);
-    if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-        return false;
-    }
-    
-    // Allocate memory
-    pTokenUser = (PTOKEN_USER)LocalAlloc(LPTR, dwSize);
-    if (!pTokenUser) {
-        return false;
-    }
-    
-    // Get token information
-    if (!GetTokenInformation(hToken, TokenUser, pTokenUser, dwSize, &dwSize)) {
-        LocalFree(pTokenUser);
-        return false;
-    }
-    
-    WCHAR szUser[256] = {0};
-    WCHAR szDomain[256] = {0};
-    DWORD dwUserSize = 256;
-    DWORD dwDomainSize = 256;
-    SID_NAME_USE snu;
-    
-    // SID를 사용자 이름과 도메인으로 변환
-    if (!LookupAccountSidW(
-        NULL,                   // Local computer
-        pTokenUser->User.Sid,   // SID
-        szUser,                 // User Name
-        &dwUserSize,           
-        szDomain,              // Domain name
-        &dwDomainSize,
-        &snu)) {
-        LocalFree(pTokenUser);
-        return false;
-    }
-    
-    domain = szDomain;
-    userName = szUser;
-    
-    LocalFree(pTokenUser);
-    return true;
-}
 
 std::wstring ProcessUtils::GetLastErrorMessage() {
     DWORD error = GetLastError();

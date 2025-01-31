@@ -23,19 +23,10 @@ public:
      * Get message based on message type and configuration
      */
     static std::wstring GetMessage(
-        MessageType type, 
-        const ProcessInfo& processInfo,
-        const std::wstring& messageTemplate = L""
+        MessageType type,
+        const std::wstring& customMessage = L""
     );
 
-    /**
-     * Process message template with placeholders
-     * Replaces {domain} and {userName} with actual values
-     */
-    static std::wstring ProcessTemplate(
-        const std::wstring& messageTemplate,
-        const ProcessInfo& processInfo
-    );
 
     /**
      * Convert string encoding between UTF-8 and UTF-16
@@ -49,8 +40,8 @@ private:
     static std::wstring GetEnglishTitle() { return L"Execution Error"; }
     
     // Default messages
-    static std::wstring GetKoreanMessage(const ProcessInfo& processInfo);
-    static std::wstring GetEnglishMessage(const ProcessInfo& processInfo);
+    static std::wstring GetKoreanMessage();
+    static std::wstring GetEnglishMessage();
 };
 
 }  // namespace flutter_alone

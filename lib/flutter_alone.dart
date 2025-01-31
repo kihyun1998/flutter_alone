@@ -22,15 +22,9 @@ class FlutterAlone {
     MessageConfig messageConfig = const EnMessageConfig(),
   }) async {
     try {
-      debugPrint('[DEBUG] checkAndRun 시작');
-      debugPrint('[DEBUG] messageConfig: ${messageConfig.toMap()}');
-
       final result = await FlutterAlonePlatform.instance.checkAndRun(
         messageConfig: messageConfig,
       );
-
-      debugPrint('[DEBUG] checkAndRun 결과: $result');
-
       return result;
     } catch (e) {
       debugPrint('Error checking application instance: $e');

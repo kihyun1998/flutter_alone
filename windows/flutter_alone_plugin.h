@@ -43,7 +43,6 @@ class FlutterAlonePlugin : public flutter::Plugin {
 
   // show process info
   void ShowAlreadyRunningMessage(
-  const ProcessInfo& processInfo,
   const std::wstring& title,
   const std::wstring& message,
   bool showMessageBox);

@@ -18,59 +18,27 @@ std::wstring MessageUtils::GetTitle(MessageType type, const std::wstring& custom
 
 std::wstring MessageUtils::GetMessage(
     MessageType type,
-    const ProcessInfo& processInfo,
-    const std::wstring& messageTemplate
+    const std::wstring& customMessage
 ) {
     switch (type) {
         case MessageType::ko:
-            return GetKoreanMessage(processInfo);
+            return GetKoreanMessage();
         case MessageType::en:
-            return GetEnglishMessage(processInfo);
+            return GetEnglishMessage();
         case MessageType::custom:
-            return ProcessTemplate(
-                messageTemplate.empty() ? L"Another instance is running" : messageTemplate,
-                processInfo
-            );
+            return customMessage.empty() ? 
+                L"Application is already running in another account" : customMessage;
         default:
-            return L"Another instance is running";
+            return L"Application is already running in another account";
     }
 }
 
-std::wstring MessageUtils::GetKoreanMessage(const ProcessInfo& processInfo) {
-    return ProcessTemplate(
-        L"이미 다른 사용자가 앱을 실행중입니다.\n실행 중인 사용자: {domain}\\{userName}",
-        processInfo
-    );
+std::wstring MessageUtils::GetKoreanMessage() {
+    return L"이미 다른 계정에서 앱을 실행중입니다.";
 }
 
-std::wstring MessageUtils::GetEnglishMessage(const ProcessInfo& processInfo) {
-    return ProcessTemplate(
-        L"Application is already running by another user.\nRunning user: {domain}\\{userName}",
-        processInfo
-    );
-}
-
-std::wstring MessageUtils::ProcessTemplate(
-    const std::wstring& messageTemplate,
-    const ProcessInfo& processInfo
-) {
-    std::wstring result = messageTemplate;
-    
-    // Replace {domain}
-    size_t domainPos = result.find(L"{domain}");
-    while (domainPos != std::wstring::npos) {
-        result.replace(domainPos, 8, processInfo.domain);
-        domainPos = result.find(L"{domain}", domainPos + processInfo.domain.length());
-    }
-    
-    // Replace {userName}
-    size_t userNamePos = result.find(L"{userName}");
-    while (userNamePos != std::wstring::npos) {
-        result.replace(userNamePos, 10, processInfo.userName);
-        userNamePos = result.find(L"{userName}", userNamePos + processInfo.userName.length());
-    }
-    
-    return result;
+std::wstring MessageUtils::GetEnglishMessage() {
+    return L"Application is already running in another account.";
 }
 
 std::wstring MessageUtils::Utf8ToWide(const std::string& str) {

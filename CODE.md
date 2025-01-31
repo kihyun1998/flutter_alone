@@ -118,20 +118,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 
 void main() async {
-  debugPrint('[DEBUG] main 함수 시작');
-
   WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('[DEBUG] FlutterAlone.checkAndRun 호출 전');
   final messageConfig = CustomMessageConfig(
     customTitle: 'Example App',
-    messageTemplate: 'Application is already running by {domain}\\{userName}',
+    customMessage: 'Application is already running in another account',
   );
 
+  // Also can use predefined configurations:
+  // final messageConfig = EnMessageConfig(); // English messages
+  // final messageConfig = KoMessageConfig(); // Korean messages
+
   if (!await FlutterAlone.instance.checkAndRun(messageConfig: messageConfig)) {
-    debugPrint('[DEBUG] 중복 실행 감지, 앱 종료');
     exit(0);
   }
-  debugPrint('[DEBUG] 정상 실행, 앱 시작');
   runApp(const MyApp());
 }
 
@@ -223,15 +222,9 @@ class FlutterAlone {
     MessageConfig messageConfig = const EnMessageConfig(),
   }) async {
     try {
-      debugPrint('[DEBUG] checkAndRun 시작');
-      debugPrint('[DEBUG] messageConfig: ${messageConfig.toMap()}');
-
       final result = await FlutterAlonePlatform.instance.checkAndRun(
         messageConfig: messageConfig,
       );
-
-      debugPrint('[DEBUG] checkAndRun 결과: $result');
-
       return result;
     } catch (e) {
       debugPrint('Error checking application instance: $e');
@@ -276,7 +269,6 @@ class AloneException implements Exception {
 ```
 ## lib/src/flutter_alone_method_channel.dart
 ```dart
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_alone/src/models/message_config.dart';
 
@@ -293,20 +285,12 @@ class MethodChannelFlutterAlone extends FlutterAlonePlatform {
     MessageConfig messageConfig = const EnMessageConfig(),
   }) async {
     try {
-      debugPrint('[DEBUG] MethodChannel checkAndRun 호출');
       final result = await _channel.invokeMethod<bool>(
         'checkAndRun',
         messageConfig.toMap(),
       );
-      debugPrint('[DEBUG] 파라미터: ${messageConfig.toMap()}');
-      debugPrint('[DEBUG] MethodChannel 결과: $result');
       return result ?? false;
     } on PlatformException catch (e) {
-      debugPrint('[DEBUG] MethodChannel 에러:');
-      debugPrint('  코드: ${e.code}');
-      debugPrint('  메시지: ${e.message}');
-      debugPrint('  상세: ${e.details}');
-
       throw AloneException(
         code: e.code,
         message: e.message ?? 'Error checking application instance',
@@ -381,7 +365,7 @@ enum MessageConfigJsonKey {
   type,
   showMessageBox,
   customTitle,
-  messageTemplate,
+  customMessage,
   ;
 
   String get key => toString().split('.').last;
@@ -431,15 +415,11 @@ class EnMessageConfig extends MessageConfig {
 
 /// Custom message configuration
 ///
-/// Available placeholders in [messageTemplate]:
-/// - {domain}: User domain
-/// - {userName}: User name
-///
 /// Example:
 /// ```dart
 /// final config = CustomMessageConfig(
-///   customTitle: "Running",
-///   messageTemplate: "Program is running by {domain}\\{userName}",
+///   customTitle: "Notice",
+///   customMessage: "Application is already running in another account.",
 /// );
 /// ```
 class CustomMessageConfig extends MessageConfig {
@@ -447,13 +427,12 @@ class CustomMessageConfig extends MessageConfig {
   final String customTitle;
 
   /// Message template string
-  /// Can use {domain} and {userName} placeholders
-  final String messageTemplate;
+  final String customMessage;
 
   /// Constructor
   const CustomMessageConfig({
     required this.customTitle,
-    required this.messageTemplate,
+    required this.customMessage,
     super.showMessageBox,
   });
 
@@ -461,7 +440,7 @@ class CustomMessageConfig extends MessageConfig {
   Map<String, dynamic> toMap() => {
         MessageConfigJsonKey.type.key: 'custom',
         MessageConfigJsonKey.customTitle.key: customTitle,
-        MessageConfigJsonKey.messageTemplate.key: messageTemplate,
+        MessageConfigJsonKey.customMessage.key: customMessage,
         MessageConfigJsonKey.showMessageBox.key: showMessageBox,
       };
 }
@@ -469,9 +448,8 @@ class CustomMessageConfig extends MessageConfig {
 ```
 ## lib/src/models/process_info.dart
 ```dart
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 enum ProcessInfoJsonKey {
-  domain,
-  userName,
   processId,
   windowHandle,
   processPath,
@@ -483,12 +461,6 @@ enum ProcessInfoJsonKey {
 
 /// Model class for process information
 class ProcessInfo {
-  /// Domain of the running user (e.g., DESKTOP-123)
-  final String domain;
-
-  /// Username of the running user
-  final String userName;
-
   /// Process ID
   final int processId;
 
@@ -502,8 +474,6 @@ class ProcessInfo {
   final int startTime;
 
   ProcessInfo({
-    required this.domain,
-    required this.userName,
     required this.processId,
     required this.windowHandle,
     required this.processPath,
@@ -513,8 +483,6 @@ class ProcessInfo {
   /// Create ProcessInfo from JSON
   factory ProcessInfo.fromJson(Map<String, dynamic> json) {
     return ProcessInfo(
-      domain: json[ProcessInfoJsonKey.domain.key] as String,
-      userName: json[ProcessInfoJsonKey.userName.key] as String,
       processId: json[ProcessInfoJsonKey.processId.key] as int,
       windowHandle: json[ProcessInfoJsonKey.windowHandle.key] as int,
       processPath: json[ProcessInfoJsonKey.processPath.key] as String,
@@ -525,8 +493,6 @@ class ProcessInfo {
   /// Convert ProcessInfo to JSON
   Map<String, dynamic> toJson() {
     return {
-      ProcessInfoJsonKey.domain.key: domain,
-      ProcessInfoJsonKey.userName.key: userName,
       ProcessInfoJsonKey.processId.key: processId,
       ProcessInfoJsonKey.windowHandle.key: windowHandle,
       ProcessInfoJsonKey.processPath.key: processPath,
@@ -535,16 +501,12 @@ class ProcessInfo {
   }
 
   ProcessInfo copyWith({
-    String? domain,
-    String? userName,
     int? processId,
     int? windowHandle,
     String? processPath,
     int? startTime,
   }) {
     return ProcessInfo(
-      domain: domain ?? this.domain,
-      userName: userName ?? this.userName,
       processId: processId ?? this.processId,
       windowHandle: windowHandle ?? this.windowHandle,
       processPath: processPath ?? this.processPath,
@@ -553,16 +515,9 @@ class ProcessInfo {
   }
 
   @override
-  String toString() {
-    return '$domain\\$userName (PID: $processId)';
-  }
-
-  @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is ProcessInfo &&
-        other.domain == domain &&
-        other.userName == userName &&
         other.processId == processId &&
         other.windowHandle == windowHandle &&
         other.processPath == processPath &&
@@ -571,8 +526,6 @@ class ProcessInfo {
 
   @override
   int get hashCode => Object.hash(
-        domain,
-        userName,
         processId,
         windowHandle,
         processPath,
@@ -626,7 +579,7 @@ void main() {
         () async {
       final messageConfig = CustomMessageConfig(
         customTitle: 'Custom Title',
-        messageTemplate: 'App running as {domain}\\{userName}',
+        customMessage: 'App running as {domain}\\{userName}',
         showMessageBox: true,
       );
 
@@ -730,7 +683,7 @@ void main() {
     test('Custom message configuration should handle placeholders', () {
       const config = CustomMessageConfig(
           customTitle: 'Test Title',
-          messageTemplate: 'Running as {domain}\\{userName}');
+          customMessage: 'Running as {domain}\\{userName}');
       final map = config.toMap();
 
       expect(map['type'], 'custom');
@@ -742,7 +695,7 @@ void main() {
     test('Message configurations should respect showMessageBox parameter', () {
       const config = CustomMessageConfig(
           customTitle: 'Title',
-          messageTemplate: 'Message',
+          customMessage: 'Message',
           showMessageBox: false);
       final map = config.toMap();
 
@@ -869,17 +822,11 @@ FlutterAlonePlugin::~FlutterAlonePlugin() {
 
 // Display running process information in MessageBox
 void FlutterAlonePlugin::ShowAlreadyRunningMessage(
-    const ProcessInfo& processInfo,
     const std::wstring& title,
     const std::wstring& message,
     bool showMessageBox) {
-    
-    OutputDebugStringW(L"[DEBUG] ShowAlreadyRunningMessage 호출\n");
-    OutputDebugStringW((L"[DEBUG] 제목: " + title + L"\n").c_str());
-    OutputDebugStringW((L"[DEBUG] 메시지: " + message + L"\n").c_str());
-    
     if(!showMessageBox) {
-        OutputDebugStringW(L"[DEBUG] showMessageBox가 false라서 메시지 표시 안함\n");
+        OutputDebugStringW(L"[DEBUG] showMessageBox is false, skipping message display\n");
         return;
     }
     
@@ -894,39 +841,19 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance() {
     ProcessCheckResult result;
     result.canRun = true;
     
-    OutputDebugStringW(L"[DEBUG] CheckRunningInstance started:\n");
-    
-    // 전역 뮤텍스 존재 확인
+    // Check for global mutex
     HANDLE existingMutex = OpenMutexW(MUTEX_ALL_ACCESS, FALSE, L"Global\\FlutterAloneApp_UniqueId");
 
     if (existingMutex != NULL) {
         OutputDebugStringW(L"[DEBUG] Existing mutex found\n");
         CloseHandle(existingMutex);
-        
-        // 뮤텍스가 있다는 것 자체가 다른 프로세스가 실행중이라는 의미
-        result.canRun = false;  // 여기서 바로 false로 설정
-        
-        // 현재 프로세스 정보 가져오기
-        ProcessInfo currentProcess = ProcessUtils::GetCurrentProcessInfo();
-        OutputDebugStringW((L"[DEBUG] Current process info - Domain: " + 
-            currentProcess.domain + L", User: " + currentProcess.userName + L"\n").c_str());
+        result.canRun = false;
         
         // 기존 프로세스 찾기 - 같은 사용자인지 확인용
         auto existingProcess = ProcessUtils::FindExistingProcess();
         if (existingProcess.has_value()) {
-            OutputDebugStringW(L"[DEBUG] Existing process found\n");
-            OutputDebugStringW((L"[DEBUG] Existing process info - Domain: " + 
-                existingProcess->domain + L", User: " + existingProcess->userName + L"\n").c_str());
-            
-            result.isSameUser = ProcessUtils::IsSameUser(currentProcess, existingProcess.value());
-            
-            if (result.isSameUser) {
-                result.existingWindow = existingProcess->windowHandle;
-            }
-        } else {
-            OutputDebugStringW(L"[DEBUG] No existing process found - but mutex exists\n");
-            // 프로세스를 못찾더라도 뮤텍스가 있으므로 다른 사용자가 실행중인 것으로 간주
-            result.isSameUser = false;
+            result.existingWindow = existingProcess->windowHandle;
+            OutputDebugStringW(L"[DEBUG] Existing process window found\n");
         }
     }
 
@@ -957,7 +884,6 @@ bool FlutterAlonePlugin::CheckAndCreateMutex() {
   );
 
   if (g_hMutex == NULL) {
-    auto errorMessage = ProcessUtils::GetLastErrorMessage();
     return false;
   }
 
@@ -996,58 +922,35 @@ void FlutterAlonePlugin::HandleMethodCall(
         else if(typeStr == "en") type = MessageType::en;
         else type = MessageType::custom;
         
-        std::wstring customTitle, messageTemplate;
+        std::wstring customTitle, customMessage;
         if (type == MessageType::custom) {
             customTitle = MessageUtils::Utf8ToWide(
                 std::get<std::string>(arguments->at(flutter::EncodableValue("customTitle"))));
-            messageTemplate = MessageUtils::Utf8ToWide(
-                std::get<std::string>(arguments->at(flutter::EncodableValue("messageTemplate"))));
+            customMessage = MessageUtils::Utf8ToWide(
+                std::get<std::string>(arguments->at(flutter::EncodableValue("customMessage"))));
         }
 
         // 실행 중인 인스턴스 확인
         auto checkResult = CheckRunningInstance();
-        OutputDebugStringW(L"[DEBUG] CheckRunningInstance 결과:\n");
-        OutputDebugStringW((L"canRun: " + std::to_wstring(checkResult.canRun) + L"\n").c_str());
-        OutputDebugStringW((L"isSameUser: " + std::to_wstring(checkResult.isSameUser) + L"\n").c_str());
-        OutputDebugStringW((L"existingWindow: " + std::to_wstring((UINT_PTR)checkResult.existingWindow) + L"\n").c_str());
 
         
-        if (!checkResult.canRun) {
-            if (checkResult.isSameUser) {
-                OutputDebugStringW(L"[DEBUG] Same user's process detected\n");
-                // 같은 사용자 - 기존 창 활성화
+          if (!checkResult.canRun) {
+            // 같은 창인 경우 - 창 활성화
+            if (checkResult.existingWindow != NULL) {
+                OutputDebugStringW(L"[DEBUG] Existing window found - activating window\n");
                 WindowUtils::RestoreWindow(checkResult.existingWindow);
                 WindowUtils::BringWindowToFront(checkResult.existingWindow);
                 WindowUtils::FocusWindow(checkResult.existingWindow);
-                result->Success(flutter::EncodableValue(false));
-            } else {
-                OutputDebugStringW(L"[DEBUG] Another user's process detected\n");
-
-
-
-                // 다른 사용자 - 메시지 표시
-                auto existingProcess = ProcessUtils::FindExistingProcess();
-                if (existingProcess.has_value()) {
-                    std::wstring title = MessageUtils::GetTitle(type, customTitle);
-                    std::wstring message = MessageUtils::GetMessage(type, existingProcess.value(), messageTemplate);
-                    
-                    // 메시지 박스를 표시하고 결과를 반환
-                    ShowAlreadyRunningMessage(existingProcess.value(), title, message, showMessageBox);
-                }else{
-                  // 기본 ProcessInfo 생성
-                  ProcessInfo defaultInfo;
-                  defaultInfo.domain = L"Unknown";  // 또는 현재 도메인 사용
-                  defaultInfo.userName = L"another user";
-
-                  std::wstring title = MessageUtils::GetTitle(type, customTitle);
-                  std::wstring message = MessageUtils::GetMessage(type, defaultInfo, messageTemplate);
-
-                  // 메시지 박스를 표시하고 결과를 반환
-                  ShowAlreadyRunningMessage(defaultInfo, title, message, showMessageBox);
-
-                }
-                result->Success(flutter::EncodableValue(false));
+            } 
+            // 다른 계정에서 실행 중인 경우 - 메시지 표시
+            else {
+                OutputDebugStringW(L"[DEBUG] No existing window - showing message\n");
+                std::wstring title = MessageUtils::GetTitle(type, customTitle);
+                std::wstring message = MessageUtils::GetMessage(type, customMessage);
+                ShowAlreadyRunningMessage(title, message, showMessageBox);
             }
+            
+            result->Success(flutter::EncodableValue(false));
             return;
         }
 
@@ -1120,7 +1023,6 @@ class FlutterAlonePlugin : public flutter::Plugin {
 
   // show process info
   void ShowAlreadyRunningMessage(
-  const ProcessInfo& processInfo,
   const std::wstring& title,
   const std::wstring& message,
   bool showMessageBox);
@@ -1202,59 +1104,27 @@ std::wstring MessageUtils::GetTitle(MessageType type, const std::wstring& custom
 
 std::wstring MessageUtils::GetMessage(
     MessageType type,
-    const ProcessInfo& processInfo,
-    const std::wstring& messageTemplate
+    const std::wstring& customMessage
 ) {
     switch (type) {
         case MessageType::ko:
-            return GetKoreanMessage(processInfo);
+            return GetKoreanMessage();
         case MessageType::en:
-            return GetEnglishMessage(processInfo);
+            return GetEnglishMessage();
         case MessageType::custom:
-            return ProcessTemplate(
-                messageTemplate.empty() ? L"Another instance is running" : messageTemplate,
-                processInfo
-            );
+            return customMessage.empty() ? 
+                L"Application is already running in another account" : customMessage;
         default:
-            return L"Another instance is running";
+            return L"Application is already running in another account";
     }
 }
 
-std::wstring MessageUtils::GetKoreanMessage(const ProcessInfo& processInfo) {
-    return ProcessTemplate(
-        L"이미 다른 사용자가 앱을 실행중입니다.\n실행 중인 사용자: {domain}\\{userName}",
-        processInfo
-    );
+std::wstring MessageUtils::GetKoreanMessage() {
+    return L"이미 다른 계정에서 앱을 실행중입니다.";
 }
 
-std::wstring MessageUtils::GetEnglishMessage(const ProcessInfo& processInfo) {
-    return ProcessTemplate(
-        L"Application is already running by another user.\nRunning user: {domain}\\{userName}",
-        processInfo
-    );
-}
-
-std::wstring MessageUtils::ProcessTemplate(
-    const std::wstring& messageTemplate,
-    const ProcessInfo& processInfo
-) {
-    std::wstring result = messageTemplate;
-    
-    // Replace {domain}
-    size_t domainPos = result.find(L"{domain}");
-    while (domainPos != std::wstring::npos) {
-        result.replace(domainPos, 8, processInfo.domain);
-        domainPos = result.find(L"{domain}", domainPos + processInfo.domain.length());
-    }
-    
-    // Replace {userName}
-    size_t userNamePos = result.find(L"{userName}");
-    while (userNamePos != std::wstring::npos) {
-        result.replace(userNamePos, 10, processInfo.userName);
-        userNamePos = result.find(L"{userName}", userNamePos + processInfo.userName.length());
-    }
-    
-    return result;
+std::wstring MessageUtils::GetEnglishMessage() {
+    return L"Application is already running in another account.";
 }
 
 std::wstring MessageUtils::Utf8ToWide(const std::string& str) {
@@ -1312,19 +1182,10 @@ public:
      * Get message based on message type and configuration
      */
     static std::wstring GetMessage(
-        MessageType type, 
-        const ProcessInfo& processInfo,
-        const std::wstring& messageTemplate = L""
+        MessageType type,
+        const std::wstring& customMessage = L""
     );
 
-    /**
-     * Process message template with placeholders
-     * Replaces {domain} and {userName} with actual values
-     */
-    static std::wstring ProcessTemplate(
-        const std::wstring& messageTemplate,
-        const ProcessInfo& processInfo
-    );
 
     /**
      * Convert string encoding between UTF-8 and UTF-16
@@ -1338,8 +1199,8 @@ private:
     static std::wstring GetEnglishTitle() { return L"Execution Error"; }
     
     // Default messages
-    static std::wstring GetKoreanMessage(const ProcessInfo& processInfo);
-    static std::wstring GetEnglishMessage(const ProcessInfo& processInfo);
+    static std::wstring GetKoreanMessage();
+    static std::wstring GetEnglishMessage();
 };
 
 }  // namespace flutter_alone
@@ -1365,11 +1226,6 @@ ProcessInfo ProcessUtils::GetProcessInfoById(DWORD processId) {
     
     HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, TRUE, processId);
     if (hProcess) {
-        HANDLE hToken = NULL;
-        if (OpenProcessToken(hProcess, TOKEN_QUERY, &hToken)) {
-            GetUserFromToken(hToken, info.domain, info.userName);
-            CloseHandle(hToken);
-        }
         info.startTime = GetProcessStartTime(hProcess);
         info.processPath = GetProcessPath(processId);
         CloseHandle(hProcess);
@@ -1412,7 +1268,6 @@ bool ProcessUtils::IsSameExecutable(const std::wstring& path1, const std::wstrin
         return false;
     }
     
-    // Normalize paths and compare
     WCHAR fullPath1[MAX_PATH];
     WCHAR fullPath2[MAX_PATH];
     
@@ -1426,10 +1281,6 @@ bool ProcessUtils::IsSameExecutable(const std::wstring& path1, const std::wstrin
 
 ProcessInfo ProcessUtils::GetCurrentProcessInfo() {
     return GetProcessInfoById(GetCurrentProcessId());
-}
-
-bool ProcessUtils::IsSameUser(const ProcessInfo& p1, const ProcessInfo& p2) {
-    return (p1.domain == p2.domain && p1.userName == p2.userName);
 }
 
 std::wstring ProcessUtils::GetProcessPath(DWORD processId) {
@@ -1457,63 +1308,7 @@ FILETIME ProcessUtils::GetProcessStartTime(HANDLE hProcess) {
 }
 
 
-bool ProcessUtils::GetUserFromToken(HANDLE hToken, std::wstring& domain, std::wstring& userName) {
-    // Set Security attributes
-    SECURITY_ATTRIBUTES sa;
-    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
-    sa.bInheritHandle = TRUE;
 
-    SECURITY_DESCRIPTOR sd;
-    InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
-    SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
-    sa.lpSecurityDescriptor = &sd;
-    
-    DWORD dwSize = 0;
-    PTOKEN_USER pTokenUser = NULL;
-    
-    // Get token information
-    GetTokenInformation(hToken, TokenUser, NULL, 0, &dwSize);
-    if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-        return false;
-    }
-    
-    // Allocate memory
-    pTokenUser = (PTOKEN_USER)LocalAlloc(LPTR, dwSize);
-    if (!pTokenUser) {
-        return false;
-    }
-    
-    // Get token information
-    if (!GetTokenInformation(hToken, TokenUser, pTokenUser, dwSize, &dwSize)) {
-        LocalFree(pTokenUser);
-        return false;
-    }
-    
-    WCHAR szUser[256] = {0};
-    WCHAR szDomain[256] = {0};
-    DWORD dwUserSize = 256;
-    DWORD dwDomainSize = 256;
-    SID_NAME_USE snu;
-    
-    // SID를 사용자 이름과 도메인으로 변환
-    if (!LookupAccountSidW(
-        NULL,                   // Local computer
-        pTokenUser->User.Sid,   // SID
-        szUser,                 // User Name
-        &dwUserSize,           
-        szDomain,              // Domain name
-        &dwDomainSize,
-        &snu)) {
-        LocalFree(pTokenUser);
-        return false;
-    }
-    
-    domain = szDomain;
-    userName = szUser;
-    
-    LocalFree(pTokenUser);
-    return true;
-}
 
 std::wstring ProcessUtils::GetLastErrorMessage() {
     DWORD error = GetLastError();
@@ -1551,8 +1346,6 @@ std::wstring ProcessUtils::GetLastErrorMessage() {
 namespace flutter_alone {
 
 struct ProcessInfo {
-    std::wstring domain;
-    std::wstring userName;
     DWORD processId;
     HWND windowHandle;
     std::wstring processPath;
@@ -1566,32 +1359,40 @@ struct ProcessInfo {
 
 class ProcessUtils {
 public:
-    // Get process info for given process ID
+    /**
+     * Get process info for given process ID
+     */
     static ProcessInfo GetProcessInfoById(DWORD processId);
     
-    // Get current process information
+    /**
+     * Get current process information
+     */
     static ProcessInfo GetCurrentProcessInfo();
     
-    // Find existing instance of our application
+    /**
+     * Find existing instance of our application
+     */
     static std::optional<ProcessInfo> FindExistingProcess();
     
-    // Check if two ProcessInfo belong to the same user
-    static bool IsSameUser(const ProcessInfo& p1, const ProcessInfo& p2);
-    
-    // Get process executable path
+    /**
+     * Get process executable path
+     */
     static std::wstring GetProcessPath(DWORD processId);
     
-    // Get process start time
+    /**
+     * Get process start time
+     */
     static FILETIME GetProcessStartTime(HANDLE hProcess);
     
-    // Get last error message
+    /**
+     * Get last error message
+     */
     static std::wstring GetLastErrorMessage();
 
 private:
-    // Extract user information from token
-    static bool GetUserFromToken(HANDLE hToken, std::wstring& domain, std::wstring& userName);
-    
-    // Check if two paths point to same executable
+    /**
+     * Check if two paths point to same executable
+     */
     static bool IsSameExecutable(const std::wstring& path1, const std::wstring& path2);
 };
 

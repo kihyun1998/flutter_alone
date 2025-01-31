@@ -24,7 +24,7 @@ void main() {
     test('Custom message configuration should handle placeholders', () {
       const config = CustomMessageConfig(
           customTitle: 'Test Title',
-          messageTemplate: 'Running as {domain}\\{userName}');
+          customMessage: 'Running as {domain}\\{userName}');
       final map = config.toMap();
 
       expect(map['type'], 'custom');
@@ -36,7 +36,7 @@ void main() {
     test('Message configurations should respect showMessageBox parameter', () {
       const config = CustomMessageConfig(
           customTitle: 'Title',
-          messageTemplate: 'Message',
+          customMessage: 'Message',
           showMessageBox: false);
       final map = config.toMap();
 

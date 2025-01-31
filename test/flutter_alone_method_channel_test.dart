@@ -41,7 +41,7 @@ void main() {
         () async {
       final messageConfig = CustomMessageConfig(
         customTitle: 'Custom Title',
-        messageTemplate: 'App running as {domain}\\{userName}',
+        customMessage: 'App running as {domain}\\{userName}',
         showMessageBox: true,
       );
 
