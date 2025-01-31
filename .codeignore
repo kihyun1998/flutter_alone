@@ -1,0 +1,22 @@
+**/.dart_tool/
+.vscode/
+build/
+
+# example
+example/windows/
+**/flutter_alone_example.iml
+
+# public
+**/pubspec.lock
+**/analysis_options.yaml
+**/README.md
+**/flutter_alone.iml
+**/LICENSE
+**/CHANGELOG.md
+**/pubspec.yaml
+
+.gitignore
+.metadata
+CODE.md
+codemd*
+
