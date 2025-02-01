@@ -1,3 +1,10 @@
+## 2.0.2
+
+* **New Features**
+  * Added debug mode configuration option
+  * Added `enableInDebugMode` flag to control duplicate checks in debug mode
+  * Automatically skips duplicate checks in debug mode by default
+
 ## 2.0.1
 
 * **Enhancements**

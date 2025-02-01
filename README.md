@@ -10,6 +10,7 @@ A robust Flutter plugin for preventing duplicate execution of desktop applicatio
   - System-wide mutex management
   - Cross-user account detection
   - Process-level duplicate checking
+  - Debug mode support with configurable options
 
 - **Window Management**
   - Automatic window focusing
@@ -41,7 +42,7 @@ Add flutter_alone to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_alone: ^2.0.1
+  flutter_alone: ^2.0.2
 ```
 
 ## Usage
@@ -86,6 +87,30 @@ if (!await FlutterAlone.instance.checkAndRun(messageConfig: messageConfig)) {
 }
 ```
 
+### Debug Mode Configuration
+
+The plugin provides special handling for debug mode:
+
+- By default, duplicate checks are skipped in debug mode for better development experience
+- You can enable duplicate checks in debug mode using the `enableInDebugMode` flag
+
+#### Debug Mode Examples
+
+```dart
+// Default behavior (skips duplicate check in debug mode)
+final config = EnMessageConfig();
+
+// Enable duplicate check even in debug mode
+final config = EnMessageConfig(enableInDebugMode: true);
+
+// Custom configuration with debug mode setting
+final config = CustomMessageConfig(
+  customTitle: 'Notice',
+  customMessage: 'Application is already running',
+  enableInDebugMode: true,  // Enable duplicate check in debug mode
+);
+```
+
 ### Resource Cleanup
 Always remember to dispose of resources when your application closes:
 ```dart
@@ -114,6 +139,10 @@ The plugin provides three types of message configurations:
 - `EnMessageConfig`: Default English messages
 - `KoMessageConfig`: Korean messages
 - `CustomMessageConfig`: Custom messages with template support
+
+Each configuration supports:
+- `showMessageBox`: Control message box display
+- `enableInDebugMode`: Control duplicate checks in debug mode
 
 ### Windows Implementation Details
 - Uses Windows Named Mutex for system-wide instance detection
