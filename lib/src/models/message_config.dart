@@ -3,6 +3,7 @@ enum MessageConfigJsonKey {
   showMessageBox,
   customTitle,
   customMessage,
+  enableInDebugMode,
   ;
 
   String get key => toString().split('.').last;
@@ -13,9 +14,14 @@ abstract class MessageConfig {
   /// Whether to show message box
   final bool showMessageBox;
 
+  /// Whether to enable duplicate check in debug mode
+  /// Defaults to false
+  final bool enableInDebugMode;
+
   /// Constructor
   const MessageConfig({
     this.showMessageBox = true,
+    this.enableInDebugMode = false,
   });
 
   /// Convert to map for MethodChannel communication
@@ -27,12 +33,14 @@ class KoMessageConfig extends MessageConfig {
   /// Constructor
   const KoMessageConfig({
     super.showMessageBox,
+    super.enableInDebugMode,
   });
 
   @override
   Map<String, dynamic> toMap() => {
         MessageConfigJsonKey.type.key: 'ko',
         MessageConfigJsonKey.showMessageBox.key: showMessageBox,
+        MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
       };
 }
 
@@ -41,12 +49,14 @@ class EnMessageConfig extends MessageConfig {
   /// Constructor
   const EnMessageConfig({
     super.showMessageBox,
+    super.enableInDebugMode,
   });
 
   @override
   Map<String, dynamic> toMap() => {
         MessageConfigJsonKey.type.key: 'en',
         MessageConfigJsonKey.showMessageBox.key: showMessageBox,
+        MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
       };
 }
 
@@ -71,6 +81,7 @@ class CustomMessageConfig extends MessageConfig {
     required this.customTitle,
     required this.customMessage,
     super.showMessageBox,
+    super.enableInDebugMode,
   });
 
   @override
@@ -79,5 +90,6 @@ class CustomMessageConfig extends MessageConfig {
         MessageConfigJsonKey.customTitle.key: customTitle,
         MessageConfigJsonKey.customMessage.key: customMessage,
         MessageConfigJsonKey.showMessageBox.key: showMessageBox,
+        MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
       };
 }

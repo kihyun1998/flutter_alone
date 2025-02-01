@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_alone/src/models/message_config.dart';
 
 import 'src/flutter_alone_platform_interface.dart';
@@ -15,6 +15,7 @@ class FlutterAlone {
 
   /// Check for duplicate instances and initialize the application
   ///
+  /// In debug mode, duplicate check is skipped unless enableInDebugMode is true
   /// Returns:
   /// - true: Application can start
   /// - false: Another instance is already running
@@ -22,6 +23,11 @@ class FlutterAlone {
     MessageConfig messageConfig = const EnMessageConfig(),
   }) async {
     try {
+      // Skip duplicate check in debug mode unless explicitly enabled
+      if (kDebugMode && !messageConfig.enableInDebugMode) {
+        return true;
+      }
+
       final result = await FlutterAlonePlatform.instance.checkAndRun(
         messageConfig: messageConfig,
       );

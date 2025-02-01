@@ -5,9 +5,12 @@ import 'package:flutter_alone/flutter_alone.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  /// Example with debug mode settings
   final messageConfig = CustomMessageConfig(
     customTitle: 'Example App',
     customMessage: 'Application is already running in another account',
+    enableInDebugMode: true, // Enable duplicate check even in debug mode
   );
 
   // Also can use predefined configurations:
