@@ -1,9 +1,13 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 enum MessageConfigJsonKey {
   type,
   showMessageBox,
   customTitle,
   customMessage,
   enableInDebugMode,
+  packageId,
+  appName,
+  mutexSuffix,
   ;
 
   String get key => toString().split('.').last;
@@ -18,10 +22,24 @@ abstract class MessageConfig {
   /// Defaults to false
   final bool enableInDebugMode;
 
+  /// Package identifier for mutex name generation
+  /// Must not be empty for custom mutex names
+  final String packageId;
+
+  /// Application name for mutex name generation
+  /// Must not be empty for custom mutex names
+  final String appName;
+
+  /// Optional suffix for mutex name
+  final String? mutexSuffix;
+
   /// Constructor
   const MessageConfig({
     this.showMessageBox = true,
     this.enableInDebugMode = false,
+    this.packageId = '',
+    this.appName = '',
+    this.mutexSuffix,
   });
 
   /// Convert to map for MethodChannel communication
@@ -34,6 +52,9 @@ class KoMessageConfig extends MessageConfig {
   const KoMessageConfig({
     super.showMessageBox,
     super.enableInDebugMode,
+    super.packageId,
+    super.appName,
+    super.mutexSuffix,
   });
 
   @override
@@ -41,6 +62,9 @@ class KoMessageConfig extends MessageConfig {
         MessageConfigJsonKey.type.key: 'ko',
         MessageConfigJsonKey.showMessageBox.key: showMessageBox,
         MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
+        MessageConfigJsonKey.packageId.key: packageId,
+        MessageConfigJsonKey.appName.key: appName,
+        MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
       };
 }
 
@@ -50,6 +74,9 @@ class EnMessageConfig extends MessageConfig {
   const EnMessageConfig({
     super.showMessageBox,
     super.enableInDebugMode,
+    super.packageId,
+    super.appName,
+    super.mutexSuffix,
   });
 
   @override
@@ -57,6 +84,9 @@ class EnMessageConfig extends MessageConfig {
         MessageConfigJsonKey.type.key: 'en',
         MessageConfigJsonKey.showMessageBox.key: showMessageBox,
         MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
+        MessageConfigJsonKey.packageId.key: packageId,
+        MessageConfigJsonKey.appName.key: appName,
+        MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
       };
 }
 
@@ -82,6 +112,9 @@ class CustomMessageConfig extends MessageConfig {
     required this.customMessage,
     super.showMessageBox,
     super.enableInDebugMode,
+    super.packageId,
+    super.appName,
+    super.mutexSuffix,
   });
 
   @override
@@ -91,5 +124,8 @@ class CustomMessageConfig extends MessageConfig {
         MessageConfigJsonKey.customMessage.key: customMessage,
         MessageConfigJsonKey.showMessageBox.key: showMessageBox,
         MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
+        MessageConfigJsonKey.packageId.key: packageId,
+        MessageConfigJsonKey.appName.key: appName,
+        MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
       };
 }

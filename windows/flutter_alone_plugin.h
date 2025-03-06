@@ -5,6 +5,9 @@
 #include <flutter/plugin_registrar_windows.h>
 #include "process_utils.h"
 #include "message_utils.h"
+#include "mutex_utils.h"
+
+
 
 #include <memory>
 
@@ -29,6 +32,17 @@ class FlutterAlonePlugin : public flutter::Plugin {
     MessageBoxInfo() : showMessageBox(true), hIcon(NULL) {}
   };
 
+  struct MutexConfig {
+    std::wstring packageId;
+    std::wstring appName;
+    std::wstring suffix;
+
+    MutexConfig() {}
+    
+    MutexConfig(const std::wstring& pkgId, const std::wstring& app, const std::wstring& sfx = L"")
+        : packageId(pkgId), appName(app), suffix(sfx) {}
+  };
+
   void ShowMessageBox(const MessageBoxInfo& info);
 
   static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
@@ -46,11 +60,12 @@ class FlutterAlonePlugin : public flutter::Plugin {
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 	
-	// check and create mutex
-  bool CheckAndCreateMutex();
+  // Check and create mutex with specified configuration
+  bool CheckAndCreateMutex(const MutexConfig& config);
   
-  // cleanup resources
-  void CleanupResources();
+
+  // Get mutex name for the application
+  std::wstring GetMutexName(const MutexConfig& config);
 
   // show process info
   void ShowAlreadyRunningMessage(
@@ -58,11 +73,19 @@ class FlutterAlonePlugin : public flutter::Plugin {
   const std::wstring& message,
   bool showMessageBox);
 
-  ProcessCheckResult CheckRunningInstance();
+  // Check for duplicate instance with specified mutex name
+  ProcessCheckResult CheckRunningInstance(const std::wstring& mutexName);
+
+  // cleanup resources
+  void CleanupResources();
+
 
  private:
   // Store mutex handle
   HANDLE mutex_handle_;
+
+  // Current mutex name
+  std::wstring current_mutex_name_;
 };
 
 }  // namespace flutter_alone

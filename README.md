@@ -1,3 +1,4 @@
+
 # flutter_alone
 
 A robust Flutter plugin for preventing duplicate execution of desktop applications, offering advanced process management and cross-user detection.
@@ -11,6 +12,7 @@ A robust Flutter plugin for preventing duplicate execution of desktop applicatio
   - Cross-user account detection
   - Process-level duplicate checking
   - Debug mode support with configurable options
+  - Customizable mutex naming
 
 - **Window Management**
   - Automatic window focusing
@@ -42,7 +44,7 @@ Add flutter_alone to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_alone: ^2.0.2
+  flutter_alone: ^2.1.0
 ```
 
 ## Usage
@@ -83,6 +85,48 @@ final messageConfig = CustomMessageConfig(
 );
 
 if (!await FlutterAlone.instance.checkAndRun(messageConfig: messageConfig)) {
+  exit(0);
+}
+```
+
+### Custom Mutex Configuration
+
+You can customize the mutex name with package ID, app name and an optional suffix:
+
+```dart
+if (!await FlutterAlone.instance.checkAndRun(
+  packageId: 'com.example.myapp',
+  appName: 'MyFlutterApp',
+  mutexSuffix: 'production',
+)) {
+  exit(0);
+}
+```
+
+When both parameters and messageConfig are provided, parameters take precedence:
+
+```dart
+if (!await FlutterAlone.instance.checkAndRun(
+  packageId: 'com.example.myapp',
+  appName: 'MyFlutterApp',
+  mutexSuffix: 'production',
+  messageConfig: CustomMessageConfig(
+    customTitle: 'Notice',
+    customMessage: 'Application is already running',
+  ),
+)) {
+  exit(0);
+}
+```
+
+### Auto-detection of Application Information
+
+If you don't provide package ID or app name, the plugin will automatically detect them:
+
+```dart
+if (!await FlutterAlone.instance.checkAndRun(
+  // Will use package_info_plus to get packageId and appName
+)) {
   exit(0);
 }
 ```
@@ -143,6 +187,9 @@ The plugin provides three types of message configurations:
 Each configuration supports:
 - `showMessageBox`: Control message box display
 - `enableInDebugMode`: Control duplicate checks in debug mode
+- `packageId`: Package identifier for mutex name generation
+- `appName`: Application name for mutex name generation
+- `mutexSuffix`: Optional suffix for mutex name customization
 
 ### Windows Implementation Details
 - Uses Windows Named Mutex for system-wide instance detection
@@ -151,6 +198,7 @@ Each configuration supports:
 - Full Unicode support for international character sets
 - Advanced window management capabilities
 - Enhanced taskbar and message box icon handling
+- Customizable mutex naming with sanitization and validation
 
 ## Error Handling
 

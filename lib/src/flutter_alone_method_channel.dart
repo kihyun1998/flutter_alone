@@ -14,9 +14,18 @@ class MethodChannelFlutterAlone extends FlutterAlonePlatform {
     MessageConfig messageConfig = const EnMessageConfig(),
   }) async {
     try {
+      // Convert message config to map including the mutex name properties
+      final map = messageConfig.toMap();
+
+      // Ensure null values are properly handled
+      if (map.containsKey(MessageConfigJsonKey.mutexSuffix.key) &&
+          map[MessageConfigJsonKey.mutexSuffix.key] == null) {
+        map.remove(MessageConfigJsonKey.mutexSuffix.key);
+      }
+
       final result = await _channel.invokeMethod<bool>(
         'checkAndRun',
-        messageConfig.toMap(),
+        map,
       );
       return result ?? false;
     } on PlatformException catch (e) {

@@ -6,18 +6,17 @@ import 'package:flutter_alone/flutter_alone.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  /// Example with debug mode settings
-  final messageConfig = CustomMessageConfig(
-    customTitle: 'Example App',
-    customMessage: 'Application is already running in another account',
-    enableInDebugMode: true, // Enable duplicate check even in debug mode
-  );
-
-  // Also can use predefined configurations:
-  // final messageConfig = EnMessageConfig(); // English messages
-  // final messageConfig = KoMessageConfig(); // Korean messages
-
-  if (!await FlutterAlone.instance.checkAndRun(messageConfig: messageConfig)) {
+  // How to use by specifying the package ID and app name
+  if (!await FlutterAlone.instance.checkAndRun(
+    packageId: 'com.example.myapp',
+    appName: 'MyFlutterApp',
+    mutexSuffix: 'production',
+    messageConfig: CustomMessageConfig(
+      customTitle: 'Example App',
+      customMessage: 'Application is already running in another account',
+      enableInDebugMode: true, // Enable duplicate check even in debug mode
+    ),
+  )) {
     exit(0);
   }
   runApp(const MyApp());
@@ -44,9 +43,33 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Flutter Alone Example'),
         ),
-        body: const Center(
-          child:
-              Text('The app ran normally with custom message configuration.'),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Text(
+                'The app ran normally.',
+                style: TextStyle(fontSize: 18),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Prevent duplicate execution with custom mutex name:',
+                style: TextStyle(fontSize: 14),
+              ),
+              Text(
+                'packageId: com.example.myapp',
+                style: TextStyle(fontSize: 14),
+              ),
+              Text(
+                'appName: MyFlutterApp',
+                style: TextStyle(fontSize: 14),
+              ),
+              Text(
+                'suffix: production',
+                style: TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -25,6 +25,9 @@ abstract class FlutterAlonePlatform extends PlatformInterface {
 
   /// Check if application can run and perform initialization
   ///
+  /// Parameters:
+  /// - messageConfig: Configuration for message display and mutex naming
+  ///
   /// Returns:
   /// - true: Application can start
   /// - false: Another instance is already running

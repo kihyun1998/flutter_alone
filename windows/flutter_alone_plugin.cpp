@@ -11,14 +11,12 @@
 #include <flutter/standard_method_codec.h>
 #include "window_utils.h"
 #include "icon_utils.h"
+#include "mutex_utils.h"
 
 #include <memory>
 #include <sstream>
 
 namespace flutter_alone {
-
-// Global mutex handle
-static HANDLE g_hMutex = NULL;
 
 // static
 void FlutterAlonePlugin::RegisterWithRegistrar(
@@ -39,7 +37,7 @@ void FlutterAlonePlugin::RegisterWithRegistrar(
   registrar->AddPlugin(std::move(plugin));
 }
 // constructor
-FlutterAlonePlugin::FlutterAlonePlugin() {}
+FlutterAlonePlugin::FlutterAlonePlugin() : mutex_handle_(NULL) {}
 
 // destructor
 FlutterAlonePlugin::~FlutterAlonePlugin() {
@@ -99,15 +97,25 @@ void FlutterAlonePlugin::ShowMessageBox(const MessageBoxInfo& info) {
    }
 }
 
-ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance() {
+
+std::wstring FlutterAlonePlugin::GetMutexName(const MutexConfig& config) {
+    // Use MutexUtils to generate mutex name
+    return MutexUtils::GenerateMutexName(
+        config.packageId,
+        config.appName,
+        config.suffix
+    );
+}
+
+ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& mutexName) {
     ProcessCheckResult result;
     result.canRun = true;
     
-    // Check for global mutex
-    HANDLE existingMutex = OpenMutexW(MUTEX_ALL_ACCESS, FALSE, L"Global\\FlutterAloneApp_UniqueId");
+    // Check for global mutex using the provided name
+    HANDLE existingMutex = OpenMutexW(MUTEX_ALL_ACCESS, FALSE, mutexName.c_str());
 
     if (existingMutex != NULL) {
-        OutputDebugStringW(L"[DEBUG] Existing mutex found\n");
+        OutputDebugStringW((L"[DEBUG] Existing mutex found: " + mutexName + L"\n").c_str());
         CloseHandle(existingMutex);
         result.canRun = false;
         
@@ -122,48 +130,54 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance() {
     return result;
 }
 
-// Check for duplicate instance function
-bool FlutterAlonePlugin::CheckAndCreateMutex() {
-  if (g_hMutex != NULL) {
-    return false;
-  }
-
-  // Set security attributes - Allow access all user
-  SECURITY_ATTRIBUTES sa;
-  sa.nLength = sizeof(SECURITY_ATTRIBUTES);
-  sa.bInheritHandle = TRUE;
+// Check for duplicate instance function with custom mutex name
+bool FlutterAlonePlugin::CheckAndCreateMutex(const MutexConfig& config) {
+    if (mutex_handle_ != NULL) {
+      // Mutex already created
+      return false;
+    }
   
-  SECURITY_DESCRIPTOR sd;
-  InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
-  SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
-  sa.lpSecurityDescriptor = &sd;
-
-  // Try to create global mutex
-  g_hMutex = CreateMutexW(
-      &sa,     // security attribute
-      TRUE,    // request init
-      L"Global\\FlutterAloneApp_UniqueId"  // uniqe mutex name
-  );
-
-  if (g_hMutex == NULL) {
-    return false;
+    // Generate mutex name
+    current_mutex_name_ = GetMutexName(config);
+    
+    OutputDebugStringW((L"[DEBUG] Creating mutex with name: " + current_mutex_name_ + L"\n").c_str());
+  
+    // Set security attributes - Allow access all user
+    SECURITY_ATTRIBUTES sa;
+    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+    sa.bInheritHandle = TRUE;
+    
+    SECURITY_DESCRIPTOR sd;
+    InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
+    SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
+    sa.lpSecurityDescriptor = &sd;
+  
+    // Try to create global mutex with the generated name
+    mutex_handle_ = CreateMutexW(
+        &sa,     // security attribute
+        TRUE,    // request init
+        current_mutex_name_.c_str()  // custom mutex name
+    );
+  
+    if (mutex_handle_ == NULL) {
+      return false;
+    }
+  
+    if (GetLastError() == ERROR_ALREADY_EXISTS) {
+      CleanupResources();
+      return false;
+    }
+  
+    return true;
   }
-
-  if (GetLastError() == ERROR_ALREADY_EXISTS) {
-    CleanupResources();
-    return false;
-  }
-
-  return true;
-}
 
 // Resource cleanup function
 void FlutterAlonePlugin::CleanupResources() {
-  if (g_hMutex != NULL) {
-    ReleaseMutex(g_hMutex);  // release mutex
-    CloseHandle(g_hMutex);   // close handle
-    g_hMutex = NULL;
-  }
+    if (mutex_handle_ != NULL) {
+        ReleaseMutex(mutex_handle_);  // release mutex
+        CloseHandle(mutex_handle_);   // close handle
+        mutex_handle_ = NULL;
+    }
 }
 
 // Method call handler function
@@ -192,8 +206,34 @@ void FlutterAlonePlugin::HandleMethodCall(
                 std::get<std::string>(arguments->at(flutter::EncodableValue("customMessage"))));
         }
 
+        // Get mutex configuration
+        MutexConfig mutexConfig;
+
+        // Check if packageId is provided
+        auto packageIdIt = arguments->find(flutter::EncodableValue("packageId"));
+        if (packageIdIt != arguments->end() && !std::get<std::string>(packageIdIt->second).empty()) {
+            mutexConfig.packageId = MessageUtils::Utf8ToWide(std::get<std::string>(packageIdIt->second));
+        }
+
+        // Check if appName is provided
+        auto appNameIt = arguments->find(flutter::EncodableValue("appName"));
+        if (appNameIt != arguments->end() && !std::get<std::string>(appNameIt->second).empty()) {
+            mutexConfig.appName = MessageUtils::Utf8ToWide(std::get<std::string>(appNameIt->second));
+        }
+
+        // Check if mutexSuffix is provided
+        auto mutexSuffixIt = arguments->find(flutter::EncodableValue("mutexSuffix"));
+        if (mutexSuffixIt != arguments->end() && mutexSuffixIt->second.IsNull() == false) {
+            mutexConfig.suffix = MessageUtils::Utf8ToWide(std::get<std::string>(mutexSuffixIt->second));
+        }
+
+        // Generate mutex name
+        std::wstring mutexName = GetMutexName(mutexConfig);
+        OutputDebugStringW((L"[DEBUG] Using mutex name: " + mutexName + L"\n").c_str());
+
+
         // Check for running instance
-        auto checkResult = CheckRunningInstance();
+        auto checkResult = CheckRunningInstance(mutexName);
 
         
           if (!checkResult.canRun) {
@@ -218,7 +258,7 @@ void FlutterAlonePlugin::HandleMethodCall(
         }
 
         // Create new mutex
-        bool success = CheckAndCreateMutex();
+        bool success = CheckAndCreateMutex(mutexConfig);
         result->Success(flutter::EncodableValue(success));
     } 
     else if (method_call.method_name().compare("dispose") == 0) {

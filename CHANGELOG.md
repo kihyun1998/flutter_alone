@@ -1,3 +1,17 @@
+## 2.1.0
+
+* **New Features**
+  * Added customizable mutex name configuration
+  * Added package ID and app name parameters for fine-grained mutex control
+  * Added optional mutex suffix parameter
+  * Added automatic application information detection using package_info_plus
+
+* **Improvements**
+  * Enhanced mutex name generation with sanitization and validation
+  * Improved error handling for invalid mutex names
+  * Added comprehensive documentation for mutex customization
+  * Optimized mutex resource management
+
 ## 2.0.2
 
 * **New Features**
