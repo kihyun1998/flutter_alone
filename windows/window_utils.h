@@ -23,6 +23,8 @@ public:
     // Check is valid window
     static bool IsValidWindow(HWND hwnd);
 
+    static std::wstring GetCurrentWindowTitle();
+
 private:
     // EnumWindows struct
     struct EnumWindowsCallbackArgs {

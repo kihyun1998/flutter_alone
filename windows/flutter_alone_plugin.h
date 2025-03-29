@@ -74,8 +74,12 @@ class FlutterAlonePlugin : public flutter::Plugin {
   bool showMessageBox);
 
   // Check for duplicate instance with specified mutex name
-  ProcessCheckResult CheckRunningInstance(const std::wstring& mutexName);
+  ProcessCheckResult CheckRunningInstance(const std::wstring& mutexName, const std::wstring& windowTitle);
 
+
+  std::wstring StringToWideString(const std::string& str);
+  std::string WideStringToString(const std::wstring& wstr);
+  
   // cleanup resources
   void CleanupResources();
 

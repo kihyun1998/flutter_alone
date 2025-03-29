@@ -1,5 +1,6 @@
 ﻿#include "window_utils.h"
 
+
 namespace flutter_alone {
 
 HWND WindowUtils::FindMainWindow(DWORD processId) {
@@ -12,21 +13,22 @@ HWND WindowUtils::FindMainWindow(DWORD processId) {
 }
 
 bool WindowUtils::BringWindowToFront(HWND hwnd) {
-    if (!IsValidWindow(hwnd)) return false;
+    // if (!IsValidWindow(hwnd)) return false;
     
-    // get top
-    DWORD foregroundThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
-    DWORD currentThreadId = GetCurrentThreadId();
+    // // get top
+    // DWORD foregroundThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+    // DWORD currentThreadId = GetCurrentThreadId();
     
-    if (foregroundThreadId != currentThreadId) {
-        AttachThreadInput(currentThreadId, foregroundThreadId, TRUE);
-        BringWindowToTop(hwnd);
-        AttachThreadInput(currentThreadId, foregroundThreadId, FALSE);
-    } else {
-        BringWindowToTop(hwnd);
-    }
+    // if (foregroundThreadId != currentThreadId) {
+    //     AttachThreadInput(currentThreadId, foregroundThreadId, TRUE);
+    //     BringWindowToTop(hwnd);
+    //     AttachThreadInput(currentThreadId, foregroundThreadId, FALSE);
+    // } else {
+    //     BringWindowToTop(hwnd);
+    // }
     
-    return true;
+    // return true;
+    return SetForegroundWindow(hwnd) != 0;
 }
 
 bool WindowUtils::RestoreWindow(HWND hwnd) {

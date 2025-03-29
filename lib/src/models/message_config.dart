@@ -8,6 +8,7 @@ enum MessageConfigJsonKey {
   packageId,
   appName,
   mutexSuffix,
+  windwTitle,
   ;
 
   String get key => toString().split('.').last;
@@ -33,6 +34,8 @@ abstract class MessageConfig {
   /// Optional suffix for mutex name
   final String? mutexSuffix;
 
+  final String windowTitle;
+
   /// Constructor
   const MessageConfig({
     this.showMessageBox = true,
@@ -40,6 +43,7 @@ abstract class MessageConfig {
     this.packageId = '',
     this.appName = '',
     this.mutexSuffix,
+    required this.windowTitle,
   });
 
   /// Convert to map for MethodChannel communication
@@ -55,6 +59,7 @@ class KoMessageConfig extends MessageConfig {
     super.packageId,
     super.appName,
     super.mutexSuffix,
+    required super.windowTitle,
   });
 
   @override
@@ -65,6 +70,7 @@ class KoMessageConfig extends MessageConfig {
         MessageConfigJsonKey.packageId.key: packageId,
         MessageConfigJsonKey.appName.key: appName,
         MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
+        MessageConfigJsonKey.windwTitle.key: windowTitle,
       };
 }
 
@@ -77,6 +83,7 @@ class EnMessageConfig extends MessageConfig {
     super.packageId,
     super.appName,
     super.mutexSuffix,
+    required super.windowTitle,
   });
 
   @override
@@ -87,6 +94,7 @@ class EnMessageConfig extends MessageConfig {
         MessageConfigJsonKey.packageId.key: packageId,
         MessageConfigJsonKey.appName.key: appName,
         MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
+        MessageConfigJsonKey.windwTitle.key: windowTitle,
       };
 }
 
@@ -115,6 +123,7 @@ class CustomMessageConfig extends MessageConfig {
     super.packageId,
     super.appName,
     super.mutexSuffix,
+    required super.windowTitle,
   });
 
   @override
@@ -127,5 +136,6 @@ class CustomMessageConfig extends MessageConfig {
         MessageConfigJsonKey.packageId.key: packageId,
         MessageConfigJsonKey.appName.key: appName,
         MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
+        MessageConfigJsonKey.windwTitle.key: windowTitle,
       };
 }

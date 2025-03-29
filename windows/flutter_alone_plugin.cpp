@@ -15,6 +15,9 @@
 
 #include <memory>
 #include <sstream>
+#include <string>
+#include <codecvt>
+#include <locale>
 
 namespace flutter_alone {
 
@@ -107,7 +110,7 @@ std::wstring FlutterAlonePlugin::GetMutexName(const MutexConfig& config) {
     );
 }
 
-ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& mutexName) {
+ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& mutexName, const std::wstring& windowTitle) {
     ProcessCheckResult result;
     result.canRun = true;
     
@@ -123,11 +126,39 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& 
         auto existingProcess = ProcessUtils::FindExistingProcess();
         if (existingProcess.has_value()) {
             result.existingWindow = existingProcess->windowHandle;
-            OutputDebugStringW(L"[DEBUG] Existing process window found\n");
+            // OutputDebugStringW(L"[DEBUG] Existing process window found\n");
+        }
+        // Try finding by window name if the existing window is not found.
+        else if(!windowTitle.empty()){
+            HWND hwnd = FindWindow(NULL,windowTitle.c_str());
+
+            if(hwnd != NULL){
+                result.existingWindow = hwnd;
+            }
         }
     }
 
     return result;
+}
+
+
+std::wstring StringToWideString(const std::string& str) {
+    if (str.empty()) {
+        return std::wstring();
+    }
+    
+    // UTF-8에서 UTF-16으로 변환
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    return converter.from_bytes(str);
+}
+
+std::string WideStringToString(const std::wstring& wstr) {
+    if (wstr.empty()) {
+        return std::string();
+    }
+    
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    return converter.to_bytes(wstr);
 }
 
 // Check for duplicate instance function with custom mutex name
@@ -185,9 +216,17 @@ void FlutterAlonePlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
     if (method_call.method_name().compare("checkAndRun") == 0) {
-        OutputDebugStringW(L"[DEBUG] HandleMethodCall: checkAndRun start\n");
+        // OutputDebugStringW(L"[DEBUG] HandleMethodCall: checkAndRun start\n");
         
         const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
+
+        // Get application name
+        std::string applicationName;
+        auto appNameIter = arguments->find(flutter::EncodableValue("applicationName"));
+        if(appNameIter != arguments->end() && !std::holds_alternative<std::monostate>(appNameIter->second)){
+            applicationName = std::get<std::string>(appNameIter->second);
+        }
+        std::wstring windowTitle = StringToWideString(applicationName);
         
         // Get message settings
         std::string typeStr = std::get<std::string>(arguments->at(flutter::EncodableValue("type")));
@@ -229,11 +268,11 @@ void FlutterAlonePlugin::HandleMethodCall(
 
         // Generate mutex name
         std::wstring mutexName = GetMutexName(mutexConfig);
-        OutputDebugStringW((L"[DEBUG] Using mutex name: " + mutexName + L"\n").c_str());
+        // OutputDebugStringW((L"[DEBUG] Using mutex name: " + mutexName + L"\n").c_str());
 
 
         // Check for running instance
-        auto checkResult = CheckRunningInstance(mutexName);
+        auto checkResult = CheckRunningInstance(mutexName,windowTitle);
 
         
           if (!checkResult.canRun) {

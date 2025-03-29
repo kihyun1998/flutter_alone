@@ -33,7 +33,7 @@ std::wstring MutexUtils::GenerateMutexName(
 
     // Check if the resulting name is too long (max 260 characters for Windows)
     if(mutexName.length() > 260){
-        OutputDebugStringW(L"[WARNING] Mutex name is too long, using truncated version");
+        // OutputDebugStringW(L"[WARNING] Mutex name is too long, using truncated version");
     mutexName = mutexName.substr(0, 260);
     }
 

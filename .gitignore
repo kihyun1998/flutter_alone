@@ -34,3 +34,4 @@ build/
 
 CODE.md
 codemd-windows-amd64.exe
+.codeignore

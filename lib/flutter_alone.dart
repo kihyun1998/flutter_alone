@@ -34,6 +34,7 @@ class FlutterAlone {
     String? packageId,
     String? appName,
     String? mutexSuffix,
+    required String windowTitle,
   }) async {
     try {
       // Skip duplicate check in debug mode unless explicitly enabled
@@ -43,10 +44,11 @@ class FlutterAlone {
 
       // Automatically fetch if package information is not provided
       final updatedConfig = await _updateMessageConfigWithPackageInfo(
-        messageConfig,
-        packageId,
-        appName,
-        mutexSuffix,
+        baseConfig: messageConfig,
+        packageId: packageId,
+        appName: appName,
+        mutexSuffix: mutexSuffix,
+        windowTitle: windowTitle,
       );
 
       final result = await FlutterAlonePlatform.instance.checkAndRun(
@@ -60,12 +62,13 @@ class FlutterAlone {
   }
 
   /// Create an updated message config with app information
-  Future<MessageConfig> _updateMessageConfigWithPackageInfo(
-    MessageConfig baseConfig,
-    String? packageId,
-    String? appName,
-    String? mutexSuffix,
-  ) async {
+  Future<MessageConfig> _updateMessageConfigWithPackageInfo({
+    required MessageConfig baseConfig,
+    String? packageId = '',
+    String? appName = '',
+    String? mutexSuffix = '',
+    required String windowTitle,
+  }) async {
     String finalPackageId = packageId ?? baseConfig.packageId;
     String finalAppName = appName ?? baseConfig.appName;
 
@@ -102,6 +105,7 @@ class FlutterAlone {
         packageId: finalPackageId,
         appName: finalAppName,
         mutexSuffix: mutexSuffix ?? baseConfig.mutexSuffix,
+        windowTitle: windowTitle,
       );
     } else if (baseConfig is EnMessageConfig) {
       return EnMessageConfig(
@@ -110,6 +114,7 @@ class FlutterAlone {
         packageId: finalPackageId,
         appName: finalAppName,
         mutexSuffix: mutexSuffix ?? baseConfig.mutexSuffix,
+        windowTitle: windowTitle,
       );
     } else if (baseConfig is CustomMessageConfig) {
       return CustomMessageConfig(
@@ -120,6 +125,7 @@ class FlutterAlone {
         packageId: finalPackageId,
         appName: finalAppName,
         mutexSuffix: mutexSuffix ?? baseConfig.mutexSuffix,
+        windowTitle: windowTitle,
       );
     }
 
