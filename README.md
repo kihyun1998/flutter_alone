@@ -1,7 +1,6 @@
-
 # flutter_alone
 
-A robust Flutter plugin for preventing duplicate execution of desktop applications, offering advanced process management and cross-user detection.
+A robust Flutter plugin for preventing duplicate execution of desktop applications, offering advanced process management, window control, and cross-user detection.
 
 [![pub package](https://img.shields.io/pub/v/flutter_alone.svg)](https://pub.dev/packages/flutter_alone)
 
@@ -20,6 +19,8 @@ A robust Flutter plugin for preventing duplicate execution of desktop applicatio
   - Bring to front functionality
   - Enhanced taskbar identification
   - Rich MessageBox with application icon
+  - Window detection by window title
+  - System tray application support
 
 - **Customizable Messaging**
   - Multi-language support (English/Korean)
@@ -44,7 +45,7 @@ Add flutter_alone to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_alone: ^2.1.0
+  flutter_alone: ^2.2.0
 ```
 
 ## Usage
@@ -103,6 +104,22 @@ if (!await FlutterAlone.instance.checkAndRun(
 }
 ```
 
+### Window Title for Better Window Detection
+
+For system tray applications or when you need specific window identification:
+
+```dart
+if (!await FlutterAlone.instance.checkAndRun(
+  messageConfig: CustomMessageConfig(
+    customTitle: 'Notice',
+    customMessage: 'Application is already running',
+    windowTitle: 'My Application Window Title',  // Used for window detection
+  ),
+)) {
+  exit(0);
+}
+```
+
 When both parameters and messageConfig are provided, parameters take precedence:
 
 ```dart
@@ -113,6 +130,7 @@ if (!await FlutterAlone.instance.checkAndRun(
   messageConfig: CustomMessageConfig(
     customTitle: 'Notice',
     customMessage: 'Application is already running',
+    windowTitle: 'My Application Window Title',
   ),
 )) {
   exit(0);
@@ -130,6 +148,24 @@ if (!await FlutterAlone.instance.checkAndRun(
   exit(0);
 }
 ```
+
+### System Tray Applications
+
+For system tray applications, you can use the windowTitle parameter to help the plugin locate and activate your existing window:
+
+```dart
+if (!await FlutterAlone.instance.checkAndRun(
+  messageConfig: CustomMessageConfig(
+    customTitle: 'Notice',
+    customMessage: 'Application is already running',
+    windowTitle: 'My System Tray App',
+  ),
+)) {
+  exit(0);
+}
+```
+
+See the example project for a complete system tray implementation with flutter_alone.
 
 ### Debug Mode Configuration
 
@@ -190,6 +226,7 @@ Each configuration supports:
 - `packageId`: Package identifier for mutex name generation
 - `appName`: Application name for mutex name generation
 - `mutexSuffix`: Optional suffix for mutex name customization
+- `windowTitle`: Window title for better window detection and activation
 
 ### Windows Implementation Details
 - Uses Windows Named Mutex for system-wide instance detection
@@ -199,6 +236,7 @@ Each configuration supports:
 - Advanced window management capabilities
 - Enhanced taskbar and message box icon handling
 - Customizable mutex naming with sanitization and validation
+- Window detection and activation for system tray applications
 
 ## Error Handling
 

@@ -1,3 +1,16 @@
+## 2.2.0
+
+* **New Features**
+  * Added window title parameter for better window identification
+  * Improved window detection for system tray applications
+  * Enhanced same-user window activation and focusing
+  * Added system tray example implementation to demonstration project
+
+* **Improvements**
+  * Better window management for minimized or hidden windows
+  * Optimized cross-user and same-user application instance detection
+  * Enhanced error handling for window activation failures
+
 ## 2.1.0
 
 * **New Features**
