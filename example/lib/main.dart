@@ -28,6 +28,7 @@ void main() async {
       customTitle: 'Example App',
       customMessage: 'Application is already running in another account',
       enableInDebugMode: true, // Enable duplicate check even in debug mode
+      windowTitle: 'Tray App Example',
     ),
   )) {
     exit(0);

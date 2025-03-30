@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+
 enum MessageConfigJsonKey {
   type,
   showMessageBox,
@@ -8,7 +9,7 @@ enum MessageConfigJsonKey {
   packageId,
   appName,
   mutexSuffix,
-  windwTitle,
+  windowTitle,
   ;
 
   String get key => toString().split('.').last;
@@ -34,7 +35,8 @@ abstract class MessageConfig {
   /// Optional suffix for mutex name
   final String? mutexSuffix;
 
-  final String windowTitle;
+  /// window title
+  final String? windowTitle;
 
   /// Constructor
   const MessageConfig({
@@ -43,7 +45,8 @@ abstract class MessageConfig {
     this.packageId = '',
     this.appName = '',
     this.mutexSuffix,
-    required this.windowTitle,
+    // this.hideConfig,
+    this.windowTitle,
   });
 
   /// Convert to map for MethodChannel communication
@@ -59,19 +62,23 @@ class KoMessageConfig extends MessageConfig {
     super.packageId,
     super.appName,
     super.mutexSuffix,
-    required super.windowTitle,
+    super.windowTitle,
   });
 
   @override
-  Map<String, dynamic> toMap() => {
-        MessageConfigJsonKey.type.key: 'ko',
-        MessageConfigJsonKey.showMessageBox.key: showMessageBox,
-        MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
-        MessageConfigJsonKey.packageId.key: packageId,
-        MessageConfigJsonKey.appName.key: appName,
-        MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
-        MessageConfigJsonKey.windwTitle.key: windowTitle,
-      };
+  Map<String, dynamic> toMap() {
+    final Map<String, dynamic> map = {
+      MessageConfigJsonKey.type.key: 'ko',
+      MessageConfigJsonKey.showMessageBox.key: showMessageBox,
+      MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
+      MessageConfigJsonKey.packageId.key: packageId,
+      MessageConfigJsonKey.appName.key: appName,
+      MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
+      MessageConfigJsonKey.windowTitle.key: windowTitle,
+    };
+
+    return map;
+  }
 }
 
 /// English message configuration
@@ -83,19 +90,23 @@ class EnMessageConfig extends MessageConfig {
     super.packageId,
     super.appName,
     super.mutexSuffix,
-    required super.windowTitle,
+    super.windowTitle,
   });
 
   @override
-  Map<String, dynamic> toMap() => {
-        MessageConfigJsonKey.type.key: 'en',
-        MessageConfigJsonKey.showMessageBox.key: showMessageBox,
-        MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
-        MessageConfigJsonKey.packageId.key: packageId,
-        MessageConfigJsonKey.appName.key: appName,
-        MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
-        MessageConfigJsonKey.windwTitle.key: windowTitle,
-      };
+  Map<String, dynamic> toMap() {
+    final Map<String, dynamic> map = {
+      MessageConfigJsonKey.type.key: 'en',
+      MessageConfigJsonKey.showMessageBox.key: showMessageBox,
+      MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
+      MessageConfigJsonKey.packageId.key: packageId,
+      MessageConfigJsonKey.appName.key: appName,
+      MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
+      MessageConfigJsonKey.windowTitle.key: windowTitle,
+    };
+
+    return map;
+  }
 }
 
 /// Custom message configuration
@@ -123,19 +134,23 @@ class CustomMessageConfig extends MessageConfig {
     super.packageId,
     super.appName,
     super.mutexSuffix,
-    required super.windowTitle,
+    super.windowTitle,
   });
 
   @override
-  Map<String, dynamic> toMap() => {
-        MessageConfigJsonKey.type.key: 'custom',
-        MessageConfigJsonKey.customTitle.key: customTitle,
-        MessageConfigJsonKey.customMessage.key: customMessage,
-        MessageConfigJsonKey.showMessageBox.key: showMessageBox,
-        MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
-        MessageConfigJsonKey.packageId.key: packageId,
-        MessageConfigJsonKey.appName.key: appName,
-        MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
-        MessageConfigJsonKey.windwTitle.key: windowTitle,
-      };
+  Map<String, dynamic> toMap() {
+    final Map<String, dynamic> map = {
+      MessageConfigJsonKey.type.key: 'custom',
+      MessageConfigJsonKey.customTitle.key: customTitle,
+      MessageConfigJsonKey.customMessage.key: customMessage,
+      MessageConfigJsonKey.showMessageBox.key: showMessageBox,
+      MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
+      MessageConfigJsonKey.packageId.key: packageId,
+      MessageConfigJsonKey.appName.key: appName,
+      MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
+      MessageConfigJsonKey.windowTitle.key: windowTitle,
+    };
+
+    return map;
+  }
 }

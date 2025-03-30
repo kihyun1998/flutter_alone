@@ -127,8 +127,6 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& 
         if (existingProcess.has_value()) {
             OutputDebugStringW(L"[DEBUG] Existing process window found\n");
             result.existingWindow = existingProcess->windowHandle;
-        } else {
-            OutputDebugStringW(L"[DEBUG] Existing process window NOT found\n");
         }
         
         // Try finding by window title if the existing window is not found
@@ -235,19 +233,12 @@ void FlutterAlonePlugin::CleanupResources() {
 void FlutterAlonePlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-    if (method_call.method_name().compare("checkAndRun") == 0) {
-        // OutputDebugStringW(L"[DEBUG] HandleMethodCall: checkAndRun start\n");
-        
+    if (method_call.method_name().compare("checkAndRun") == 0) {  
         const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
 
-        // Get application name
-        std::string applicationName;
-        auto appNameIter = arguments->find(flutter::EncodableValue("applicationName"));
-        if(appNameIter != arguments->end() && !std::holds_alternative<std::monostate>(appNameIter->second)){
-            applicationName = std::get<std::string>(appNameIter->second);
-        }
-        // std::wstring windowTitle = StringToWideString(applicationName);
-        std::wstring windowTitle = L"Tray App Example";
+        // Get Window title
+        std::wstring windowTitle = MessageUtils::Utf8ToWide(
+            std::get<std::string>(arguments->at(flutter::EncodableValue("windowTitle"))));
         
         // Get message settings
         std::string typeStr = std::get<std::string>(arguments->at(flutter::EncodableValue("type")));
@@ -289,8 +280,6 @@ void FlutterAlonePlugin::HandleMethodCall(
 
         // Generate mutex name
         std::wstring mutexName = GetMutexName(mutexConfig);
-        // OutputDebugStringW((L"[DEBUG] Using mutex name: " + mutexName + L"\n").c_str());
-
 
         // Check for running instance
         auto checkResult = CheckRunningInstance(mutexName,windowTitle);
@@ -301,24 +290,20 @@ void FlutterAlonePlugin::HandleMethodCall(
             if (checkResult.existingWindow != NULL) {
                 OutputDebugStringW(L"[DEBUG] Existing window found - activating window\n");
 
-                // 창 활성화 시도 전 상태 확인
                 BOOL isVisible = IsWindowVisible(checkResult.existingWindow);
                 BOOL isIconic = IsIconic(checkResult.existingWindow);
                 OutputDebugStringW((L"[DEBUG] Window state - Visible: " + std::to_wstring(isVisible) + 
                                      L", Minimized: " + std::to_wstring(isIconic) + L"\n").c_str());
 
-
-                // 창 복원 시도
+     
                 OutputDebugStringW(L"[DEBUG] Attempting to restore window\n");
                 BOOL restoreResult = WindowUtils::RestoreWindow(checkResult.existingWindow);
                 OutputDebugStringW((L"[DEBUG] Restore result: " + std::to_wstring(restoreResult) + L"\n").c_str());
 
-                 // 창을 전면으로 가져오기 시도
                 OutputDebugStringW(L"[DEBUG] Attempting to bring window to front\n");
                 BOOL bringToFrontResult = WindowUtils::BringWindowToFront(checkResult.existingWindow);
                 OutputDebugStringW((L"[DEBUG] Bring to front result: " + std::to_wstring(bringToFrontResult) + L"\n").c_str());
                 
-                // 창에 포커스 설정 시도
                 OutputDebugStringW(L"[DEBUG] Attempting to focus window\n");
                 BOOL focusResult = WindowUtils::FocusWindow(checkResult.existingWindow);
                 OutputDebugStringW((L"[DEBUG] Focus result: " + std::to_wstring(focusResult) + L"\n").c_str());

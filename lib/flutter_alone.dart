@@ -34,7 +34,6 @@ class FlutterAlone {
     String? packageId,
     String? appName,
     String? mutexSuffix,
-    required String windowTitle,
   }) async {
     try {
       // Skip duplicate check in debug mode unless explicitly enabled
@@ -42,13 +41,12 @@ class FlutterAlone {
         return true;
       }
 
-      // Automatically fetch if package information is not provided
-      final updatedConfig = await _updateMessageConfigWithPackageInfo(
+      // Automatically fetch if (package information/use hide config) is not provided
+      final updatedConfig = await _updateMessageConfig(
         baseConfig: messageConfig,
         packageId: packageId,
         appName: appName,
         mutexSuffix: mutexSuffix,
-        windowTitle: windowTitle,
       );
 
       final result = await FlutterAlonePlatform.instance.checkAndRun(
@@ -62,12 +60,11 @@ class FlutterAlone {
   }
 
   /// Create an updated message config with app information
-  Future<MessageConfig> _updateMessageConfigWithPackageInfo({
+  Future<MessageConfig> _updateMessageConfig({
     required MessageConfig baseConfig,
     String? packageId = '',
     String? appName = '',
     String? mutexSuffix = '',
-    required String windowTitle,
   }) async {
     String finalPackageId = packageId ?? baseConfig.packageId;
     String finalAppName = appName ?? baseConfig.appName;
@@ -97,7 +94,9 @@ class FlutterAlone {
       }
     }
 
-    // 업데이트된 값으로 새 설정 객체 생성
+    final windowTitle = baseConfig.windowTitle ?? '';
+
+    // Create a new configuration object with updated values
     if (baseConfig is KoMessageConfig) {
       return KoMessageConfig(
         showMessageBox: baseConfig.showMessageBox,
@@ -105,7 +104,7 @@ class FlutterAlone {
         packageId: finalPackageId,
         appName: finalAppName,
         mutexSuffix: mutexSuffix ?? baseConfig.mutexSuffix,
-        windowTitle: windowTitle,
+        windowTitle: windowTitle.isEmpty ? finalAppName : windowTitle,
       );
     } else if (baseConfig is EnMessageConfig) {
       return EnMessageConfig(
@@ -114,7 +113,7 @@ class FlutterAlone {
         packageId: finalPackageId,
         appName: finalAppName,
         mutexSuffix: mutexSuffix ?? baseConfig.mutexSuffix,
-        windowTitle: windowTitle,
+        windowTitle: windowTitle.isEmpty ? finalAppName : windowTitle,
       );
     } else if (baseConfig is CustomMessageConfig) {
       return CustomMessageConfig(
@@ -125,7 +124,7 @@ class FlutterAlone {
         packageId: finalPackageId,
         appName: finalAppName,
         mutexSuffix: mutexSuffix ?? baseConfig.mutexSuffix,
-        windowTitle: windowTitle,
+        windowTitle: windowTitle.isEmpty ? finalAppName : windowTitle,
       );
     }
 
