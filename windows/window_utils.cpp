@@ -34,10 +34,18 @@ bool WindowUtils::BringWindowToFront(HWND hwnd) {
 bool WindowUtils::RestoreWindow(HWND hwnd) {
     if (!IsValidWindow(hwnd)) return false;
     
-    // 최소화된 경우 복원
+    // If the window is not visible, display it
+    if (!IsWindowVisible(hwnd)) {
+        OutputDebugStringW(L"[DEBUG] Window is hidden, showing it\n");
+        return ShowWindow(hwnd, SW_SHOW);
+    }
+    
+    // If the window is minimized, restore it to original size
     if (IsIconic(hwnd)) {
+        OutputDebugStringW(L"[DEBUG] Window is minimized, restoring it\n");
         return ShowWindow(hwnd, SW_RESTORE);
     }
+    
     return true;
 }
 

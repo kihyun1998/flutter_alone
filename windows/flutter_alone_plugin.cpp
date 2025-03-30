@@ -125,15 +125,22 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& 
         // Find existing process - To check if it's the same user
         auto existingProcess = ProcessUtils::FindExistingProcess();
         if (existingProcess.has_value()) {
+            OutputDebugStringW(L"[DEBUG] Existing process window found\n");
             result.existingWindow = existingProcess->windowHandle;
-            // OutputDebugStringW(L"[DEBUG] Existing process window found\n");
+        } else {
+            OutputDebugStringW(L"[DEBUG] Existing process window NOT found\n");
         }
-        // Try finding by window name if the existing window is not found.
-        else if(!windowTitle.empty()){
-            HWND hwnd = FindWindow(NULL,windowTitle.c_str());
-
-            if(hwnd != NULL){
+        
+        // Try finding by window title if the existing window is not found
+        if (result.existingWindow == NULL && !windowTitle.empty()) {
+            OutputDebugStringW((L"[DEBUG] Attempting to find window by title: " + windowTitle + L"\n").c_str());
+            
+            HWND hwnd = FindWindowW(NULL, windowTitle.c_str());
+            if (hwnd != NULL) {
+                OutputDebugStringW(L"[DEBUG] Window found by title\n");
                 result.existingWindow = hwnd;
+            } else {
+                OutputDebugStringW(L"[DEBUG] Window NOT found by title\n");
             }
         }
     }
@@ -147,9 +154,15 @@ std::wstring StringToWideString(const std::string& str) {
         return std::wstring();
     }
     
-    // UTF-8에서 UTF-16으로 변환
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    return converter.from_bytes(str);
+    // UTF-8 to UTF-16
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), 
+        static_cast<int>(str.length()), NULL, 0);
+    
+    std::wstring result(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), 
+        static_cast<int>(str.length()), &result[0], size_needed);
+    
+    return result;
 }
 
 std::string WideStringToString(const std::wstring& wstr) {
@@ -157,8 +170,15 @@ std::string WideStringToString(const std::wstring& wstr) {
         return std::string();
     }
     
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    return converter.to_bytes(wstr);
+    // UTF-16 to UTF-8
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), 
+        static_cast<int>(wstr.length()), NULL, 0, NULL, NULL);
+    
+    std::string result(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), 
+        static_cast<int>(wstr.length()), &result[0], size_needed, NULL, NULL);
+    
+    return result;
 }
 
 // Check for duplicate instance function with custom mutex name
@@ -226,7 +246,8 @@ void FlutterAlonePlugin::HandleMethodCall(
         if(appNameIter != arguments->end() && !std::holds_alternative<std::monostate>(appNameIter->second)){
             applicationName = std::get<std::string>(appNameIter->second);
         }
-        std::wstring windowTitle = StringToWideString(applicationName);
+        // std::wstring windowTitle = StringToWideString(applicationName);
+        std::wstring windowTitle = L"Tray App Example";
         
         // Get message settings
         std::string typeStr = std::get<std::string>(arguments->at(flutter::EncodableValue("type")));
@@ -279,9 +300,28 @@ void FlutterAlonePlugin::HandleMethodCall(
             // If same window - Activate window
             if (checkResult.existingWindow != NULL) {
                 OutputDebugStringW(L"[DEBUG] Existing window found - activating window\n");
-                WindowUtils::RestoreWindow(checkResult.existingWindow);
-                WindowUtils::BringWindowToFront(checkResult.existingWindow);
-                WindowUtils::FocusWindow(checkResult.existingWindow);
+
+                // 창 활성화 시도 전 상태 확인
+                BOOL isVisible = IsWindowVisible(checkResult.existingWindow);
+                BOOL isIconic = IsIconic(checkResult.existingWindow);
+                OutputDebugStringW((L"[DEBUG] Window state - Visible: " + std::to_wstring(isVisible) + 
+                                     L", Minimized: " + std::to_wstring(isIconic) + L"\n").c_str());
+
+
+                // 창 복원 시도
+                OutputDebugStringW(L"[DEBUG] Attempting to restore window\n");
+                BOOL restoreResult = WindowUtils::RestoreWindow(checkResult.existingWindow);
+                OutputDebugStringW((L"[DEBUG] Restore result: " + std::to_wstring(restoreResult) + L"\n").c_str());
+
+                 // 창을 전면으로 가져오기 시도
+                OutputDebugStringW(L"[DEBUG] Attempting to bring window to front\n");
+                BOOL bringToFrontResult = WindowUtils::BringWindowToFront(checkResult.existingWindow);
+                OutputDebugStringW((L"[DEBUG] Bring to front result: " + std::to_wstring(bringToFrontResult) + L"\n").c_str());
+                
+                // 창에 포커스 설정 시도
+                OutputDebugStringW(L"[DEBUG] Attempting to focus window\n");
+                BOOL focusResult = WindowUtils::FocusWindow(checkResult.existingWindow);
+                OutputDebugStringW((L"[DEBUG] Focus result: " + std::to_wstring(focusResult) + L"\n").c_str());
 
             } 
             // If running in different account - Show message
