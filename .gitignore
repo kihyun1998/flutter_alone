@@ -31,7 +31,3 @@ migrate_working_dir/
 .flutter-plugins
 .flutter-plugins-dependencies
 build/
-
-CODE.md
-codemd-windows-amd64.exe
-scenario.md
