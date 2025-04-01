@@ -1,3 +1,15 @@
+## 2.3.0
+
+* **Breaking Changes**
+  * Simplified `checkAndRun()` method API - now uses only `messageConfig` parameter
+  * Made `packageId` and `appName` required parameters in `MessageConfig` class
+  * Improved API consistency by removing duplicate parameters
+
+* **Improvements**
+  * Enhanced documentation for message configuration
+  * Optimized automatic package information detection logic
+  * General code base cleanup and refactoring
+
 ## 2.2.0
 
 * **New Features**
