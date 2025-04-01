@@ -25,11 +25,11 @@ abstract class MessageConfig {
   final bool enableInDebugMode;
 
   /// Package identifier for mutex name generation
-  /// Must not be empty for custom mutex names
+  /// Required for mutex name generation
   final String packageId;
 
   /// Application name for mutex name generation
-  /// Must not be empty for custom mutex names
+  /// Required for mutex name generation
   final String appName;
 
   /// Optional suffix for mutex name
@@ -42,10 +42,9 @@ abstract class MessageConfig {
   const MessageConfig({
     this.showMessageBox = true,
     this.enableInDebugMode = false,
-    this.packageId = '',
-    this.appName = '',
+    required this.packageId,
+    required this.appName,
     this.mutexSuffix,
-    // this.hideConfig,
     this.windowTitle,
   });
 
@@ -59,8 +58,8 @@ class KoMessageConfig extends MessageConfig {
   const KoMessageConfig({
     super.showMessageBox,
     super.enableInDebugMode,
-    super.packageId,
-    super.appName,
+    required super.packageId,
+    required super.appName,
     super.mutexSuffix,
     super.windowTitle,
   });
@@ -87,8 +86,8 @@ class EnMessageConfig extends MessageConfig {
   const EnMessageConfig({
     super.showMessageBox,
     super.enableInDebugMode,
-    super.packageId,
-    super.appName,
+    required super.packageId,
+    required super.appName,
     super.mutexSuffix,
     super.windowTitle,
   });
@@ -131,8 +130,8 @@ class CustomMessageConfig extends MessageConfig {
     required this.customMessage,
     super.showMessageBox,
     super.enableInDebugMode,
-    super.packageId,
-    super.appName,
+    required super.packageId,
+    required super.appName,
     super.mutexSuffix,
     super.windowTitle,
   });

@@ -19,22 +19,20 @@ void main() async {
     await windowManager.focus();
   });
   if (Platform.isWindows) {
-    // How to use by specifying the package ID and app name
     if (!await FlutterAlone.instance.checkAndRun(
-      packageId: 'com.example.myapp',
-      appName: 'MyFlutterApp',
-      mutexSuffix: 'production',
       messageConfig: CustomMessageConfig(
         customTitle: 'Example App',
         customMessage: 'Application is already running in another account',
         enableInDebugMode: true, // Enable duplicate check even in debug mode
         windowTitle: 'Tray App Example',
+        packageId: 'com.example.myapp',
+        appName: 'MyFlutterApp',
+        mutexSuffix: 'production',
       ),
     )) {
       exit(0);
     }
   }
-
   runApp(const MyApp());
 }
 

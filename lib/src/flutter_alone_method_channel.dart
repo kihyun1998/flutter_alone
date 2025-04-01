@@ -11,7 +11,7 @@ class MethodChannelFlutterAlone extends FlutterAlonePlatform {
 
   @override
   Future<bool> checkAndRun({
-    MessageConfig messageConfig = const EnMessageConfig(),
+    required MessageConfig messageConfig,
   }) async {
     try {
       // Convert message config to map including the mutex name properties

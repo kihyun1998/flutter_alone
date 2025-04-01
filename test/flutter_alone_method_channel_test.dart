@@ -47,7 +47,10 @@ void main() {
     });
 
     test('checkAndRun with Korean message config', () async {
-      const messageConfig = KoMessageConfig(showMessageBox: true);
+      const messageConfig = KoMessageConfig(
+          packageId: 'com.test.integration',
+          appName: 'IntegrationTest',
+          showMessageBox: true);
 
       final result = await platform.checkAndRun(messageConfig: messageConfig);
 
@@ -61,7 +64,10 @@ void main() {
     });
 
     test('checkAndRun with English message config', () async {
-      const messageConfig = EnMessageConfig(showMessageBox: false);
+      const messageConfig = EnMessageConfig(
+          showMessageBox: false,
+          packageId: 'com.test.integration',
+          appName: 'IntegrationTest');
 
       final result = await platform.checkAndRun(messageConfig: messageConfig);
 
@@ -76,10 +82,11 @@ void main() {
 
     test('checkAndRun with custom message config', () async {
       const messageConfig = CustomMessageConfig(
-        customTitle: 'Notice',
-        customMessage: 'Program is already running',
-        showMessageBox: true,
-      );
+          customTitle: 'Notice',
+          customMessage: 'Program is already running',
+          showMessageBox: true,
+          packageId: 'com.test.integration',
+          appName: 'IntegrationTest');
 
       final result = await platform.checkAndRun(messageConfig: messageConfig);
 
@@ -114,7 +121,11 @@ void main() {
       });
 
       expect(
-        () => platform.checkAndRun(),
+        () => platform.checkAndRun(
+            messageConfig: const EnMessageConfig(
+                showMessageBox: false,
+                packageId: 'com.test.integration',
+                appName: 'IntegrationTest')),
         throwsA(
           isA<AloneException>()
               .having((e) => e.code, 'code', 'error')
@@ -138,6 +149,8 @@ void main() {
         customMessage: 'Program is already running',
         showMessageBox: true,
         windowTitle: 'Test Window Title',
+        packageId: 'com.test.integration',
+        appName: 'IntegrationTest',
       );
 
       final result = await platform.checkAndRun(messageConfig: messageConfig);
@@ -151,8 +164,8 @@ void main() {
           'customMessage': 'Program is already running',
           'showMessageBox': true,
           'enableInDebugMode': false,
-          'packageId': '',
-          'appName': '',
+          'packageId': 'com.test.integration',
+          'appName': 'IntegrationTest',
           'windowTitle': 'Test Window Title',
         }),
       );

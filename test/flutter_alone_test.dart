@@ -12,9 +12,7 @@ class MockFlutterAlonePlatform
   Map<String, dynamic>? lastArguments; // 변경: 객체 대신 Map 저장
 
   @override
-  Future<bool> checkAndRun({
-    MessageConfig messageConfig = const EnMessageConfig(),
-  }) async {
+  Future<bool> checkAndRun({required MessageConfig messageConfig}) async {
     checkAndRunCalled = true;
     lastArguments = messageConfig.toMap(); // 객체가 아닌 Map을 저장
     return true;
@@ -38,7 +36,8 @@ void main() {
 
   group('Message configuration tests', () {
     test('Korean message config should be created correctly', () {
-      const config = KoMessageConfig();
+      const config =
+          KoMessageConfig(packageId: 'com.test.app', appName: 'TestApp');
       final map = config.toMap();
 
       expect(map['type'], 'ko');
@@ -46,7 +45,8 @@ void main() {
     });
 
     test('English message config should be created correctly', () {
-      const config = EnMessageConfig();
+      const config =
+          EnMessageConfig(packageId: 'com.test.app', appName: 'TestApp');
       final map = config.toMap();
 
       expect(map['type'], 'en');
@@ -55,7 +55,10 @@ void main() {
 
     test('Custom message should be handled correctly', () {
       const config = CustomMessageConfig(
-          customTitle: 'Test Title', customMessage: 'Test Message');
+          customTitle: 'Test Title',
+          customMessage: 'Test Message',
+          packageId: 'com.test.app',
+          appName: 'TestApp');
       final map = config.toMap();
 
       expect(map['type'], 'custom');
@@ -95,6 +98,8 @@ void main() {
     const config = CustomMessageConfig(
       customTitle: 'Test',
       customMessage: 'Message',
+      packageId: 'com.test.app',
+      appName: 'TestApp',
       windowTitle: windowTitle,
     );
     final map = config.toMap();
