@@ -1,3 +1,9 @@
+## 2.3.1
+
+* **Improvements**
+  * Applied consistent code formatting throughout the project
+  * Fixed code style issues according to Dart formatting guidelines
+
 ## 2.3.0
 
 * **Breaking Changes**
