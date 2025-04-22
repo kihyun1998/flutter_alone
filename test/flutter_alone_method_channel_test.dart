@@ -45,9 +45,10 @@ void main() {
       log.clear();
     });
 
-    test('checkAndRun with Korean message config', () async {
+    test('checkAndRun with Korean message config and DefaultMutexConfig',
+        () async {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTest',
         ),
@@ -63,15 +64,16 @@ void main() {
       expect(methodCall.method, 'checkAndRun');
       expect(methodCall.arguments['type'], 'ko');
       expect(methodCall.arguments['showMessageBox'], true);
-      expect(methodCall.arguments['packageId'], 'com.test.integration');
-      expect(methodCall.arguments['appName'], 'IntegrationTest');
+      expect(methodCall.arguments['mutexName'],
+          'Global\\com.test.integration_IntegrationTest');
 
       expect(result, true);
     });
 
-    test('checkAndRun with English message config', () async {
+    test('checkAndRun with English message config and DefaultMutexConfig',
+        () async {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTest',
         ),
@@ -87,17 +89,17 @@ void main() {
       expect(methodCall.method, 'checkAndRun');
       expect(methodCall.arguments['type'], 'en');
       expect(methodCall.arguments['showMessageBox'], false);
-      expect(methodCall.arguments['packageId'], 'com.test.integration');
-      expect(methodCall.arguments['appName'], 'IntegrationTest');
+      expect(methodCall.arguments['mutexName'],
+          'Global\\com.test.integration_IntegrationTest');
 
       expect(result, true);
     });
 
-    test('checkAndRun with custom message config', () async {
+    test('checkAndRun with custom message config and CustomMutexConfig',
+        () async {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
-          packageId: 'com.test.integration',
-          appName: 'IntegrationTest',
+        mutexConfig: CustomMutexConfig(
+          customMutexName: 'TestCustomMutex',
         ),
         messageConfig: CustomMessageConfig(
           customTitle: 'Notice',
@@ -116,8 +118,7 @@ void main() {
       expect(
           methodCall.arguments['customMessage'], 'Program is already running');
       expect(methodCall.arguments['showMessageBox'], true);
-      expect(methodCall.arguments['packageId'], 'com.test.integration');
-      expect(methodCall.arguments['appName'], 'IntegrationTest');
+      expect(methodCall.arguments['mutexName'], 'Global\\TestCustomMutex');
 
       expect(result, true);
     });
@@ -141,7 +142,7 @@ void main() {
       });
 
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTest',
         ),
@@ -169,9 +170,10 @@ void main() {
       );
     });
 
-    test('checkAndRun with full configuration', () async {
+    test('checkAndRun with full configuration using DefaultMutexConfig',
+        () async {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTest',
           mutexSuffix: 'test',
@@ -196,9 +198,46 @@ void main() {
       expect(methodCall.method, 'checkAndRun');
 
       // Check all configuration parameters
-      expect(methodCall.arguments['packageId'], 'com.test.integration');
-      expect(methodCall.arguments['appName'], 'IntegrationTest');
-      expect(methodCall.arguments['mutexSuffix'], 'test');
+      expect(methodCall.arguments['mutexName'],
+          'Global\\com.test.integration_IntegrationTest_test');
+      expect(methodCall.arguments['windowTitle'], 'Test Window Title');
+      expect(methodCall.arguments['enableInDebugMode'], true);
+      expect(methodCall.arguments['type'], 'custom');
+      expect(methodCall.arguments['customTitle'], 'Notice');
+      expect(
+          methodCall.arguments['customMessage'], 'Program is already running');
+      expect(methodCall.arguments['showMessageBox'], true);
+
+      expect(result, true);
+    });
+
+    test('checkAndRun with full configuration using CustomMutexConfig',
+        () async {
+      const config = FlutterAloneConfig(
+        mutexConfig: CustomMutexConfig(
+          customMutexName: 'MyUniqueTestMutex',
+        ),
+        windowConfig: WindowConfig(
+          windowTitle: 'Test Window Title',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: CustomMessageConfig(
+          customTitle: 'Notice',
+          customMessage: 'Program is already running',
+          showMessageBox: true,
+        ),
+      );
+
+      final result = await platform.checkAndRun(config: config);
+
+      expect(log, hasLength(1));
+      final methodCall = log.first;
+      expect(methodCall.method, 'checkAndRun');
+
+      // Check all configuration parameters
+      expect(methodCall.arguments['mutexName'], 'Global\\MyUniqueTestMutex');
       expect(methodCall.arguments['windowTitle'], 'Test Window Title');
       expect(methodCall.arguments['enableInDebugMode'], true);
       expect(methodCall.arguments['type'], 'custom');

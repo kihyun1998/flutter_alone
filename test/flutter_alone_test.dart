@@ -1,5 +1,3 @@
-// test/flutter_alone_test.dart
-import 'package:flutter/foundation.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 import 'package:flutter_alone/flutter_alone_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,13 +15,6 @@ class MockFlutterAlonePlatform
   Future<bool> checkAndRun({required FlutterAloneConfig config}) async {
     checkAndRunCalled = true;
     lastArguments = config.toMap();
-
-    // Skip duplicate check in debug mode unless explicitly enabled
-    if (kDebugMode && !config.duplicateCheckConfig.enableInDebugMode) {
-      return true;
-    }
-
-    // Return true for the test
     return true;
   }
 
@@ -44,29 +35,43 @@ void main() {
   });
 
   group('Configuration tests', () {
-    test('Basic MutexConfig should be created correctly', () {
-      const config = MutexConfig(
+    test('DefaultMutexConfig should be created correctly', () {
+      const config = DefaultMutexConfig(
         packageId: 'com.test.app',
         appName: 'TestApp',
       );
       final map = config.toMap();
 
-      expect(map[ConfigJsonKey.packageId.key], 'com.test.app');
-      expect(map['appName'], 'TestApp');
-      expect(map.containsKey('mutexSuffix'), false);
+      expect(map['mutexName'], 'Global\\com.test.app_TestApp');
     });
 
-    test('MutexConfig with suffix should be created correctly', () {
-      const config = MutexConfig(
+    test('DefaultMutexConfig with suffix should be created correctly', () {
+      const config = DefaultMutexConfig(
         packageId: 'com.test.app',
         appName: 'TestApp',
         mutexSuffix: 'production',
       );
       final map = config.toMap();
 
-      expect(map['packageId'], 'com.test.app');
-      expect(map['appName'], 'TestApp');
-      expect(map['mutexSuffix'], 'production');
+      expect(map['mutexName'], 'Global\\com.test.app_TestApp_production');
+    });
+
+    test('CustomMutexConfig should be created correctly', () {
+      const config = CustomMutexConfig(
+        customMutexName: 'MyCustomMutex',
+      );
+      final map = config.toMap();
+
+      expect(map['mutexName'], 'Global\\MyCustomMutex');
+    });
+
+    test('CustomMutexConfig with Global prefix should preserve it', () {
+      const config = CustomMutexConfig(
+        customMutexName: 'Global\\MyCustomMutex',
+      );
+      final map = config.toMap();
+
+      expect(map['mutexName'], 'Global\\MyCustomMutex');
     });
 
     test('WindowConfig should be created correctly', () {
@@ -127,9 +132,11 @@ void main() {
   });
 
   group('FlutterAloneConfig tests', () {
-    test('Combined config should include all components', () {
+    test(
+        'Combined config with DefaultMutexConfig should include all components',
+        () {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.app',
           appName: 'TestApp',
           mutexSuffix: 'test',
@@ -150,9 +157,7 @@ void main() {
       final map = config.toMap();
 
       // Check mutex config
-      expect(map['packageId'], 'com.test.app');
-      expect(map['appName'], 'TestApp');
-      expect(map['mutexSuffix'], 'test');
+      expect(map['mutexName'], 'Global\\com.test.app_TestApp_test');
 
       // Check window config
       expect(map['windowTitle'], 'Test Window');
@@ -166,12 +171,44 @@ void main() {
       expect(map['customMessage'], 'Test Message');
       expect(map['showMessageBox'], false);
     });
+
+    test('Combined config with CustomMutexConfig should include all components',
+        () {
+      const config = FlutterAloneConfig(
+        mutexConfig: CustomMutexConfig(
+          customMutexName: 'MyCustomMutexName',
+        ),
+        windowConfig: WindowConfig(
+          windowTitle: 'Test Window',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: EnMessageConfig(),
+      );
+
+      final map = config.toMap();
+
+      // Check mutex config
+      expect(map['mutexName'], 'Global\\MyCustomMutexName');
+
+      // Check window config
+      expect(map['windowTitle'], 'Test Window');
+
+      // Check duplicate check config
+      expect(map['enableInDebugMode'], true);
+
+      // Check message config
+      expect(map['type'], 'en');
+      expect(map['showMessageBox'], true);
+    });
   });
 
   group('Plugin functionality tests', () {
-    test('checkAndRun should pass correct config to platform', () async {
+    test('checkAndRun should pass correct config with DefaultMutexConfig',
+        () async {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.app',
           appName: 'TestApp',
         ),
@@ -188,51 +225,36 @@ void main() {
 
       final args = mockPlatform.lastArguments;
       expect(args, isNotNull);
-      expect(args!['packageId'], 'com.test.app');
-      expect(args['appName'], 'TestApp');
+      expect(args!['mutexName'], 'Global\\com.test.app_TestApp');
+      expect(args['type'], 'en');
+    });
+
+    test('checkAndRun should pass correct config with CustomMutexConfig',
+        () async {
+      const config = FlutterAloneConfig(
+        mutexConfig: CustomMutexConfig(
+          customMutexName: 'MyCustomMutexForTesting',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: EnMessageConfig(),
+      );
+
+      final result = await flutterAlone.checkAndRun(config: config);
+
+      expect(result, true);
+      expect(mockPlatform.checkAndRunCalled, true);
+
+      final args = mockPlatform.lastArguments;
+      expect(args, isNotNull);
+      expect(args!['mutexName'], 'Global\\MyCustomMutexForTesting');
       expect(args['type'], 'en');
     });
 
     test('dispose should be called correctly', () async {
       await flutterAlone.dispose();
       expect(mockPlatform.disposeCalled, true);
-    });
-  });
-
-  group('Integration tests', () {
-    test('Full configuration with all options', () async {
-      const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
-          packageId: 'com.test.app',
-          appName: 'TestApp',
-          mutexSuffix: 'production',
-        ),
-        windowConfig: WindowConfig(
-          windowTitle: 'Test Window',
-        ),
-        duplicateCheckConfig: DuplicateCheckConfig(
-          enableInDebugMode: true,
-        ),
-        messageConfig: CustomMessageConfig(
-          customTitle: 'Test Title',
-          customMessage: 'Test Message',
-          showMessageBox: true,
-        ),
-      );
-
-      await flutterAlone.checkAndRun(config: config);
-
-      final args = mockPlatform.lastArguments;
-      expect(args, isNotNull);
-      expect(args!['packageId'], 'com.test.app');
-      expect(args['appName'], 'TestApp');
-      expect(args['mutexSuffix'], 'production');
-      expect(args['windowTitle'], 'Test Window');
-      expect(args['enableInDebugMode'], true);
-      expect(args['type'], 'custom');
-      expect(args['customTitle'], 'Test Title');
-      expect(args['customMessage'], 'Test Message');
-      expect(args['showMessageBox'], true);
     });
   });
 }

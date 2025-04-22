@@ -23,11 +23,22 @@ void main() {
     late FlutterAlone flutterAlone;
     const channel = MethodChannel('flutter_alone');
 
-    // Shared test configuration data
-    final testConfig = FlutterAloneConfig(
-      mutexConfig: const MutexConfig(
+    // Shared test configuration data with DefaultMutexConfig
+    final defaultMutexTestConfig = FlutterAloneConfig(
+      mutexConfig: const DefaultMutexConfig(
         packageId: 'com.test.integration',
         appName: 'IntegrationTestApp',
+      ),
+      duplicateCheckConfig: const DuplicateCheckConfig(
+        enableInDebugMode: true,
+      ),
+      messageConfig: const EnMessageConfig(),
+    );
+
+    // Shared test configuration data with CustomMutexConfig
+    final customMutexTestConfig = FlutterAloneConfig(
+      mutexConfig: const CustomMutexConfig(
+        customMutexName: 'IntegrationTestMutex',
       ),
       duplicateCheckConfig: const DuplicateCheckConfig(
         enableInDebugMode: true,
@@ -69,10 +80,20 @@ void main() {
           .setMockMethodCallHandler(channel, null);
     });
 
-    test('Basic functionality test - successful mutex creation', () async {
-      final result = await flutterAlone.checkAndRun(config: testConfig);
+    test('Basic functionality test with DefaultMutexConfig', () async {
+      final result =
+          await flutterAlone.checkAndRun(config: defaultMutexTestConfig);
       expect(result, true,
-          reason: 'Verify successful mutex creation on platform');
+          reason:
+              'Verify successful mutex creation on platform with DefaultMutexConfig');
+    });
+
+    test('Basic functionality test with CustomMutexConfig', () async {
+      final result =
+          await flutterAlone.checkAndRun(config: customMutexTestConfig);
+      expect(result, true,
+          reason:
+              'Verify successful mutex creation on platform with CustomMutexConfig');
     });
 
     test('Error handling test - handles platform exceptions properly',
@@ -89,7 +110,8 @@ void main() {
 
       // Catch exception and verify type
       expect(
-        () async => await flutterAlone.checkAndRun(config: testConfig),
+        () async =>
+            await flutterAlone.checkAndRun(config: defaultMutexTestConfig),
         throwsA(isA<AloneException>()
             .having((e) => e.code, 'error code', 'mutex_error')),
         reason:
@@ -110,16 +132,17 @@ void main() {
       });
     });
 
-    // Additional test: Verify that configuration parameters are correctly passed
-    test('Configuration parameters are correctly passed to platform', () async {
+    // Additional test: Verify that DefaultMutexConfig parameters are correctly passed
+    test('DefaultMutexConfig parameters are correctly passed to platform',
+        () async {
       bool configVerified = false;
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
         if (methodCall.method == 'checkAndRun') {
           final args = methodCall.arguments as Map<dynamic, dynamic>;
-          configVerified = args['packageId'] == 'com.test.integration' &&
-              args['appName'] == 'IntegrationTestApp' &&
+          configVerified = args['mutexName'] ==
+                  'Global\\com.test.integration_IntegrationTestApp' &&
               args['enableInDebugMode'] == true &&
               args['type'] == 'en';
           return true;
@@ -127,15 +150,40 @@ void main() {
         return null;
       });
 
-      await flutterAlone.checkAndRun(config: testConfig);
+      await flutterAlone.checkAndRun(config: defaultMutexTestConfig);
       expect(configVerified, true,
           reason:
-              'Verify configuration parameters are passed to platform correctly');
+              'Verify DefaultMutexConfig parameters are passed to platform correctly');
     });
 
-    test('Test with all configuration options', () async {
+    // Additional test: Verify that CustomMutexConfig parameters are correctly passed
+    test('CustomMutexConfig parameters are correctly passed to platform',
+        () async {
+      bool configVerified = false;
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        if (methodCall.method == 'checkAndRun') {
+          final args = methodCall.arguments as Map<dynamic, dynamic>;
+          configVerified =
+              args['mutexName'] == 'Global\\IntegrationTestMutex' &&
+                  args['enableInDebugMode'] == true &&
+                  args['type'] == 'en';
+          return true;
+        }
+        return null;
+      });
+
+      await flutterAlone.checkAndRun(config: customMutexTestConfig);
+      expect(configVerified, true,
+          reason:
+              'Verify CustomMutexConfig parameters are passed to platform correctly');
+    });
+
+    test('Test with all configuration options using DefaultMutexConfig',
+        () async {
       final fullConfig = FlutterAloneConfig(
-        mutexConfig: const MutexConfig(
+        mutexConfig: const DefaultMutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTestApp',
           mutexSuffix: 'integration_test',
@@ -168,9 +216,52 @@ void main() {
       await flutterAlone.checkAndRun(config: fullConfig);
 
       expect(capturedArguments, isNotNull);
-      expect(capturedArguments!['packageId'], 'com.test.integration');
-      expect(capturedArguments!['appName'], 'IntegrationTestApp');
-      expect(capturedArguments!['mutexSuffix'], 'integration_test');
+      expect(capturedArguments!['mutexName'],
+          'Global\\com.test.integration_IntegrationTestApp_integration_test');
+      expect(capturedArguments!['windowTitle'], 'Integration Test Window');
+      expect(capturedArguments!['enableInDebugMode'], true);
+      expect(capturedArguments!['type'], 'custom');
+      expect(capturedArguments!['customTitle'], 'Integration Test');
+      expect(capturedArguments!['customMessage'], 'Integration test message');
+      expect(capturedArguments!['showMessageBox'], false);
+    });
+
+    test('Test with all configuration options using CustomMutexConfig',
+        () async {
+      final fullConfig = FlutterAloneConfig(
+        mutexConfig: const CustomMutexConfig(
+          customMutexName: 'CustomIntegrationTestMutex',
+        ),
+        windowConfig: const WindowConfig(
+          windowTitle: 'Integration Test Window',
+        ),
+        duplicateCheckConfig: const DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: const CustomMessageConfig(
+          customTitle: 'Integration Test',
+          customMessage: 'Integration test message',
+          showMessageBox: false,
+        ),
+      );
+
+      Map<String, dynamic>? capturedArguments;
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        if (methodCall.method == 'checkAndRun') {
+          capturedArguments =
+              Map<String, dynamic>.from(methodCall.arguments as Map);
+          return true;
+        }
+        return null;
+      });
+
+      await flutterAlone.checkAndRun(config: fullConfig);
+
+      expect(capturedArguments, isNotNull);
+      expect(capturedArguments!['mutexName'],
+          'Global\\CustomIntegrationTestMutex');
       expect(capturedArguments!['windowTitle'], 'Integration Test Window');
       expect(capturedArguments!['enableInDebugMode'], true);
       expect(capturedArguments!['type'], 'custom');
