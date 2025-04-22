@@ -237,13 +237,22 @@ void FlutterAlonePlugin::HandleMethodCall(
         const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
 
         // Get Window title
-        std::wstring windowTitle = MessageUtils::Utf8ToWide(
-            std::get<std::string>(arguments->at(flutter::EncodableValue("windowTitle"))));
+        std::wstring windowTitle;
+        auto windowTitleIt = arguments->find(flutter::EncodableValue("windowTitle"));
+        if (windowTitleIt != arguments->end() && !windowTitleIt->second.IsNull()) {
+            windowTitle = MessageUtils::Utf8ToWide(
+                std::get<std::string>(windowTitleIt->second));
+        }
         
-        // Get message settings
+        // get showmessage box
+        bool showMessageBox = true;
+        auto showMessageBoxIt = arguments->find(flutter::EncodableValue("showMessageBox"));
+        if (showMessageBoxIt != arguments->end() && !showMessageBoxIt->second.IsNull()) {
+            showMessageBox = std::get<bool>(showMessageBoxIt->second);
+        }
+
+        // get message tpye
         std::string typeStr = std::get<std::string>(arguments->at(flutter::EncodableValue("type")));
-        bool showMessageBox = std::get<bool>(arguments->at(flutter::EncodableValue("showMessageBox")));
-        
         MessageType type;
         if(typeStr == "ko") type = MessageType::ko;
         else if(typeStr == "en") type = MessageType::en;
@@ -251,10 +260,17 @@ void FlutterAlonePlugin::HandleMethodCall(
         
         std::wstring customTitle, customMessage;
         if (type == MessageType::custom) {
-            customTitle = MessageUtils::Utf8ToWide(
-                std::get<std::string>(arguments->at(flutter::EncodableValue("customTitle"))));
-            customMessage = MessageUtils::Utf8ToWide(
-                std::get<std::string>(arguments->at(flutter::EncodableValue("customMessage"))));
+            auto customTitleIt = arguments->find(flutter::EncodableValue("customTitle"));
+            if (customTitleIt != arguments->end() && !customTitleIt->second.IsNull()) {
+                customTitle = MessageUtils::Utf8ToWide(
+                    std::get<std::string>(customTitleIt->second));
+            }
+            
+            auto customMessageIt = arguments->find(flutter::EncodableValue("customMessage"));
+            if (customMessageIt != arguments->end() && !customMessageIt->second.IsNull()) {
+                customMessage = MessageUtils::Utf8ToWide(
+                    std::get<std::string>(customMessageIt->second));
+            }
         }
 
         // Get mutex configuration
@@ -285,7 +301,7 @@ void FlutterAlonePlugin::HandleMethodCall(
         auto checkResult = CheckRunningInstance(mutexName,windowTitle);
 
         
-          if (!checkResult.canRun) {
+        if (!checkResult.canRun) {
             // If same window - Activate window
             if (checkResult.existingWindow != NULL) {
                 OutputDebugStringW(L"[DEBUG] Existing window found - activating window\n");
@@ -293,9 +309,8 @@ void FlutterAlonePlugin::HandleMethodCall(
                 BOOL isVisible = IsWindowVisible(checkResult.existingWindow);
                 BOOL isIconic = IsIconic(checkResult.existingWindow);
                 OutputDebugStringW((L"[DEBUG] Window state - Visible: " + std::to_wstring(isVisible) + 
-                                     L", Minimized: " + std::to_wstring(isIconic) + L"\n").c_str());
+                                    L", Minimized: " + std::to_wstring(isIconic) + L"\n").c_str());
 
-     
                 OutputDebugStringW(L"[DEBUG] Attempting to restore window\n");
                 BOOL restoreResult = WindowUtils::RestoreWindow(checkResult.existingWindow);
                 OutputDebugStringW((L"[DEBUG] Restore result: " + std::to_wstring(restoreResult) + L"\n").c_str());
