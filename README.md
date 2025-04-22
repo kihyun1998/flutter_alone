@@ -45,7 +45,7 @@ Add flutter_alone to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_alone: ^2.3.1
+  flutter_alone: ^3.0.0
 ```
 
 ## Usage
@@ -60,12 +60,15 @@ import 'package:flutter_alone/flutter_alone.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  if (!await FlutterAlone.instance.checkAndRun(
-    messageConfig: EnMessageConfig(
-      packageId: 'com.example.myapp', 
+  final config = FlutterAloneConfig(
+    mutexConfig: const MutexConfig(
+      packageId: 'com.example.myapp',
       appName: 'MyFlutterApp'
-    )
-  )) {
+    ),
+    messageConfig: const EnMessageConfig(),
+  );
+  
+  if (!await FlutterAlone.instance.checkAndRun(config: config)) {
     exit(0);
   }
   
@@ -75,27 +78,34 @@ void main() async {
 
 ### Using Korean Messages
 ```dart
-if (!await FlutterAlone.instance.checkAndRun(
-  messageConfig: KoMessageConfig(
+final config = FlutterAloneConfig(
+  mutexConfig: const MutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp'
   ),
-)) {
+  messageConfig: const KoMessageConfig(),
+);
+
+if (!await FlutterAlone.instance.checkAndRun(config: config)) {
   exit(0);
 }
 ```
 
 ### Custom Message Configuration
 ```dart
-final messageConfig = CustomMessageConfig(
-  customTitle: 'Application Notice',
-  customMessage: 'Application is already running',
-  showMessageBox: true,  // Optional, defaults to true
-  packageId: 'com.example.myapp',
-  appName: 'MyFlutterApp',
+final config = FlutterAloneConfig(
+  mutexConfig: const MutexConfig(
+    packageId: 'com.example.myapp',
+    appName: 'MyFlutterApp'
+  ),
+  messageConfig: const CustomMessageConfig(
+    customTitle: 'Application Notice',
+    customMessage: 'Application is already running',
+    showMessageBox: true,  // Optional, defaults to true
+  ),
 );
 
-if (!await FlutterAlone.instance.checkAndRun(messageConfig: messageConfig)) {
+if (!await FlutterAlone.instance.checkAndRun(config: config)) {
   exit(0);
 }
 ```
@@ -105,13 +115,16 @@ if (!await FlutterAlone.instance.checkAndRun(messageConfig: messageConfig)) {
 You can customize the mutex name with package ID, app name and an optional suffix:
 
 ```dart
-if (!await FlutterAlone.instance.checkAndRun(
-  messageConfig: EnMessageConfig(
+final config = FlutterAloneConfig(
+  mutexConfig: const MutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp',
     mutexSuffix: 'production',
   ),
-)) {
+  messageConfig: const EnMessageConfig(),
+);
+
+if (!await FlutterAlone.instance.checkAndRun(config: config)) {
   exit(0);
 }
 ```
@@ -121,15 +134,21 @@ if (!await FlutterAlone.instance.checkAndRun(
 For system tray applications or when you need specific window identification:
 
 ```dart
-if (!await FlutterAlone.instance.checkAndRun(
-  messageConfig: CustomMessageConfig(
-    customTitle: 'Notice',
-    customMessage: 'Application is already running',
-    windowTitle: 'My Application Window Title',  // Used for window detection
+final config = FlutterAloneConfig(
+  mutexConfig: const MutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp',
   ),
-)) {
+  windowConfig: const WindowConfig(
+    windowTitle: 'My Application Window Title',  // Used for window detection
+  ),
+  messageConfig: const CustomMessageConfig(
+    customTitle: 'Notice',
+    customMessage: 'Application is already running',
+  ),
+);
+
+if (!await FlutterAlone.instance.checkAndRun(config: config)) {
   exit(0);
 }
 ```
@@ -145,26 +164,61 @@ The plugin provides special handling for debug mode:
 
 ```dart
 // Default behavior (skips duplicate check in debug mode)
-final config = EnMessageConfig(
-  packageId: 'com.example.myapp',
-  appName: 'MyFlutterApp'
+final config = FlutterAloneConfig(
+  mutexConfig: const MutexConfig(
+    packageId: 'com.example.myapp',
+    appName: 'MyFlutterApp'
+  ),
+  messageConfig: const EnMessageConfig(),
 );
 
 // Enable duplicate check even in debug mode
-final config = EnMessageConfig(
-  packageId: 'com.example.myapp',
-  appName: 'MyFlutterApp',
-  enableInDebugMode: true
+final config = FlutterAloneConfig(
+  mutexConfig: const MutexConfig(
+    packageId: 'com.example.myapp',
+    appName: 'MyFlutterApp'
+  ),
+  duplicateCheckConfig: const DuplicateCheckConfig(
+    enableInDebugMode: true
+  ),
+  messageConfig: const EnMessageConfig(),
+);
+```
+
+### Comprehensive Configuration
+
+Here's an example with all configuration options:
+
+```dart
+final config = FlutterAloneConfig(
+  // Mutex configuration
+  mutexConfig: const MutexConfig(
+    packageId: 'com.example.myapp',
+    appName: 'MyFlutterApp',
+    mutexSuffix: 'production',
+  ),
+
+  // Window configuration
+  windowConfig: const WindowConfig(
+    windowTitle: 'My Application Window',
+  ),
+
+  // Duplicate check configuration
+  duplicateCheckConfig: const DuplicateCheckConfig(
+    enableInDebugMode: true,
+  ),
+
+  // Message configuration
+  messageConfig: const CustomMessageConfig(
+    customTitle: 'Application Notice',
+    customMessage: 'Application is already running',
+    showMessageBox: true,
+  ),
 );
 
-// Custom configuration with debug mode setting
-final config = CustomMessageConfig(
-  customTitle: 'Notice',
-  customMessage: 'Application is already running',
-  packageId: 'com.example.myapp',
-  appName: 'MyFlutterApp',
-  enableInDebugMode: true,  // Enable duplicate check in debug mode
-);
+if (!await FlutterAlone.instance.checkAndRun(config: config)) {
+  exit(0);
+}
 ```
 
 ### System Tray Applications
@@ -172,15 +226,21 @@ final config = CustomMessageConfig(
 For system tray applications, you can use the windowTitle parameter to help the plugin locate and activate your existing window:
 
 ```dart
-if (!await FlutterAlone.instance.checkAndRun(
-  messageConfig: CustomMessageConfig(
+final config = FlutterAloneConfig(
+  mutexConfig: const MutexConfig(
+    packageId: 'com.example.myapp',
+    appName: 'MyFlutterApp'
+  ),
+  windowConfig: const WindowConfig(
+    windowTitle: 'My System Tray App',
+  ),
+  messageConfig: const CustomMessageConfig(
     customTitle: 'Notice',
     customMessage: 'Application is already running',
-    windowTitle: 'My System Tray App',
-    packageId: 'com.example.myapp',
-    appName: 'MyFlutterApp',
   ),
-)) {
+);
+
+if (!await FlutterAlone.instance.checkAndRun(config: config)) {
   exit(0);
 }
 ```
@@ -210,19 +270,14 @@ class _MyAppState extends State<MyApp> {
 
 ## Advanced Features
 
-### Message Configuration Classes
-The plugin provides three types of message configurations:
-- `EnMessageConfig`: Default English messages
-- `KoMessageConfig`: Korean messages
-- `CustomMessageConfig`: Custom messages with template support
+### Configuration Classes
+The plugin provides a modular configuration system:
 
-Each configuration supports:
-- `showMessageBox`: Control message box display
-- `enableInDebugMode`: Control duplicate checks in debug mode
-- `packageId`: Required package identifier for mutex name generation
-- `appName`: Required application name for mutex name generation
-- `mutexSuffix`: Optional suffix for mutex name customization
-- `windowTitle`: Window title for better window detection and activation
+- `FlutterAloneConfig`: Main configuration container
+  - `MutexConfig`: Controls mutex naming
+  - `WindowConfig`: Window detection settings
+  - `DuplicateCheckConfig`: Controls debug mode behavior
+  - `MessageConfig`: Message display settings (includes `EnMessageConfig`, `KoMessageConfig`, and `CustomMessageConfig`)
 
 ### Windows Implementation Details
 - Uses Windows Named Mutex for system-wide instance detection
@@ -240,9 +295,12 @@ The plugin provides detailed error information through the `AloneException` clas
 ```dart
 try {
   await FlutterAlone.instance.checkAndRun(
-    messageConfig: EnMessageConfig(
-      packageId: 'com.example.myapp', 
-      appName: 'MyFlutterApp'
+    config: FlutterAloneConfig(
+      mutexConfig: const MutexConfig(
+        packageId: 'com.example.myapp',
+        appName: 'MyFlutterApp'
+      ),
+      messageConfig: const EnMessageConfig(),
     )
   );
 } on AloneException catch (e) {

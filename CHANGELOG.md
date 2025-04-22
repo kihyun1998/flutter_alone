@@ -1,3 +1,18 @@
+## 3.0.0
+
+* **Breaking Changes**
+  * Redesigned configuration system with introduction of `FlutterAloneConfig`
+  * Replaced `messageConfig` parameter with unified `config` parameter
+  * Separated configuration objects by concern: `MutexConfig`, `WindowConfig`, `DuplicateCheckConfig`, `MessageConfig`
+
+* **Improvements**
+  * Enhanced configuration value access in native code
+    * Added null checks for all configuration values
+    * Implemented safe parameter reference handling
+    * Strengthened type verification
+  * Improved error handling and messages
+  * Better code organization through modularized configuration structure
+
 ## 2.3.1
 
 * **Improvements**

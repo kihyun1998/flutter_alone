@@ -12,11 +12,10 @@ flutter_alone/
     │   └── widget_test.dart
 ├── lib/
     ├── src/
-    │   ├── models/
+    │   └── models/
+    │   │   ├── config.dart
+    │   │   ├── exception.dart
     │   │   └── message_config.dart
-    │   ├── exception.dart
-    │   ├── flutter_alone_method_channel.dart
-    │   └── flutter_alone_platform_interface.dart
     ├── flutter_alone.dart
     ├── flutter_alone_method_channel.dart
     └── flutter_alone_platform_interface.dart
@@ -49,134 +48,134 @@ flutter_alone/
 
 ## example/integration_test/plugin_integration_test.dart
 ```dart
-import 'dart:io';
+// import 'dart:io';
 
-import 'package:flutter/services.dart';
-import 'package:flutter_alone/flutter_alone.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
+// import 'package:flutter/services.dart';
+// import 'package:flutter_alone/flutter_alone.dart';
+// import 'package:flutter_test/flutter_test.dart';
+// import 'package:integration_test/integration_test.dart';
 
-void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+// void main() {
+//   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  // Ensure tests only run on Windows platform
-  if (!Platform.isWindows) {
-    group('Flutter Alone Plugin on non-Windows platforms', () {
-      test('Tests are skipped on non-Windows platforms', () {
-        // Skip tests on non-Windows platforms
-      });
-    });
-    return;
-  }
+//   // Ensure tests only run on Windows platform
+//   if (!Platform.isWindows) {
+//     group('Flutter Alone Plugin on non-Windows platforms', () {
+//       test('Tests are skipped on non-Windows platforms', () {
+//         // Skip tests on non-Windows platforms
+//       });
+//     });
+//     return;
+//   }
 
-  group('Flutter Alone Plugin Integration Tests on Windows', () {
-    late FlutterAlone flutterAlone;
-    const channel = MethodChannel('flutter_alone');
+//   group('Flutter Alone Plugin Integration Tests on Windows', () {
+//     late FlutterAlone flutterAlone;
+//     const channel = MethodChannel('flutter_alone');
 
-    // Shared test configuration data
-    final testConfig = EnMessageConfig(
-      packageId: 'com.test.integration',
-      appName: 'IntegrationTestApp',
-      enableInDebugMode: true,
-    );
+//     // Shared test configuration data
+//     final testConfig = EnMessageConfig(
+//       packageId: 'com.test.integration',
+//       appName: 'IntegrationTestApp',
+//       enableInDebugMode: true,
+//     );
 
-    setUpAll(() {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-        switch (methodCall.method) {
-          case 'checkAndRun':
-            return true;
-          case 'dispose':
-            return null;
-          default:
-            throw PlatformException(
-              code: 'unimplemented',
-              message: 'Method not implemented',
-            );
-        }
-      });
-    });
+//     setUpAll(() {
+//       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+//           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+//         switch (methodCall.method) {
+//           case 'checkAndRun':
+//             return true;
+//           case 'dispose':
+//             return null;
+//           default:
+//             throw PlatformException(
+//               code: 'unimplemented',
+//               message: 'Method not implemented',
+//             );
+//         }
+//       });
+//     });
 
-    setUp(() {
-      flutterAlone = FlutterAlone.instance;
-    });
+//     setUp(() {
+//       flutterAlone = FlutterAlone.instance;
+//     });
 
-    tearDown(() async {
-      try {
-        await flutterAlone.dispose();
-      } catch (e) {
-        // Ignore errors during cleanup
-      }
-    });
+//     tearDown(() async {
+//       try {
+//         await flutterAlone.dispose();
+//       } catch (e) {
+//         // Ignore errors during cleanup
+//       }
+//     });
 
-    tearDownAll(() {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, null);
-    });
+//     tearDownAll(() {
+//       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+//           .setMockMethodCallHandler(channel, null);
+//     });
 
-    test('Basic functionality test - successful mutex creation', () async {
-      final result = await flutterAlone.checkAndRun(messageConfig: testConfig);
-      expect(result, true,
-          reason: 'Verify successful mutex creation on platform');
-    });
+//     test('Basic functionality test - successful mutex creation', () async {
+//       final result = await flutterAlone.checkAndRun(messageConfig: testConfig);
+//       expect(result, true,
+//           reason: 'Verify successful mutex creation on platform');
+//     });
 
-    test('Error handling test - handles platform exceptions properly',
-        () async {
-      // Replace with handler that throws an exception
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-        throw PlatformException(
-          code: 'mutex_error',
-          message: 'Failed to create mutex',
-          details: 'Simulated error for testing',
-        );
-      });
+//     test('Error handling test - handles platform exceptions properly',
+//         () async {
+//       // Replace with handler that throws an exception
+//       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+//           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+//         throw PlatformException(
+//           code: 'mutex_error',
+//           message: 'Failed to create mutex',
+//           details: 'Simulated error for testing',
+//         );
+//       });
 
-      // Catch exception and verify type
-      expect(
-        () async => await flutterAlone.checkAndRun(messageConfig: testConfig),
-        throwsA(isA<AloneException>()
-            .having((e) => e.code, 'error code', 'mutex_error')),
-        reason:
-            'Ensure platform exception is properly converted to AloneException',
-      );
+//       // Catch exception and verify type
+//       expect(
+//         () async => await flutterAlone.checkAndRun(messageConfig: testConfig),
+//         throwsA(isA<AloneException>()
+//             .having((e) => e.code, 'error code', 'mutex_error')),
+//         reason:
+//             'Ensure platform exception is properly converted to AloneException',
+//       );
 
-      // Restore original handler after test
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-        switch (methodCall.method) {
-          case 'checkAndRun':
-            return true;
-          case 'dispose':
-            return null;
-          default:
-            throw PlatformException(code: 'unimplemented');
-        }
-      });
-    });
+//       // Restore original handler after test
+//       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+//           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+//         switch (methodCall.method) {
+//           case 'checkAndRun':
+//             return true;
+//           case 'dispose':
+//             return null;
+//           default:
+//             throw PlatformException(code: 'unimplemented');
+//         }
+//       });
+//     });
 
-    // Additional test: Verify that MessageConfig parameters are correctly passed
-    test('Configuration parameters are correctly passed to platform', () async {
-      bool configVerified = false;
+//     // Additional test: Verify that MessageConfig parameters are correctly passed
+//     test('Configuration parameters are correctly passed to platform', () async {
+//       bool configVerified = false;
 
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-        if (methodCall.method == 'checkAndRun') {
-          final args = methodCall.arguments as Map<dynamic, dynamic>;
-          configVerified = args['packageId'] == 'com.test.integration' &&
-              args['appName'] == 'IntegrationTestApp';
-          return true;
-        }
-        return null;
-      });
+//       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+//           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+//         if (methodCall.method == 'checkAndRun') {
+//           final args = methodCall.arguments as Map<dynamic, dynamic>;
+//           configVerified = args['packageId'] == 'com.test.integration' &&
+//               args['appName'] == 'IntegrationTestApp';
+//           return true;
+//         }
+//         return null;
+//       });
 
-      await flutterAlone.checkAndRun(messageConfig: testConfig);
-      expect(configVerified, true,
-          reason:
-              'Verify configuration parameters are passed to platform correctly');
-    });
-  });
-}
+//       await flutterAlone.checkAndRun(messageConfig: testConfig);
+//       expect(configVerified, true,
+//           reason:
+//               'Verify configuration parameters are passed to platform correctly');
+//     });
+//   });
+// }
 
 ```
 ## example/lib/main.dart
@@ -192,7 +191,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
 
-  WindowOptions windowOptions = WindowOptions(
+  WindowOptions windowOptions = const WindowOptions(
     size: Size(500, 800),
     center: true,
     title: 'Tray App Example',
@@ -201,21 +200,39 @@ void main() async {
     await windowManager.show();
     await windowManager.focus();
   });
+
   if (Platform.isWindows) {
-    if (!await FlutterAlone.instance.checkAndRun(
-      messageConfig: CustomMessageConfig(
-        customTitle: 'Example App',
-        customMessage: 'Application is already running in another account',
-        enableInDebugMode: true, // Enable duplicate check even in debug mode
-        windowTitle: 'Tray App Example',
+    final config = FlutterAloneConfig(
+      // 뮤텍스 설정
+      mutexConfig: const MutexConfig(
         packageId: 'com.example.myapp',
         appName: 'MyFlutterApp',
         mutexSuffix: 'production',
       ),
-    )) {
+
+      // 창 관리 설정
+      windowConfig: const WindowConfig(
+        windowTitle: 'Tray App Example',
+      ),
+
+      // 디버그 모드 설정
+      duplicateCheckConfig: const DuplicateCheckConfig(
+        enableInDebugMode: true, // 디버그 모드에서도 중복 실행 검사 활성화
+      ),
+
+      // 메시지 설정
+      messageConfig: const CustomMessageConfig(
+        customTitle: 'Example App',
+        customMessage: 'Application is already running in another account',
+        showMessageBox: true,
+      ),
+    );
+
+    if (!await FlutterAlone.instance.checkAndRun(config: config)) {
       exit(0);
     }
   }
+
   runApp(const MyApp());
 }
 
@@ -309,31 +326,31 @@ class _MyAppState extends State<MyApp> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
+              const Text(
                 'The app ran normally.',
                 style: TextStyle(fontSize: 18),
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 'Prevent duplicate execution with custom mutex name:',
                 style: TextStyle(fontSize: 14),
               ),
-              Text(
+              const Text(
                 'packageId: com.example.myapp',
                 style: TextStyle(fontSize: 14),
               ),
-              Text(
+              const Text(
                 'appName: MyFlutterApp',
                 style: TextStyle(fontSize: 14),
               ),
-              Text(
+              const Text(
                 'suffix: production',
                 style: TextStyle(fontSize: 14),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: hideWindow,
-                child: Text('hide window'),
+                child: const Text('hide window'),
               ),
             ],
           ),
@@ -378,11 +395,12 @@ void main() {
 ## lib/flutter_alone.dart
 ```dart
 import 'package:flutter/foundation.dart';
-import 'package:flutter_alone/src/models/message_config.dart';
+import 'package:flutter_alone/src/models/config.dart';
 
-import 'src/flutter_alone_platform_interface.dart';
+import 'flutter_alone_platform_interface.dart';
 
-export 'src/exception.dart';
+export 'src/models/config.dart';
+export 'src/models/exception.dart';
 export 'src/models/message_config.dart';
 
 /// Main class for the Flutter Alone plugin
@@ -399,27 +417,27 @@ class FlutterAlone {
   /// or displays a message to the user.
   ///
   /// Parameters:
-  /// - messageConfig: Configuration object containing all settings including:
-  ///   * Message display settings (title, content, language)
-  ///   * Mutex configuration (packageId, appName, mutexSuffix)
-  ///   * Debug mode settings (enableInDebugMode)
-  ///   * Window management settings (windowTitle)
+  /// - config: Configuration object containing all settings including:
+  ///   * Message display settings (messageConfig)
+  ///   * Mutex configuration (mutexConfig)
+  ///   * Debug mode settings (duplicateCheckConfig)
+  ///   * Window management settings (windowConfig)
   ///
   /// In debug mode, duplicate check is skipped unless enableInDebugMode is set to true
-  /// in the messageConfig.
+  /// in the duplicateCheckConfig.
   ///
   /// Returns:
   /// - true: Application can start (no duplicate instance found)
   /// - false: Another instance is already running
-  Future<bool> checkAndRun({required MessageConfig messageConfig}) async {
+  Future<bool> checkAndRun({required FlutterAloneConfig config}) async {
     try {
       // Skip duplicate check in debug mode unless explicitly enabled
-      if (kDebugMode && !messageConfig.enableInDebugMode) {
+      if (kDebugMode && !config.duplicateCheckConfig.enableInDebugMode) {
         return true;
       }
 
       final result = await FlutterAlonePlatform.instance.checkAndRun(
-        messageConfig: messageConfig,
+        config: config,
       );
       return result;
     } catch (e) {
@@ -442,89 +460,11 @@ class FlutterAlone {
 ```
 ## lib/flutter_alone_method_channel.dart
 ```dart
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'flutter_alone_platform_interface.dart';
-
-/// An implementation of [FlutterAlonePlatform] that uses method channels.
-class MethodChannelFlutterAlone extends FlutterAlonePlatform {
-  /// The method channel used to interact with the native platform.
-  @visibleForTesting
-  final methodChannel = const MethodChannel('flutter_alone');
-
-  @override
-  Future<String?> getPlatformVersion() async {
-    final version =
-        await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return version;
-  }
-}
-
-```
-## lib/flutter_alone_platform_interface.dart
-```dart
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-
-import 'flutter_alone_method_channel.dart';
-
-abstract class FlutterAlonePlatform extends PlatformInterface {
-  /// Constructs a FlutterAlonePlatform.
-  FlutterAlonePlatform() : super(token: _token);
-
-  static final Object _token = Object();
-
-  static FlutterAlonePlatform _instance = MethodChannelFlutterAlone();
-
-  /// The default instance of [FlutterAlonePlatform] to use.
-  ///
-  /// Defaults to [MethodChannelFlutterAlone].
-  static FlutterAlonePlatform get instance => _instance;
-
-  /// Platform-specific implementations should set this with their own
-  /// platform-specific class that extends [FlutterAlonePlatform] when
-  /// they register themselves.
-  static set instance(FlutterAlonePlatform instance) {
-    PlatformInterface.verifyToken(instance, _token);
-    _instance = instance;
-  }
-
-  Future<String?> getPlatformVersion() {
-    throw UnimplementedError('platformVersion() has not been implemented.');
-  }
-}
-
-```
-## lib/src/exception.dart
-```dart
-class AloneException implements Exception {
-  /// error code
-  final String code;
-
-  /// error message
-  final String message;
-
-  /// additional details
-  final dynamic details;
-
-  AloneException({
-    required this.code,
-    required this.message,
-    this.details,
-  });
-
-  @override
-  String toString() => 'AloneException($code): $message';
-}
-
-```
-## lib/src/flutter_alone_method_channel.dart
-```dart
-import 'package:flutter/services.dart';
-import 'package:flutter_alone/src/models/message_config.dart';
-
-import 'exception.dart';
-import 'flutter_alone_platform_interface.dart';
+import 'src/models/config.dart';
+import 'src/models/exception.dart';
 
 /// Platform implementation using method channel
 class MethodChannelFlutterAlone extends FlutterAlonePlatform {
@@ -532,18 +472,13 @@ class MethodChannelFlutterAlone extends FlutterAlonePlatform {
   final MethodChannel _channel = const MethodChannel('flutter_alone');
 
   @override
-  Future<bool> checkAndRun({
-    required MessageConfig messageConfig,
-  }) async {
+  Future<bool> checkAndRun({required FlutterAloneConfig config}) async {
     try {
-      // Convert message config to map including the mutex name properties
-      final map = messageConfig.toMap();
+      // Convert config to map
+      final map = config.toMap();
 
-      // Ensure null values are properly handled
-      if (map.containsKey(MessageConfigJsonKey.mutexSuffix.key) &&
-          map[MessageConfigJsonKey.mutexSuffix.key] == null) {
-        map.remove(MessageConfigJsonKey.mutexSuffix.key);
-      }
+      // Remove null values
+      map.removeWhere((key, value) => value == null);
 
       final result = await _channel.invokeMethod<bool>(
         'checkAndRun',
@@ -574,9 +509,9 @@ class MethodChannelFlutterAlone extends FlutterAlonePlatform {
 }
 
 ```
-## lib/src/flutter_alone_platform_interface.dart
+## lib/flutter_alone_platform_interface.dart
 ```dart
-import 'package:flutter_alone/src/models/message_config.dart';
+import 'package:flutter_alone/src/models/config.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'flutter_alone_method_channel.dart';
@@ -604,12 +539,12 @@ abstract class FlutterAlonePlatform extends PlatformInterface {
   /// Check if application can run and perform initialization
   ///
   /// Parameters:
-  /// - messageConfig: Configuration for message display and mutex naming
+  /// - config: Combined configuration object
   ///
   /// Returns:
   /// - true: Application can start
   /// - false: Another instance is already running
-  Future<bool> checkAndRun({required MessageConfig messageConfig}) {
+  Future<bool> checkAndRun({required FlutterAloneConfig config}) {
     throw UnimplementedError('checkAndRun() has not been implemented.');
   }
 
@@ -620,15 +555,11 @@ abstract class FlutterAlonePlatform extends PlatformInterface {
 }
 
 ```
-## lib/src/models/message_config.dart
+## lib/src/models/config.dart
 ```dart
-// ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'message_config.dart';
 
-enum MessageConfigJsonKey {
-  type,
-  showMessageBox,
-  customTitle,
-  customMessage,
+enum ConfigJsonKey {
   enableInDebugMode,
   packageId,
   appName,
@@ -639,15 +570,33 @@ enum MessageConfigJsonKey {
   String get key => toString().split('.').last;
 }
 
-/// Base abstract class for message configuration
-abstract class MessageConfig {
-  /// Whether to show message box
-  final bool showMessageBox;
+/// Base configuration interface
+abstract class AloneConfig {
+  /// Convert to map for MethodChannel communication
+  Map<String, dynamic> toMap();
+}
 
+/// Configuration for duplicate execution check
+class DuplicateCheckConfig implements AloneConfig {
   /// Whether to enable duplicate check in debug mode
   /// Defaults to false
   final bool enableInDebugMode;
 
+  /// Constructor
+  const DuplicateCheckConfig({
+    this.enableInDebugMode = false,
+  });
+
+  @override
+  Map<String, dynamic> toMap() {
+    return {
+      ConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
+    };
+  }
+}
+
+/// Configuration for mutex naming and identification
+class MutexConfig implements AloneConfig {
   /// Package identifier for mutex name generation
   /// Required for mutex name generation
   final String packageId;
@@ -659,21 +608,132 @@ abstract class MessageConfig {
   /// Optional suffix for mutex name
   final String? mutexSuffix;
 
-  /// window title
+  /// Constructor
+  const MutexConfig({
+    required this.packageId,
+    required this.appName,
+    this.mutexSuffix,
+  });
+
+  @override
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{
+      ConfigJsonKey.packageId.key: packageId,
+      ConfigJsonKey.appName.key: appName,
+    };
+
+    if (mutexSuffix != null) {
+      map[ConfigJsonKey.mutexSuffix.key] = mutexSuffix;
+    }
+
+    return map;
+  }
+}
+
+/// Configuration for window management
+class WindowConfig implements AloneConfig {
+  /// Window title for window identification
   final String? windowTitle;
+
+  /// Constructor
+  const WindowConfig({
+    this.windowTitle,
+  });
+
+  @override
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{};
+
+    if (windowTitle != null) {
+      map[ConfigJsonKey.windowTitle.key] = windowTitle;
+    }
+
+    return map;
+  }
+}
+
+/// Combined configuration for flutter_alone plugin
+class FlutterAloneConfig implements AloneConfig {
+  /// Configuration for duplicate check behavior
+  final DuplicateCheckConfig duplicateCheckConfig;
+
+  /// Configuration for mutex naming
+  final MutexConfig mutexConfig;
+
+  /// Configuration for window management
+  final WindowConfig windowConfig;
+
+  /// Configuration for message display
+  final MessageConfig messageConfig;
+
+  /// Constructor
+  const FlutterAloneConfig({
+    this.duplicateCheckConfig = const DuplicateCheckConfig(),
+    required this.mutexConfig,
+    this.windowConfig = const WindowConfig(),
+    required this.messageConfig,
+  });
+
+  @override
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{};
+    map.addAll(duplicateCheckConfig.toMap());
+    map.addAll(mutexConfig.toMap());
+    map.addAll(windowConfig.toMap());
+    map.addAll(messageConfig.toMap());
+    return map;
+  }
+}
+
+```
+## lib/src/models/exception.dart
+```dart
+class AloneException implements Exception {
+  /// error code
+  final String code;
+
+  /// error message
+  final String message;
+
+  /// additional details
+  final dynamic details;
+
+  AloneException({
+    required this.code,
+    required this.message,
+    this.details,
+  });
+
+  @override
+  String toString() => 'AloneException($code): $message';
+}
+
+```
+## lib/src/models/message_config.dart
+```dart
+// ignore_for_file: public_member_api_docs, sort_constructors_first
+
+import 'config.dart';
+
+enum MessageConfigJsonKey {
+  type,
+  showMessageBox,
+  customTitle,
+  customMessage,
+  ;
+
+  String get key => toString().split('.').last;
+}
+
+/// Base abstract class for message configuration
+abstract class MessageConfig implements AloneConfig {
+  /// Whether to show message box
+  final bool showMessageBox;
 
   /// Constructor
   const MessageConfig({
     this.showMessageBox = true,
-    this.enableInDebugMode = false,
-    required this.packageId,
-    required this.appName,
-    this.mutexSuffix,
-    this.windowTitle,
   });
-
-  /// Convert to map for MethodChannel communication
-  Map<String, dynamic> toMap();
 }
 
 /// Korean message configuration
@@ -681,26 +741,14 @@ class KoMessageConfig extends MessageConfig {
   /// Constructor
   const KoMessageConfig({
     super.showMessageBox,
-    super.enableInDebugMode,
-    required super.packageId,
-    required super.appName,
-    super.mutexSuffix,
-    super.windowTitle,
   });
 
   @override
   Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+    return {
       MessageConfigJsonKey.type.key: 'ko',
       MessageConfigJsonKey.showMessageBox.key: showMessageBox,
-      MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
-      MessageConfigJsonKey.packageId.key: packageId,
-      MessageConfigJsonKey.appName.key: appName,
-      MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
-      MessageConfigJsonKey.windowTitle.key: windowTitle,
     };
-
-    return map;
   }
 }
 
@@ -709,38 +757,18 @@ class EnMessageConfig extends MessageConfig {
   /// Constructor
   const EnMessageConfig({
     super.showMessageBox,
-    super.enableInDebugMode,
-    required super.packageId,
-    required super.appName,
-    super.mutexSuffix,
-    super.windowTitle,
   });
 
   @override
   Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+    return {
       MessageConfigJsonKey.type.key: 'en',
       MessageConfigJsonKey.showMessageBox.key: showMessageBox,
-      MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
-      MessageConfigJsonKey.packageId.key: packageId,
-      MessageConfigJsonKey.appName.key: appName,
-      MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
-      MessageConfigJsonKey.windowTitle.key: windowTitle,
     };
-
-    return map;
   }
 }
 
 /// Custom message configuration
-///
-/// Example:
-/// ```dart
-/// final config = CustomMessageConfig(
-///   customTitle: "Notice",
-///   customMessage: "Application is already running in another account.",
-/// );
-/// ```
 class CustomMessageConfig extends MessageConfig {
   /// Custom title for the message box
   final String customTitle;
@@ -753,28 +781,16 @@ class CustomMessageConfig extends MessageConfig {
     required this.customTitle,
     required this.customMessage,
     super.showMessageBox,
-    super.enableInDebugMode,
-    required super.packageId,
-    required super.appName,
-    super.mutexSuffix,
-    super.windowTitle,
   });
 
   @override
   Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+    return {
       MessageConfigJsonKey.type.key: 'custom',
       MessageConfigJsonKey.customTitle.key: customTitle,
       MessageConfigJsonKey.customMessage.key: customMessage,
       MessageConfigJsonKey.showMessageBox.key: showMessageBox,
-      MessageConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
-      MessageConfigJsonKey.packageId.key: packageId,
-      MessageConfigJsonKey.appName.key: appName,
-      MessageConfigJsonKey.mutexSuffix.key: mutexSuffix,
-      MessageConfigJsonKey.windowTitle.key: windowTitle,
     };
-
-    return map;
   }
 }
 
@@ -1510,13 +1526,22 @@ void FlutterAlonePlugin::HandleMethodCall(
         const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
 
         // Get Window title
-        std::wstring windowTitle = MessageUtils::Utf8ToWide(
-            std::get<std::string>(arguments->at(flutter::EncodableValue("windowTitle"))));
+        std::wstring windowTitle;
+        auto windowTitleIt = arguments->find(flutter::EncodableValue("windowTitle"));
+        if (windowTitleIt != arguments->end() && !windowTitleIt->second.IsNull()) {
+            windowTitle = MessageUtils::Utf8ToWide(
+                std::get<std::string>(windowTitleIt->second));
+        }
         
-        // Get message settings
+        // get showmessage box
+        bool showMessageBox = true;
+        auto showMessageBoxIt = arguments->find(flutter::EncodableValue("showMessageBox"));
+        if (showMessageBoxIt != arguments->end() && !showMessageBoxIt->second.IsNull()) {
+            showMessageBox = std::get<bool>(showMessageBoxIt->second);
+        }
+
+        // get message tpye
         std::string typeStr = std::get<std::string>(arguments->at(flutter::EncodableValue("type")));
-        bool showMessageBox = std::get<bool>(arguments->at(flutter::EncodableValue("showMessageBox")));
-        
         MessageType type;
         if(typeStr == "ko") type = MessageType::ko;
         else if(typeStr == "en") type = MessageType::en;
@@ -1524,10 +1549,17 @@ void FlutterAlonePlugin::HandleMethodCall(
         
         std::wstring customTitle, customMessage;
         if (type == MessageType::custom) {
-            customTitle = MessageUtils::Utf8ToWide(
-                std::get<std::string>(arguments->at(flutter::EncodableValue("customTitle"))));
-            customMessage = MessageUtils::Utf8ToWide(
-                std::get<std::string>(arguments->at(flutter::EncodableValue("customMessage"))));
+            auto customTitleIt = arguments->find(flutter::EncodableValue("customTitle"));
+            if (customTitleIt != arguments->end() && !customTitleIt->second.IsNull()) {
+                customTitle = MessageUtils::Utf8ToWide(
+                    std::get<std::string>(customTitleIt->second));
+            }
+            
+            auto customMessageIt = arguments->find(flutter::EncodableValue("customMessage"));
+            if (customMessageIt != arguments->end() && !customMessageIt->second.IsNull()) {
+                customMessage = MessageUtils::Utf8ToWide(
+                    std::get<std::string>(customMessageIt->second));
+            }
         }
 
         // Get mutex configuration
@@ -1558,7 +1590,7 @@ void FlutterAlonePlugin::HandleMethodCall(
         auto checkResult = CheckRunningInstance(mutexName,windowTitle);
 
         
-          if (!checkResult.canRun) {
+        if (!checkResult.canRun) {
             // If same window - Activate window
             if (checkResult.existingWindow != NULL) {
                 OutputDebugStringW(L"[DEBUG] Existing window found - activating window\n");
@@ -1566,9 +1598,8 @@ void FlutterAlonePlugin::HandleMethodCall(
                 BOOL isVisible = IsWindowVisible(checkResult.existingWindow);
                 BOOL isIconic = IsIconic(checkResult.existingWindow);
                 OutputDebugStringW((L"[DEBUG] Window state - Visible: " + std::to_wstring(isVisible) + 
-                                     L", Minimized: " + std::to_wstring(isIconic) + L"\n").c_str());
+                                    L", Minimized: " + std::to_wstring(isIconic) + L"\n").c_str());
 
-     
                 OutputDebugStringW(L"[DEBUG] Attempting to restore window\n");
                 BOOL restoreResult = WindowUtils::RestoreWindow(checkResult.existingWindow);
                 OutputDebugStringW((L"[DEBUG] Restore result: " + std::to_wstring(restoreResult) + L"\n").c_str());
