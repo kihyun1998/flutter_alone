@@ -20,9 +20,10 @@ void main() async {
   });
 
   if (Platform.isWindows) {
-    final config = FlutterAloneConfig(
-      // 뮤텍스 설정
-      mutexConfig: const MutexConfig(
+    // 사용 예제 1: DefaultMutexConfig (기존 방식)
+    final defaultConfig = FlutterAloneConfig(
+      // 기존 방식의 뮤텍스 설정 - packageId와 appName 사용
+      mutexConfig: const DefaultMutexConfig(
         packageId: 'com.example.myapp',
         appName: 'MyFlutterApp',
         mutexSuffix: 'production',
@@ -45,6 +46,30 @@ void main() async {
         showMessageBox: true,
       ),
     );
+
+    // 사용 예제 2: CustomMutexConfig (새로운 방식)
+    final customConfig = FlutterAloneConfig(
+      // 새로운 방식의 뮤텍스 설정 - 사용자 정의 뮤텍스 이름 직접 사용
+      mutexConfig: const CustomMutexConfig(
+        customMutexName: 'MyUniqueApplicationMutex',
+      ),
+
+      // 창 관리 설정
+      windowConfig: const WindowConfig(
+        windowTitle: 'Tray App Example',
+      ),
+
+      // 디버그 모드 설정
+      duplicateCheckConfig: const DuplicateCheckConfig(
+        enableInDebugMode: true,
+      ),
+
+      // 메시지 설정
+      messageConfig: const EnMessageConfig(),
+    );
+
+    // 사용할 구성 선택
+    final config = customConfig; // 또는 defaultConfig
 
     if (!await FlutterAlone.instance.checkAndRun(config: config)) {
       exit(0);
@@ -150,25 +175,17 @@ class _MyAppState extends State<MyApp> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Prevent duplicate execution with custom mutex name:',
+                'Prevent duplicate execution with custom mutex:',
                 style: TextStyle(fontSize: 14),
               ),
               const Text(
-                'packageId: com.example.myapp',
-                style: TextStyle(fontSize: 14),
-              ),
-              const Text(
-                'appName: MyFlutterApp',
-                style: TextStyle(fontSize: 14),
-              ),
-              const Text(
-                'suffix: production',
+                'Using CustomMutexConfig with name: MyUniqueApplicationMutex',
                 style: TextStyle(fontSize: 14),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: hideWindow,
-                child: const Text('hide window'),
+                child: const Text('Hide window'),
               ),
             ],
           ),

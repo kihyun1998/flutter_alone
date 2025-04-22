@@ -28,8 +28,6 @@ list(APPEND PLUGIN_SOURCES
   "window_utils.h"
   "icon_utils.cpp"
   "icon_utils.h"
-  "mutex_utils.cpp"
-  "mutex_utils.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment

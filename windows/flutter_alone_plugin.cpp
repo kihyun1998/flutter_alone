@@ -11,7 +11,6 @@
 #include <flutter/standard_method_codec.h>
 #include "window_utils.h"
 #include "icon_utils.h"
-#include "mutex_utils.h"
 
 #include <memory>
 #include <sstream>
@@ -101,14 +100,14 @@ void FlutterAlonePlugin::ShowMessageBox(const MessageBoxInfo& info) {
 }
 
 
-std::wstring FlutterAlonePlugin::GetMutexName(const MutexConfig& config) {
-    // Use MutexUtils to generate mutex name
-    return MutexUtils::GenerateMutexName(
-        config.packageId,
-        config.appName,
-        config.suffix
-    );
-}
+// std::wstring FlutterAlonePlugin::GetMutexName(const MutexConfig& config) {
+//     // Use MutexUtils to generate mutex name
+//     return MutexUtils::GenerateMutexName(
+//         config.packageId,
+//         config.appName,
+//         config.suffix
+//     );
+// }
 
 ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& mutexName, const std::wstring& windowTitle) {
     ProcessCheckResult result;
@@ -180,17 +179,16 @@ std::string WideStringToString(const std::wstring& wstr) {
 }
 
 // Check for duplicate instance function with custom mutex name
-bool FlutterAlonePlugin::CheckAndCreateMutex(const MutexConfig& config) {
+bool FlutterAlonePlugin::CheckAndCreateMutex(const std::wstring& mutexName) {
     if (mutex_handle_ != NULL) {
-      // Mutex already created
-      return false;
+        // Mutex already created
+        return false;
     }
-  
-    // Generate mutex name
-    current_mutex_name_ = GetMutexName(config);
+
+    current_mutex_name_ = mutexName;
     
     OutputDebugStringW((L"[DEBUG] Creating mutex with name: " + current_mutex_name_ + L"\n").c_str());
-  
+
     // Set security attributes - Allow access all user
     SECURITY_ATTRIBUTES sa;
     sa.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -200,25 +198,25 @@ bool FlutterAlonePlugin::CheckAndCreateMutex(const MutexConfig& config) {
     InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
     SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
     sa.lpSecurityDescriptor = &sd;
-  
-    // Try to create global mutex with the generated name
+
+    // Try to create global mutex with the given name
     mutex_handle_ = CreateMutexW(
         &sa,     // security attribute
         TRUE,    // request init
-        current_mutex_name_.c_str()  // custom mutex name
+        current_mutex_name_.c_str()  // mutex name
     );
-  
+
     if (mutex_handle_ == NULL) {
-      return false;
+        return false;
     }
-  
+
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
-      CleanupResources();
-      return false;
+        CleanupResources();
+        return false;
     }
-  
+
     return true;
-  }
+}
 
 // Resource cleanup function
 void FlutterAlonePlugin::CleanupResources() {
@@ -242,6 +240,14 @@ void FlutterAlonePlugin::HandleMethodCall(
         if (windowTitleIt != arguments->end() && !windowTitleIt->second.IsNull()) {
             windowTitle = MessageUtils::Utf8ToWide(
                 std::get<std::string>(windowTitleIt->second));
+        }
+
+        // Get mutex name directly from arguments
+        std::wstring mutexName;
+        auto mutexNameIt = arguments->find(flutter::EncodableValue("mutexName"));
+        if (mutexNameIt != arguments->end() && !mutexNameIt->second.IsNull()) {
+            mutexName = MessageUtils::Utf8ToWide(
+                std::get<std::string>(mutexNameIt->second));
         }
         
         // get showmessage box
@@ -272,30 +278,6 @@ void FlutterAlonePlugin::HandleMethodCall(
                     std::get<std::string>(customMessageIt->second));
             }
         }
-
-        // Get mutex configuration
-        MutexConfig mutexConfig;
-
-        // Check if packageId is provided
-        auto packageIdIt = arguments->find(flutter::EncodableValue("packageId"));
-        if (packageIdIt != arguments->end() && !std::get<std::string>(packageIdIt->second).empty()) {
-            mutexConfig.packageId = MessageUtils::Utf8ToWide(std::get<std::string>(packageIdIt->second));
-        }
-
-        // Check if appName is provided
-        auto appNameIt = arguments->find(flutter::EncodableValue("appName"));
-        if (appNameIt != arguments->end() && !std::get<std::string>(appNameIt->second).empty()) {
-            mutexConfig.appName = MessageUtils::Utf8ToWide(std::get<std::string>(appNameIt->second));
-        }
-
-        // Check if mutexSuffix is provided
-        auto mutexSuffixIt = arguments->find(flutter::EncodableValue("mutexSuffix"));
-        if (mutexSuffixIt != arguments->end() && mutexSuffixIt->second.IsNull() == false) {
-            mutexConfig.suffix = MessageUtils::Utf8ToWide(std::get<std::string>(mutexSuffixIt->second));
-        }
-
-        // Generate mutex name
-        std::wstring mutexName = GetMutexName(mutexConfig);
 
         // Check for running instance
         auto checkResult = CheckRunningInstance(mutexName,windowTitle);
@@ -337,7 +319,7 @@ void FlutterAlonePlugin::HandleMethodCall(
         }
 
         // Create new mutex
-        bool success = CheckAndCreateMutex(mutexConfig);
+        bool success = CheckAndCreateMutex(mutexName);
         result->Success(flutter::EncodableValue(success));
     } 
     else if (method_call.method_name().compare("dispose") == 0) {

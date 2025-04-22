@@ -5,7 +5,6 @@
 #include <flutter/plugin_registrar_windows.h>
 #include "process_utils.h"
 #include "message_utils.h"
-#include "mutex_utils.h"
 
 
 
@@ -60,8 +59,8 @@ class FlutterAlonePlugin : public flutter::Plugin {
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 	
-  // Check and create mutex with specified configuration
-  bool CheckAndCreateMutex(const MutexConfig& config);
+  // Check and create mutex with specified name
+  bool CheckAndCreateMutex(const std::wstring& mutexName);
   
 
   // Get mutex name for the application

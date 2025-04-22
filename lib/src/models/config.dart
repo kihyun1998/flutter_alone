@@ -1,10 +1,9 @@
 import 'message_config.dart';
+import 'mutex_config.dart';
 
 enum ConfigJsonKey {
   enableInDebugMode,
-  packageId,
-  appName,
-  mutexSuffix,
+
   windowTitle,
   ;
 
@@ -33,41 +32,6 @@ class DuplicateCheckConfig implements AloneConfig {
     return {
       ConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
     };
-  }
-}
-
-/// Configuration for mutex naming and identification
-class MutexConfig implements AloneConfig {
-  /// Package identifier for mutex name generation
-  /// Required for mutex name generation
-  final String packageId;
-
-  /// Application name for mutex name generation
-  /// Required for mutex name generation
-  final String appName;
-
-  /// Optional suffix for mutex name
-  final String? mutexSuffix;
-
-  /// Constructor
-  const MutexConfig({
-    required this.packageId,
-    required this.appName,
-    this.mutexSuffix,
-  });
-
-  @override
-  Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{
-      ConfigJsonKey.packageId.key: packageId,
-      ConfigJsonKey.appName.key: appName,
-    };
-
-    if (mutexSuffix != null) {
-      map[ConfigJsonKey.mutexSuffix.key] = mutexSuffix;
-    }
-
-    return map;
   }
 }
 
