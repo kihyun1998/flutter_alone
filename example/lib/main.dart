@@ -20,56 +20,55 @@ void main() async {
   });
 
   if (Platform.isWindows) {
-    // 사용 예제 1: DefaultMutexConfig (기존 방식)
-    final defaultConfig = FlutterAloneConfig(
-      // 기존 방식의 뮤텍스 설정 - packageId와 appName 사용
-      mutexConfig: const DefaultMutexConfig(
-        packageId: 'com.example.myapp',
-        appName: 'MyFlutterApp',
-        mutexSuffix: 'production',
-      ),
+    // Example 1: DefaultMutexConfig (Legacy method)
+    // final defaultConfig = FlutterAloneConfig(
+    //   // Legacy mutex config using packageId and appName
+    //   mutexConfig: const DefaultMutexConfig(
+    //     packageId: 'com.example.myapp',
+    //     appName: 'MyFlutterApp',
+    //     mutexSuffix: 'production',
+    //   ),
 
-      // 창 관리 설정
-      windowConfig: const WindowConfig(
-        windowTitle: 'Tray App Example',
-      ),
+    //   // Window configuration
+    //   windowConfig: const WindowConfig(
+    //     windowTitle: 'Tray App Example',
+    //   ),
 
-      // 디버그 모드 설정
-      duplicateCheckConfig: const DuplicateCheckConfig(
-        enableInDebugMode: true, // 디버그 모드에서도 중복 실행 검사 활성화
-      ),
+    //   // Debug mode setting
+    //   duplicateCheckConfig: const DuplicateCheckConfig(
+    //     enableInDebugMode: true,
+    //   ),
 
-      // 메시지 설정
-      messageConfig: const CustomMessageConfig(
-        customTitle: 'Example App',
-        customMessage: 'Application is already running in another account',
-        showMessageBox: true,
-      ),
-    );
+    //   // Custom message configuration
+    //   messageConfig: const CustomMessageConfig(
+    //     customTitle: 'Example App',
+    //     customMessage: 'Application is already running in another account',
+    //     showMessageBox: true,
+    //   ),
+    // );
 
-    // 사용 예제 2: CustomMutexConfig (새로운 방식)
+    // Example 2: CustomMutexConfig (Recommended method)
     final customConfig = FlutterAloneConfig(
-      // 새로운 방식의 뮤텍스 설정 - 사용자 정의 뮤텍스 이름 직접 사용
+      // Custom mutex name
       mutexConfig: const CustomMutexConfig(
         customMutexName: 'MyUniqueApplicationMutex',
       ),
 
-      // 창 관리 설정
+      // Window configuration
       windowConfig: const WindowConfig(
         windowTitle: 'Tray App Example',
       ),
 
-      // 디버그 모드 설정
+      // Debug mode setting
       duplicateCheckConfig: const DuplicateCheckConfig(
         enableInDebugMode: true,
       ),
 
-      // 메시지 설정
+      // Default English messages
       messageConfig: const EnMessageConfig(),
     );
 
-    // 사용할 구성 선택
-    final config = customConfig; // 또는 defaultConfig
+    final config = customConfig; // or use defaultConfig
 
     if (!await FlutterAlone.instance.checkAndRun(config: config)) {
       exit(0);
@@ -105,7 +104,7 @@ class _MyAppState extends State<MyApp> {
     String path =
         Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon_64.png';
     if (!await File(path).exists()) {
-      debugPrint("icon file not found: $path");
+      debugPrint("Icon file not found: $path");
     }
 
     await _systemTray.initSystemTray(iconPath: path);
