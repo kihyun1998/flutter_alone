@@ -1,8 +1,7 @@
 // test/flutter_alone_method_channel_test.dart
-
 import 'package:flutter/services.dart';
 import 'package:flutter_alone/flutter_alone.dart';
-import 'package:flutter_alone/src/flutter_alone_method_channel.dart';
+import 'package:flutter_alone/flutter_alone_method_channel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -47,48 +46,67 @@ void main() {
     });
 
     test('checkAndRun with Korean message config', () async {
-      const messageConfig = KoMessageConfig(
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTest',
-          showMessageBox: true);
+        ),
+        messageConfig: KoMessageConfig(
+          showMessageBox: true,
+        ),
+      );
 
-      final result = await platform.checkAndRun(messageConfig: messageConfig);
+      final result = await platform.checkAndRun(config: config);
 
       expect(log, hasLength(1));
       final methodCall = log.first;
       expect(methodCall.method, 'checkAndRun');
       expect(methodCall.arguments['type'], 'ko');
       expect(methodCall.arguments['showMessageBox'], true);
+      expect(methodCall.arguments['packageId'], 'com.test.integration');
+      expect(methodCall.arguments['appName'], 'IntegrationTest');
 
       expect(result, true);
     });
 
     test('checkAndRun with English message config', () async {
-      const messageConfig = EnMessageConfig(
-          showMessageBox: false,
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
           packageId: 'com.test.integration',
-          appName: 'IntegrationTest');
+          appName: 'IntegrationTest',
+        ),
+        messageConfig: EnMessageConfig(
+          showMessageBox: false,
+        ),
+      );
 
-      final result = await platform.checkAndRun(messageConfig: messageConfig);
+      final result = await platform.checkAndRun(config: config);
 
       expect(log, hasLength(1));
       final methodCall = log.first;
       expect(methodCall.method, 'checkAndRun');
       expect(methodCall.arguments['type'], 'en');
       expect(methodCall.arguments['showMessageBox'], false);
+      expect(methodCall.arguments['packageId'], 'com.test.integration');
+      expect(methodCall.arguments['appName'], 'IntegrationTest');
 
       expect(result, true);
     });
 
     test('checkAndRun with custom message config', () async {
-      const messageConfig = CustomMessageConfig(
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.integration',
+          appName: 'IntegrationTest',
+        ),
+        messageConfig: CustomMessageConfig(
           customTitle: 'Notice',
           customMessage: 'Program is already running',
           showMessageBox: true,
-          packageId: 'com.test.integration',
-          appName: 'IntegrationTest');
+        ),
+      );
 
-      final result = await platform.checkAndRun(messageConfig: messageConfig);
+      final result = await platform.checkAndRun(config: config);
 
       expect(log, hasLength(1));
       final methodCall = log.first;
@@ -98,6 +116,8 @@ void main() {
       expect(
           methodCall.arguments['customMessage'], 'Program is already running');
       expect(methodCall.arguments['showMessageBox'], true);
+      expect(methodCall.arguments['packageId'], 'com.test.integration');
+      expect(methodCall.arguments['appName'], 'IntegrationTest');
 
       expect(result, true);
     });
@@ -120,12 +140,18 @@ void main() {
         );
       });
 
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.integration',
+          appName: 'IntegrationTest',
+        ),
+        messageConfig: EnMessageConfig(
+          showMessageBox: false,
+        ),
+      );
+
       expect(
-        () => platform.checkAndRun(
-            messageConfig: const EnMessageConfig(
-                showMessageBox: false,
-                packageId: 'com.test.integration',
-                appName: 'IntegrationTest')),
+        () => platform.checkAndRun(config: config),
         throwsA(
           isA<AloneException>()
               .having((e) => e.code, 'code', 'error')
@@ -143,32 +169,44 @@ void main() {
       );
     });
 
-    test('checkAndRun with window title config', () async {
-      const messageConfig = CustomMessageConfig(
-        customTitle: 'Notice',
-        customMessage: 'Program is already running',
-        showMessageBox: true,
-        windowTitle: 'Test Window Title',
-        packageId: 'com.test.integration',
-        appName: 'IntegrationTest',
+    test('checkAndRun with full configuration', () async {
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.integration',
+          appName: 'IntegrationTest',
+          mutexSuffix: 'test',
+        ),
+        windowConfig: WindowConfig(
+          windowTitle: 'Test Window Title',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: CustomMessageConfig(
+          customTitle: 'Notice',
+          customMessage: 'Program is already running',
+          showMessageBox: true,
+        ),
       );
 
-      final result = await platform.checkAndRun(messageConfig: messageConfig);
+      final result = await platform.checkAndRun(config: config);
 
       expect(log, hasLength(1));
+      final methodCall = log.first;
+      expect(methodCall.method, 'checkAndRun');
+
+      // Check all configuration parameters
+      expect(methodCall.arguments['packageId'], 'com.test.integration');
+      expect(methodCall.arguments['appName'], 'IntegrationTest');
+      expect(methodCall.arguments['mutexSuffix'], 'test');
+      expect(methodCall.arguments['windowTitle'], 'Test Window Title');
+      expect(methodCall.arguments['enableInDebugMode'], true);
+      expect(methodCall.arguments['type'], 'custom');
+      expect(methodCall.arguments['customTitle'], 'Notice');
       expect(
-        log.first,
-        isMethodCall('checkAndRun', arguments: {
-          'type': 'custom',
-          'customTitle': 'Notice',
-          'customMessage': 'Program is already running',
-          'showMessageBox': true,
-          'enableInDebugMode': false,
-          'packageId': 'com.test.integration',
-          'appName': 'IntegrationTest',
-          'windowTitle': 'Test Window Title',
-        }),
-      );
+          methodCall.arguments['customMessage'], 'Program is already running');
+      expect(methodCall.arguments['showMessageBox'], true);
+
       expect(result, true);
     });
 

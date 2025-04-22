@@ -1,5 +1,7 @@
+// test/flutter_alone_test.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter_alone/flutter_alone.dart';
-import 'package:flutter_alone/src/flutter_alone_platform_interface.dart';
+import 'package:flutter_alone/flutter_alone_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -9,12 +11,19 @@ class MockFlutterAlonePlatform
   // Record mock method calls
   bool checkAndRunCalled = false;
   bool disposeCalled = false;
-  Map<String, dynamic>? lastArguments; // 변경: 객체 대신 Map 저장
+  Map<String, dynamic>? lastArguments;
 
   @override
-  Future<bool> checkAndRun({required MessageConfig messageConfig}) async {
+  Future<bool> checkAndRun({required FlutterAloneConfig config}) async {
     checkAndRunCalled = true;
-    lastArguments = messageConfig.toMap(); // 객체가 아닌 Map을 저장
+    lastArguments = config.toMap();
+
+    // Skip duplicate check in debug mode unless explicitly enabled
+    if (kDebugMode && !config.duplicateCheckConfig.enableInDebugMode) {
+      return true;
+    }
+
+    // Return true for the test
     return true;
   }
 
@@ -34,58 +43,155 @@ void main() {
     flutterAlone = FlutterAlone.instance;
   });
 
-  group('Message configuration tests', () {
-    test('Korean message config should be created correctly', () {
-      const config =
-          KoMessageConfig(packageId: 'com.test.app', appName: 'TestApp');
+  group('Configuration tests', () {
+    test('Basic MutexConfig should be created correctly', () {
+      const config = MutexConfig(
+        packageId: 'com.test.app',
+        appName: 'TestApp',
+      );
       final map = config.toMap();
 
-      expect(map['type'], 'ko');
-      expect(map['showMessageBox'], true);
+      expect(map[ConfigJsonKey.packageId.key], 'com.test.app');
+      expect(map['appName'], 'TestApp');
+      expect(map.containsKey('mutexSuffix'), false);
     });
 
-    test('English message config should be created correctly', () {
-      const config =
-          EnMessageConfig(packageId: 'com.test.app', appName: 'TestApp');
+    test('MutexConfig with suffix should be created correctly', () {
+      const config = MutexConfig(
+        packageId: 'com.test.app',
+        appName: 'TestApp',
+        mutexSuffix: 'production',
+      );
+      final map = config.toMap();
+
+      expect(map['packageId'], 'com.test.app');
+      expect(map['appName'], 'TestApp');
+      expect(map['mutexSuffix'], 'production');
+    });
+
+    test('WindowConfig should be created correctly', () {
+      const config = WindowConfig(
+        windowTitle: 'Test Window',
+      );
+      final map = config.toMap();
+
+      expect(map['windowTitle'], 'Test Window');
+    });
+
+    test('DuplicateCheckConfig should be created correctly', () {
+      const config = DuplicateCheckConfig(
+        enableInDebugMode: true,
+      );
+      final map = config.toMap();
+
+      expect(map['enableInDebugMode'], true);
+    });
+
+    test('Default DuplicateCheckConfig should have enableInDebugMode=false',
+        () {
+      const config = DuplicateCheckConfig();
+      final map = config.toMap();
+
+      expect(map['enableInDebugMode'], false);
+    });
+
+    test('EnMessageConfig should be created correctly', () {
+      const config = EnMessageConfig();
       final map = config.toMap();
 
       expect(map['type'], 'en');
       expect(map['showMessageBox'], true);
     });
 
-    test('Custom message should be handled correctly', () {
+    test('KoMessageConfig should be created correctly', () {
+      const config = KoMessageConfig();
+      final map = config.toMap();
+
+      expect(map['type'], 'ko');
+      expect(map['showMessageBox'], true);
+    });
+
+    test('CustomMessageConfig should be created correctly', () {
       const config = CustomMessageConfig(
-          customTitle: 'Test Title',
-          customMessage: 'Test Message',
-          packageId: 'com.test.app',
-          appName: 'TestApp');
+        customTitle: 'Test Title',
+        customMessage: 'Test Message',
+        showMessageBox: false,
+      );
       final map = config.toMap();
 
       expect(map['type'], 'custom');
       expect(map['customTitle'], 'Test Title');
       expect(map['customMessage'], 'Test Message');
-      expect(map['showMessageBox'], true);
+      expect(map['showMessageBox'], false);
     });
   });
 
-  group('Plugin basic functionality tests', () {
-    // test('checkAndRun should pass correct data to platform', () async {
-    //   const messageConfig =
-    //       CustomMessageConfig(customTitle: 'Test', customMessage: 'Message');
+  group('FlutterAloneConfig tests', () {
+    test('Combined config should include all components', () {
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.app',
+          appName: 'TestApp',
+          mutexSuffix: 'test',
+        ),
+        windowConfig: WindowConfig(
+          windowTitle: 'Test Window',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: CustomMessageConfig(
+          customTitle: 'Test Title',
+          customMessage: 'Test Message',
+          showMessageBox: false,
+        ),
+      );
 
-    //   final result =
-    //       await flutterAlone.checkAndRun(messageConfig: messageConfig);
+      final map = config.toMap();
 
-    //   expect(result, true);
-    //   expect(mockPlatform.checkAndRunCalled, true);
+      // Check mutex config
+      expect(map['packageId'], 'com.test.app');
+      expect(map['appName'], 'TestApp');
+      expect(map['mutexSuffix'], 'test');
 
-    //   // Map을 사용한 검증
-    //   final args = mockPlatform.lastArguments;
-    //   expect(args, isNotNull);
-    //   expect(args!['type'], 'custom');
-    //   expect(args['customTitle'], 'Test');
-    //   expect(args['customMessage'], 'Message');
-    // });
+      // Check window config
+      expect(map['windowTitle'], 'Test Window');
+
+      // Check duplicate check config
+      expect(map['enableInDebugMode'], true);
+
+      // Check message config
+      expect(map['type'], 'custom');
+      expect(map['customTitle'], 'Test Title');
+      expect(map['customMessage'], 'Test Message');
+      expect(map['showMessageBox'], false);
+    });
+  });
+
+  group('Plugin functionality tests', () {
+    test('checkAndRun should pass correct config to platform', () async {
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.app',
+          appName: 'TestApp',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: EnMessageConfig(),
+      );
+
+      final result = await flutterAlone.checkAndRun(config: config);
+
+      expect(result, true);
+      expect(mockPlatform.checkAndRunCalled, true);
+
+      final args = mockPlatform.lastArguments;
+      expect(args, isNotNull);
+      expect(args!['packageId'], 'com.test.app');
+      expect(args['appName'], 'TestApp');
+      expect(args['type'], 'en');
+    });
 
     test('dispose should be called correctly', () async {
       await flutterAlone.dispose();
@@ -93,35 +199,40 @@ void main() {
     });
   });
 
-  test('Window title should be handled correctly in config', () {
-    const windowTitle = 'My Application Window';
-    const config = CustomMessageConfig(
-      customTitle: 'Test',
-      customMessage: 'Message',
-      packageId: 'com.test.app',
-      appName: 'TestApp',
-      windowTitle: windowTitle,
-    );
-    final map = config.toMap();
+  group('Integration tests', () {
+    test('Full configuration with all options', () async {
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.app',
+          appName: 'TestApp',
+          mutexSuffix: 'production',
+        ),
+        windowConfig: WindowConfig(
+          windowTitle: 'Test Window',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: CustomMessageConfig(
+          customTitle: 'Test Title',
+          customMessage: 'Test Message',
+          showMessageBox: true,
+        ),
+      );
 
-    expect(map['windowTitle'], windowTitle);
+      await flutterAlone.checkAndRun(config: config);
+
+      final args = mockPlatform.lastArguments;
+      expect(args, isNotNull);
+      expect(args!['packageId'], 'com.test.app');
+      expect(args['appName'], 'TestApp');
+      expect(args['mutexSuffix'], 'production');
+      expect(args['windowTitle'], 'Test Window');
+      expect(args['enableInDebugMode'], true);
+      expect(args['type'], 'custom');
+      expect(args['customTitle'], 'Test Title');
+      expect(args['customMessage'], 'Test Message');
+      expect(args['showMessageBox'], true);
+    });
   });
-
-  // test('Window title should be passed to platform correctly', () async {
-  //   const windowTitle = 'My Application Window';
-  //   const messageConfig = CustomMessageConfig(
-  //     customTitle: 'Test',
-  //     customMessage: 'Message',
-  //     windowTitle: windowTitle,
-  //   );
-
-  //   await flutterAlone.checkAndRun(messageConfig: messageConfig);
-
-  //   expect(mockPlatform.checkAndRunCalled, true);
-
-  //   // Map을 사용한 검증
-  //   final args = mockPlatform.lastArguments;
-  //   expect(args, isNotNull);
-  //   expect(args!['windowTitle'], windowTitle);
-  // });
 }
