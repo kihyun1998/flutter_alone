@@ -11,7 +11,9 @@ A robust Flutter plugin for preventing duplicate execution of desktop applicatio
   - Cross-user account detection
   - Process-level duplicate checking
   - Debug mode support with configurable options
-  - Customizable mutex naming
+  - Customizable mutex naming strategies:
+    - Application ID based naming (DefaultMutexConfig)
+    - Custom mutex name specification (CustomMutexConfig)
 
 - **Window Management**
   - Automatic window focusing
@@ -45,7 +47,7 @@ Add flutter_alone to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_alone: ^3.0.0
+  flutter_alone: ^3.1.0
 ```
 
 ## Usage
@@ -61,7 +63,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   final config = FlutterAloneConfig(
-    mutexConfig: const MutexConfig(
+    mutexConfig: const DefaultMutexConfig(
       packageId: 'com.example.myapp',
       appName: 'MyFlutterApp'
     ),
@@ -76,10 +78,27 @@ void main() async {
 }
 ```
 
+### Using Custom Mutex Name
+
+When you need more direct control over mutex naming:
+
+```dart
+final config = FlutterAloneConfig(
+  mutexConfig: const CustomMutexConfig(
+    customMutexName: 'MyUniqueApplicationMutex',
+  ),
+  messageConfig: const EnMessageConfig(),
+);
+
+if (!await FlutterAlone.instance.checkAndRun(config: config)) {
+  exit(0);
+}
+```
+
 ### Using Korean Messages
 ```dart
 final config = FlutterAloneConfig(
-  mutexConfig: const MutexConfig(
+  mutexConfig: const DefaultMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp'
   ),
@@ -94,7 +113,7 @@ if (!await FlutterAlone.instance.checkAndRun(config: config)) {
 ### Custom Message Configuration
 ```dart
 final config = FlutterAloneConfig(
-  mutexConfig: const MutexConfig(
+  mutexConfig: const DefaultMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp'
   ),
@@ -110,13 +129,13 @@ if (!await FlutterAlone.instance.checkAndRun(config: config)) {
 }
 ```
 
-### Custom Mutex Configuration
+### Default Mutex Configuration with Suffix
 
-You can customize the mutex name with package ID, app name and an optional suffix:
+You can customize the default mutex name with package ID, app name and an optional suffix:
 
 ```dart
 final config = FlutterAloneConfig(
-  mutexConfig: const MutexConfig(
+  mutexConfig: const DefaultMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp',
     mutexSuffix: 'production',
@@ -135,7 +154,7 @@ For system tray applications or when you need specific window identification:
 
 ```dart
 final config = FlutterAloneConfig(
-  mutexConfig: const MutexConfig(
+  mutexConfig: const DefaultMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp',
   ),
@@ -165,7 +184,7 @@ The plugin provides special handling for debug mode:
 ```dart
 // Default behavior (skips duplicate check in debug mode)
 final config = FlutterAloneConfig(
-  mutexConfig: const MutexConfig(
+  mutexConfig: const DefaultMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp'
   ),
@@ -174,7 +193,7 @@ final config = FlutterAloneConfig(
 
 // Enable duplicate check even in debug mode
 final config = FlutterAloneConfig(
-  mutexConfig: const MutexConfig(
+  mutexConfig: const DefaultMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp'
   ),
@@ -185,17 +204,49 @@ final config = FlutterAloneConfig(
 );
 ```
 
-### Comprehensive Configuration
+### Comprehensive Configuration Examples
 
-Here's an example with all configuration options:
+Here are examples with all configuration options:
 
+**Using DefaultMutexConfig:**
 ```dart
 final config = FlutterAloneConfig(
-  // Mutex configuration
-  mutexConfig: const MutexConfig(
+  // Default Mutex configuration
+  mutexConfig: const DefaultMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp',
     mutexSuffix: 'production',
+  ),
+
+  // Window configuration
+  windowConfig: const WindowConfig(
+    windowTitle: 'My Application Window',
+  ),
+
+  // Duplicate check configuration
+  duplicateCheckConfig: const DuplicateCheckConfig(
+    enableInDebugMode: true,
+  ),
+
+  // Message configuration
+  messageConfig: const CustomMessageConfig(
+    customTitle: 'Application Notice',
+    customMessage: 'Application is already running',
+    showMessageBox: true,
+  ),
+);
+
+if (!await FlutterAlone.instance.checkAndRun(config: config)) {
+  exit(0);
+}
+```
+
+**Using CustomMutexConfig:**
+```dart
+final config = FlutterAloneConfig(
+  // Custom Mutex configuration
+  mutexConfig: const CustomMutexConfig(
+    customMutexName: 'MyUniqueAppMutex',
   ),
 
   // Window configuration
@@ -227,9 +278,8 @@ For system tray applications, you can use the windowTitle parameter to help the 
 
 ```dart
 final config = FlutterAloneConfig(
-  mutexConfig: const MutexConfig(
-    packageId: 'com.example.myapp',
-    appName: 'MyFlutterApp'
+  mutexConfig: const CustomMutexConfig(
+    customMutexName: 'MySystemTrayApp',
   ),
   windowConfig: const WindowConfig(
     windowTitle: 'My System Tray App',
@@ -270,11 +320,19 @@ class _MyAppState extends State<MyApp> {
 
 ## Advanced Features
 
+### Mutex Configuration Types
+The plugin now provides two ways to configure mutex names:
+
+- **DefaultMutexConfig**: Uses package ID and app name to generate mutex names (traditional approach)
+- **CustomMutexConfig**: Allows direct specification of mutex name (new approach)
+
 ### Configuration Classes
 The plugin provides a modular configuration system:
 
 - `FlutterAloneConfig`: Main configuration container
-  - `MutexConfig`: Controls mutex naming
+  - `MutexConfig`: Abstract base class for mutex configuration
+    - `DefaultMutexConfig`: Controls mutex naming using package ID and app name
+    - `CustomMutexConfig`: Controls mutex naming with a custom name
   - `WindowConfig`: Window detection settings
   - `DuplicateCheckConfig`: Controls debug mode behavior
   - `MessageConfig`: Message display settings (includes `EnMessageConfig`, `KoMessageConfig`, and `CustomMessageConfig`)
@@ -296,7 +354,7 @@ The plugin provides detailed error information through the `AloneException` clas
 try {
   await FlutterAlone.instance.checkAndRun(
     config: FlutterAloneConfig(
-      mutexConfig: const MutexConfig(
+      mutexConfig: const DefaultMutexConfig(
         packageId: 'com.example.myapp',
         appName: 'MyFlutterApp'
       ),
@@ -309,6 +367,18 @@ try {
   print('Details: ${e.details}');
 }
 ```
+
+## Choosing Between Mutex Configuration Types
+
+- Use **DefaultMutexConfig** when:
+  - You want automatic mutex name generation based on your app's identity
+  - You need backward compatibility with earlier versions
+  - You want the plugin to handle name generation and sanitization
+
+- Use **CustomMutexConfig** when:
+  - You need full control over mutex naming
+  - You have specific mutex naming requirements
+  - You want to use the same mutex across different applications
 
 ## Contributing
 

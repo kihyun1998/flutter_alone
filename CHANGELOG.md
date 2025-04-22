@@ -1,3 +1,22 @@
+## 3.1.0
+
+* **New Features**
+  * Added `CustomMutexConfig` for direct mutex name specification
+  * Refactored mutex configuration to support multiple naming strategies
+  * Simplified mutex name handling across platform boundaries
+  * Enhanced code organization with better abstraction
+
+* **Breaking Changes**
+  * `MutexConfig` is now an abstract class with implementations:
+    * `DefaultMutexConfig` (backward compatible with existing approach)
+    * `CustomMutexConfig` (new approach with direct mutex name specification)
+
+* **Improvements**
+  * Moved mutex name generation logic to Dart side for better flexibility
+  * Streamlined native code interfaces
+  * Improved test coverage for various mutex configuration scenarios
+  * Enhanced example application with both configuration approaches
+
 ## 3.0.0
 
 * **Breaking Changes**
