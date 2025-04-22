@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_alone/src/models/message_config.dart';
+import 'package:flutter_alone/src/models/config.dart';
 
-import 'src/flutter_alone_platform_interface.dart';
+import 'flutter_alone_platform_interface.dart';
 
-export 'src/exception.dart';
+export 'src/models/config.dart';
+export 'src/models/exception.dart';
 export 'src/models/message_config.dart';
 
 /// Main class for the Flutter Alone plugin
@@ -20,27 +21,27 @@ class FlutterAlone {
   /// or displays a message to the user.
   ///
   /// Parameters:
-  /// - messageConfig: Configuration object containing all settings including:
-  ///   * Message display settings (title, content, language)
-  ///   * Mutex configuration (packageId, appName, mutexSuffix)
-  ///   * Debug mode settings (enableInDebugMode)
-  ///   * Window management settings (windowTitle)
+  /// - config: Configuration object containing all settings including:
+  ///   * Message display settings (messageConfig)
+  ///   * Mutex configuration (mutexConfig)
+  ///   * Debug mode settings (duplicateCheckConfig)
+  ///   * Window management settings (windowConfig)
   ///
   /// In debug mode, duplicate check is skipped unless enableInDebugMode is set to true
-  /// in the messageConfig.
+  /// in the duplicateCheckConfig.
   ///
   /// Returns:
   /// - true: Application can start (no duplicate instance found)
   /// - false: Another instance is already running
-  Future<bool> checkAndRun({required MessageConfig messageConfig}) async {
+  Future<bool> checkAndRun({required FlutterAloneConfig config}) async {
     try {
       // Skip duplicate check in debug mode unless explicitly enabled
-      if (kDebugMode && !messageConfig.enableInDebugMode) {
+      if (kDebugMode && !config.duplicateCheckConfig.enableInDebugMode) {
         return true;
       }
 
       final result = await FlutterAlonePlatform.instance.checkAndRun(
-        messageConfig: messageConfig,
+        config: config,
       );
       return result;
     } catch (e) {

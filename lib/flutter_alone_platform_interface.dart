@@ -1,29 +1,42 @@
+import 'package:flutter_alone/src/models/config.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'flutter_alone_method_channel.dart';
 
+/// Platform interface for the plugin
+/// Defines the interface that all platform implementations must follow
 abstract class FlutterAlonePlatform extends PlatformInterface {
-  /// Constructs a FlutterAlonePlatform.
+  /// Constructs a FlutterAlonePlatform
   FlutterAlonePlatform() : super(token: _token);
 
   static final Object _token = Object();
 
+  /// Current platform implementation instance
   static FlutterAlonePlatform _instance = MethodChannelFlutterAlone();
 
-  /// The default instance of [FlutterAlonePlatform] to use.
-  ///
-  /// Defaults to [MethodChannelFlutterAlone].
+  /// Platform implementation instance getter
   static FlutterAlonePlatform get instance => _instance;
 
-  /// Platform-specific implementations should set this with their own
-  /// platform-specific class that extends [FlutterAlonePlatform] when
-  /// they register themselves.
+  /// Platform implementation setter
   static set instance(FlutterAlonePlatform instance) {
     PlatformInterface.verifyToken(instance, _token);
     _instance = instance;
   }
 
-  Future<String?> getPlatformVersion() {
-    throw UnimplementedError('platformVersion() has not been implemented.');
+  /// Check if application can run and perform initialization
+  ///
+  /// Parameters:
+  /// - config: Combined configuration object
+  ///
+  /// Returns:
+  /// - true: Application can start
+  /// - false: Another instance is already running
+  Future<bool> checkAndRun({required FlutterAloneConfig config}) {
+    throw UnimplementedError('checkAndRun() has not been implemented.');
+  }
+
+  /// Clean up resources
+  Future<void> dispose() {
+    throw UnimplementedError('dispose() has not been implemented.');
   }
 }

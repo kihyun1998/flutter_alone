@@ -9,7 +9,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
 
-  WindowOptions windowOptions = WindowOptions(
+  WindowOptions windowOptions = const WindowOptions(
     size: Size(500, 800),
     center: true,
     title: 'Tray App Example',
@@ -18,21 +18,39 @@ void main() async {
     await windowManager.show();
     await windowManager.focus();
   });
+
   if (Platform.isWindows) {
-    if (!await FlutterAlone.instance.checkAndRun(
-      messageConfig: CustomMessageConfig(
-        customTitle: 'Example App',
-        customMessage: 'Application is already running in another account',
-        enableInDebugMode: true, // Enable duplicate check even in debug mode
-        windowTitle: 'Tray App Example',
+    final config = FlutterAloneConfig(
+      // 뮤텍스 설정
+      mutexConfig: const MutexConfig(
         packageId: 'com.example.myapp',
         appName: 'MyFlutterApp',
         mutexSuffix: 'production',
       ),
-    )) {
+
+      // 창 관리 설정
+      windowConfig: const WindowConfig(
+        windowTitle: 'Tray App Example',
+      ),
+
+      // 디버그 모드 설정
+      duplicateCheckConfig: const DuplicateCheckConfig(
+        enableInDebugMode: true, // 디버그 모드에서도 중복 실행 검사 활성화
+      ),
+
+      // 메시지 설정
+      messageConfig: const CustomMessageConfig(
+        customTitle: 'Example App',
+        customMessage: 'Application is already running in another account',
+        showMessageBox: true,
+      ),
+    );
+
+    if (!await FlutterAlone.instance.checkAndRun(config: config)) {
       exit(0);
     }
   }
+
   runApp(const MyApp());
 }
 
@@ -126,31 +144,31 @@ class _MyAppState extends State<MyApp> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
+              const Text(
                 'The app ran normally.',
                 style: TextStyle(fontSize: 18),
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 'Prevent duplicate execution with custom mutex name:',
                 style: TextStyle(fontSize: 14),
               ),
-              Text(
+              const Text(
                 'packageId: com.example.myapp',
                 style: TextStyle(fontSize: 14),
               ),
-              Text(
+              const Text(
                 'appName: MyFlutterApp',
                 style: TextStyle(fontSize: 14),
               ),
-              Text(
+              const Text(
                 'suffix: production',
                 style: TextStyle(fontSize: 14),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: hideWindow,
-                child: Text('hide window'),
+                child: const Text('hide window'),
               ),
             ],
           ),
