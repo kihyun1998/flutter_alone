@@ -48,134 +48,188 @@ flutter_alone/
 
 ## example/integration_test/plugin_integration_test.dart
 ```dart
-// import 'dart:io';
+// example/integration_test/plugin_integration_test.dart
+import 'dart:io';
 
-// import 'package:flutter/services.dart';
-// import 'package:flutter_alone/flutter_alone.dart';
-// import 'package:flutter_test/flutter_test.dart';
-// import 'package:integration_test/integration_test.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_alone/flutter_alone.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
 
-// void main() {
-//   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-//   // Ensure tests only run on Windows platform
-//   if (!Platform.isWindows) {
-//     group('Flutter Alone Plugin on non-Windows platforms', () {
-//       test('Tests are skipped on non-Windows platforms', () {
-//         // Skip tests on non-Windows platforms
-//       });
-//     });
-//     return;
-//   }
+  // Ensure tests only run on Windows platform
+  if (!Platform.isWindows) {
+    group('Flutter Alone Plugin on non-Windows platforms', () {
+      test('Tests are skipped on non-Windows platforms', () {
+        // Skip tests on non-Windows platforms
+      });
+    });
+    return;
+  }
 
-//   group('Flutter Alone Plugin Integration Tests on Windows', () {
-//     late FlutterAlone flutterAlone;
-//     const channel = MethodChannel('flutter_alone');
+  group('Flutter Alone Plugin Integration Tests on Windows', () {
+    late FlutterAlone flutterAlone;
+    const channel = MethodChannel('flutter_alone');
 
-//     // Shared test configuration data
-//     final testConfig = EnMessageConfig(
-//       packageId: 'com.test.integration',
-//       appName: 'IntegrationTestApp',
-//       enableInDebugMode: true,
-//     );
+    // Shared test configuration data
+    final testConfig = FlutterAloneConfig(
+      mutexConfig: const MutexConfig(
+        packageId: 'com.test.integration',
+        appName: 'IntegrationTestApp',
+      ),
+      duplicateCheckConfig: const DuplicateCheckConfig(
+        enableInDebugMode: true,
+      ),
+      messageConfig: const EnMessageConfig(),
+    );
 
-//     setUpAll(() {
-//       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-//           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-//         switch (methodCall.method) {
-//           case 'checkAndRun':
-//             return true;
-//           case 'dispose':
-//             return null;
-//           default:
-//             throw PlatformException(
-//               code: 'unimplemented',
-//               message: 'Method not implemented',
-//             );
-//         }
-//       });
-//     });
+    setUpAll(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        switch (methodCall.method) {
+          case 'checkAndRun':
+            return true;
+          case 'dispose':
+            return null;
+          default:
+            throw PlatformException(
+              code: 'unimplemented',
+              message: 'Method not implemented',
+            );
+        }
+      });
+    });
 
-//     setUp(() {
-//       flutterAlone = FlutterAlone.instance;
-//     });
+    setUp(() {
+      flutterAlone = FlutterAlone.instance;
+    });
 
-//     tearDown(() async {
-//       try {
-//         await flutterAlone.dispose();
-//       } catch (e) {
-//         // Ignore errors during cleanup
-//       }
-//     });
+    tearDown(() async {
+      try {
+        await flutterAlone.dispose();
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+    });
 
-//     tearDownAll(() {
-//       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-//           .setMockMethodCallHandler(channel, null);
-//     });
+    tearDownAll(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
 
-//     test('Basic functionality test - successful mutex creation', () async {
-//       final result = await flutterAlone.checkAndRun(messageConfig: testConfig);
-//       expect(result, true,
-//           reason: 'Verify successful mutex creation on platform');
-//     });
+    test('Basic functionality test - successful mutex creation', () async {
+      final result = await flutterAlone.checkAndRun(config: testConfig);
+      expect(result, true,
+          reason: 'Verify successful mutex creation on platform');
+    });
 
-//     test('Error handling test - handles platform exceptions properly',
-//         () async {
-//       // Replace with handler that throws an exception
-//       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-//           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-//         throw PlatformException(
-//           code: 'mutex_error',
-//           message: 'Failed to create mutex',
-//           details: 'Simulated error for testing',
-//         );
-//       });
+    test('Error handling test - handles platform exceptions properly',
+        () async {
+      // Replace with handler that throws an exception
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        throw PlatformException(
+          code: 'mutex_error',
+          message: 'Failed to create mutex',
+          details: 'Simulated error for testing',
+        );
+      });
 
-//       // Catch exception and verify type
-//       expect(
-//         () async => await flutterAlone.checkAndRun(messageConfig: testConfig),
-//         throwsA(isA<AloneException>()
-//             .having((e) => e.code, 'error code', 'mutex_error')),
-//         reason:
-//             'Ensure platform exception is properly converted to AloneException',
-//       );
+      // Catch exception and verify type
+      expect(
+        () async => await flutterAlone.checkAndRun(config: testConfig),
+        throwsA(isA<AloneException>()
+            .having((e) => e.code, 'error code', 'mutex_error')),
+        reason:
+            'Ensure platform exception is properly converted to AloneException',
+      );
 
-//       // Restore original handler after test
-//       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-//           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-//         switch (methodCall.method) {
-//           case 'checkAndRun':
-//             return true;
-//           case 'dispose':
-//             return null;
-//           default:
-//             throw PlatformException(code: 'unimplemented');
-//         }
-//       });
-//     });
+      // Restore original handler after test
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        switch (methodCall.method) {
+          case 'checkAndRun':
+            return true;
+          case 'dispose':
+            return null;
+          default:
+            throw PlatformException(code: 'unimplemented');
+        }
+      });
+    });
 
-//     // Additional test: Verify that MessageConfig parameters are correctly passed
-//     test('Configuration parameters are correctly passed to platform', () async {
-//       bool configVerified = false;
+    // Additional test: Verify that configuration parameters are correctly passed
+    test('Configuration parameters are correctly passed to platform', () async {
+      bool configVerified = false;
 
-//       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-//           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-//         if (methodCall.method == 'checkAndRun') {
-//           final args = methodCall.arguments as Map<dynamic, dynamic>;
-//           configVerified = args['packageId'] == 'com.test.integration' &&
-//               args['appName'] == 'IntegrationTestApp';
-//           return true;
-//         }
-//         return null;
-//       });
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        if (methodCall.method == 'checkAndRun') {
+          final args = methodCall.arguments as Map<dynamic, dynamic>;
+          configVerified = args['packageId'] == 'com.test.integration' &&
+              args['appName'] == 'IntegrationTestApp' &&
+              args['enableInDebugMode'] == true &&
+              args['type'] == 'en';
+          return true;
+        }
+        return null;
+      });
 
-//       await flutterAlone.checkAndRun(messageConfig: testConfig);
-//       expect(configVerified, true,
-//           reason:
-//               'Verify configuration parameters are passed to platform correctly');
-//     });
-//   });
-// }
+      await flutterAlone.checkAndRun(config: testConfig);
+      expect(configVerified, true,
+          reason:
+              'Verify configuration parameters are passed to platform correctly');
+    });
+
+    test('Test with all configuration options', () async {
+      final fullConfig = FlutterAloneConfig(
+        mutexConfig: const MutexConfig(
+          packageId: 'com.test.integration',
+          appName: 'IntegrationTestApp',
+          mutexSuffix: 'integration_test',
+        ),
+        windowConfig: const WindowConfig(
+          windowTitle: 'Integration Test Window',
+        ),
+        duplicateCheckConfig: const DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: const CustomMessageConfig(
+          customTitle: 'Integration Test',
+          customMessage: 'Integration test message',
+          showMessageBox: false,
+        ),
+      );
+
+      Map<String, dynamic>? capturedArguments;
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        if (methodCall.method == 'checkAndRun') {
+          capturedArguments =
+              Map<String, dynamic>.from(methodCall.arguments as Map);
+          return true;
+        }
+        return null;
+      });
+
+      await flutterAlone.checkAndRun(config: fullConfig);
+
+      expect(capturedArguments, isNotNull);
+      expect(capturedArguments!['packageId'], 'com.test.integration');
+      expect(capturedArguments!['appName'], 'IntegrationTestApp');
+      expect(capturedArguments!['mutexSuffix'], 'integration_test');
+      expect(capturedArguments!['windowTitle'], 'Integration Test Window');
+      expect(capturedArguments!['enableInDebugMode'], true);
+      expect(capturedArguments!['type'], 'custom');
+      expect(capturedArguments!['customTitle'], 'Integration Test');
+      expect(capturedArguments!['customMessage'], 'Integration test message');
+      expect(capturedArguments!['showMessageBox'], false);
+    });
+  });
+}
 
 ```
 ## example/lib/main.dart
@@ -863,10 +917,9 @@ flowchart TD
 ## test/flutter_alone_method_channel_test.dart
 ```dart
 // test/flutter_alone_method_channel_test.dart
-
 import 'package:flutter/services.dart';
 import 'package:flutter_alone/flutter_alone.dart';
-import 'package:flutter_alone/src/flutter_alone_method_channel.dart';
+import 'package:flutter_alone/flutter_alone_method_channel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -911,48 +964,67 @@ void main() {
     });
 
     test('checkAndRun with Korean message config', () async {
-      const messageConfig = KoMessageConfig(
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTest',
-          showMessageBox: true);
+        ),
+        messageConfig: KoMessageConfig(
+          showMessageBox: true,
+        ),
+      );
 
-      final result = await platform.checkAndRun(messageConfig: messageConfig);
+      final result = await platform.checkAndRun(config: config);
 
       expect(log, hasLength(1));
       final methodCall = log.first;
       expect(methodCall.method, 'checkAndRun');
       expect(methodCall.arguments['type'], 'ko');
       expect(methodCall.arguments['showMessageBox'], true);
+      expect(methodCall.arguments['packageId'], 'com.test.integration');
+      expect(methodCall.arguments['appName'], 'IntegrationTest');
 
       expect(result, true);
     });
 
     test('checkAndRun with English message config', () async {
-      const messageConfig = EnMessageConfig(
-          showMessageBox: false,
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
           packageId: 'com.test.integration',
-          appName: 'IntegrationTest');
+          appName: 'IntegrationTest',
+        ),
+        messageConfig: EnMessageConfig(
+          showMessageBox: false,
+        ),
+      );
 
-      final result = await platform.checkAndRun(messageConfig: messageConfig);
+      final result = await platform.checkAndRun(config: config);
 
       expect(log, hasLength(1));
       final methodCall = log.first;
       expect(methodCall.method, 'checkAndRun');
       expect(methodCall.arguments['type'], 'en');
       expect(methodCall.arguments['showMessageBox'], false);
+      expect(methodCall.arguments['packageId'], 'com.test.integration');
+      expect(methodCall.arguments['appName'], 'IntegrationTest');
 
       expect(result, true);
     });
 
     test('checkAndRun with custom message config', () async {
-      const messageConfig = CustomMessageConfig(
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.integration',
+          appName: 'IntegrationTest',
+        ),
+        messageConfig: CustomMessageConfig(
           customTitle: 'Notice',
           customMessage: 'Program is already running',
           showMessageBox: true,
-          packageId: 'com.test.integration',
-          appName: 'IntegrationTest');
+        ),
+      );
 
-      final result = await platform.checkAndRun(messageConfig: messageConfig);
+      final result = await platform.checkAndRun(config: config);
 
       expect(log, hasLength(1));
       final methodCall = log.first;
@@ -962,6 +1034,8 @@ void main() {
       expect(
           methodCall.arguments['customMessage'], 'Program is already running');
       expect(methodCall.arguments['showMessageBox'], true);
+      expect(methodCall.arguments['packageId'], 'com.test.integration');
+      expect(methodCall.arguments['appName'], 'IntegrationTest');
 
       expect(result, true);
     });
@@ -984,12 +1058,18 @@ void main() {
         );
       });
 
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.integration',
+          appName: 'IntegrationTest',
+        ),
+        messageConfig: EnMessageConfig(
+          showMessageBox: false,
+        ),
+      );
+
       expect(
-        () => platform.checkAndRun(
-            messageConfig: const EnMessageConfig(
-                showMessageBox: false,
-                packageId: 'com.test.integration',
-                appName: 'IntegrationTest')),
+        () => platform.checkAndRun(config: config),
         throwsA(
           isA<AloneException>()
               .having((e) => e.code, 'code', 'error')
@@ -1007,32 +1087,44 @@ void main() {
       );
     });
 
-    test('checkAndRun with window title config', () async {
-      const messageConfig = CustomMessageConfig(
-        customTitle: 'Notice',
-        customMessage: 'Program is already running',
-        showMessageBox: true,
-        windowTitle: 'Test Window Title',
-        packageId: 'com.test.integration',
-        appName: 'IntegrationTest',
+    test('checkAndRun with full configuration', () async {
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.integration',
+          appName: 'IntegrationTest',
+          mutexSuffix: 'test',
+        ),
+        windowConfig: WindowConfig(
+          windowTitle: 'Test Window Title',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: CustomMessageConfig(
+          customTitle: 'Notice',
+          customMessage: 'Program is already running',
+          showMessageBox: true,
+        ),
       );
 
-      final result = await platform.checkAndRun(messageConfig: messageConfig);
+      final result = await platform.checkAndRun(config: config);
 
       expect(log, hasLength(1));
+      final methodCall = log.first;
+      expect(methodCall.method, 'checkAndRun');
+
+      // Check all configuration parameters
+      expect(methodCall.arguments['packageId'], 'com.test.integration');
+      expect(methodCall.arguments['appName'], 'IntegrationTest');
+      expect(methodCall.arguments['mutexSuffix'], 'test');
+      expect(methodCall.arguments['windowTitle'], 'Test Window Title');
+      expect(methodCall.arguments['enableInDebugMode'], true);
+      expect(methodCall.arguments['type'], 'custom');
+      expect(methodCall.arguments['customTitle'], 'Notice');
       expect(
-        log.first,
-        isMethodCall('checkAndRun', arguments: {
-          'type': 'custom',
-          'customTitle': 'Notice',
-          'customMessage': 'Program is already running',
-          'showMessageBox': true,
-          'enableInDebugMode': false,
-          'packageId': 'com.test.integration',
-          'appName': 'IntegrationTest',
-          'windowTitle': 'Test Window Title',
-        }),
-      );
+          methodCall.arguments['customMessage'], 'Program is already running');
+      expect(methodCall.arguments['showMessageBox'], true);
+
       expect(result, true);
     });
 
@@ -1086,8 +1178,10 @@ void main() {
 ```
 ## test/flutter_alone_test.dart
 ```dart
+// test/flutter_alone_test.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter_alone/flutter_alone.dart';
-import 'package:flutter_alone/src/flutter_alone_platform_interface.dart';
+import 'package:flutter_alone/flutter_alone_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -1097,13 +1191,24 @@ class MockFlutterAlonePlatform
   // Record mock method calls
   bool checkAndRunCalled = false;
   bool disposeCalled = false;
-  Map<String, dynamic>? lastArguments; // 변경: 객체 대신 Map 저장
+  Map<String, dynamic>? lastArguments;
 
   @override
-  Future<bool> checkAndRun({required MessageConfig messageConfig}) async {
-    checkAndRunCalled = true;
-    lastArguments = messageConfig.toMap(); // 객체가 아닌 Map을 저장
-    return true;
+  Future<bool> checkAndRun({required FlutterAloneConfig config}) async {
+    try {
+      // Skip duplicate check in debug mode unless explicitly enabled
+      if (kDebugMode && !config.duplicateCheckConfig.enableInDebugMode) {
+        return true;
+      }
+
+      final result = await FlutterAlonePlatform.instance.checkAndRun(
+        config: config,
+      );
+      return result;
+    } catch (e) {
+      debugPrint('Error checking application instance: $e');
+      rethrow;
+    }
   }
 
   @override
@@ -1122,58 +1227,155 @@ void main() {
     flutterAlone = FlutterAlone.instance;
   });
 
-  group('Message configuration tests', () {
-    test('Korean message config should be created correctly', () {
-      const config =
-          KoMessageConfig(packageId: 'com.test.app', appName: 'TestApp');
+  group('Configuration tests', () {
+    test('Basic MutexConfig should be created correctly', () {
+      const config = MutexConfig(
+        packageId: 'com.test.app',
+        appName: 'TestApp',
+      );
       final map = config.toMap();
 
-      expect(map['type'], 'ko');
-      expect(map['showMessageBox'], true);
+      expect(map[ConfigJsonKey.packageId.key], 'com.test.app');
+      expect(map['appName'], 'TestApp');
+      expect(map.containsKey('mutexSuffix'), false);
     });
 
-    test('English message config should be created correctly', () {
-      const config =
-          EnMessageConfig(packageId: 'com.test.app', appName: 'TestApp');
+    test('MutexConfig with suffix should be created correctly', () {
+      const config = MutexConfig(
+        packageId: 'com.test.app',
+        appName: 'TestApp',
+        mutexSuffix: 'production',
+      );
+      final map = config.toMap();
+
+      expect(map['packageId'], 'com.test.app');
+      expect(map['appName'], 'TestApp');
+      expect(map['mutexSuffix'], 'production');
+    });
+
+    test('WindowConfig should be created correctly', () {
+      const config = WindowConfig(
+        windowTitle: 'Test Window',
+      );
+      final map = config.toMap();
+
+      expect(map['windowTitle'], 'Test Window');
+    });
+
+    test('DuplicateCheckConfig should be created correctly', () {
+      const config = DuplicateCheckConfig(
+        enableInDebugMode: true,
+      );
+      final map = config.toMap();
+
+      expect(map['enableInDebugMode'], true);
+    });
+
+    test('Default DuplicateCheckConfig should have enableInDebugMode=false',
+        () {
+      const config = DuplicateCheckConfig();
+      final map = config.toMap();
+
+      expect(map['enableInDebugMode'], false);
+    });
+
+    test('EnMessageConfig should be created correctly', () {
+      const config = EnMessageConfig();
       final map = config.toMap();
 
       expect(map['type'], 'en');
       expect(map['showMessageBox'], true);
     });
 
-    test('Custom message should be handled correctly', () {
+    test('KoMessageConfig should be created correctly', () {
+      const config = KoMessageConfig();
+      final map = config.toMap();
+
+      expect(map['type'], 'ko');
+      expect(map['showMessageBox'], true);
+    });
+
+    test('CustomMessageConfig should be created correctly', () {
       const config = CustomMessageConfig(
-          customTitle: 'Test Title',
-          customMessage: 'Test Message',
-          packageId: 'com.test.app',
-          appName: 'TestApp');
+        customTitle: 'Test Title',
+        customMessage: 'Test Message',
+        showMessageBox: false,
+      );
       final map = config.toMap();
 
       expect(map['type'], 'custom');
       expect(map['customTitle'], 'Test Title');
       expect(map['customMessage'], 'Test Message');
-      expect(map['showMessageBox'], true);
+      expect(map['showMessageBox'], false);
     });
   });
 
-  group('Plugin basic functionality tests', () {
-    // test('checkAndRun should pass correct data to platform', () async {
-    //   const messageConfig =
-    //       CustomMessageConfig(customTitle: 'Test', customMessage: 'Message');
+  group('FlutterAloneConfig tests', () {
+    test('Combined config should include all components', () {
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.app',
+          appName: 'TestApp',
+          mutexSuffix: 'test',
+        ),
+        windowConfig: WindowConfig(
+          windowTitle: 'Test Window',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: CustomMessageConfig(
+          customTitle: 'Test Title',
+          customMessage: 'Test Message',
+          showMessageBox: false,
+        ),
+      );
 
-    //   final result =
-    //       await flutterAlone.checkAndRun(messageConfig: messageConfig);
+      final map = config.toMap();
 
-    //   expect(result, true);
-    //   expect(mockPlatform.checkAndRunCalled, true);
+      // Check mutex config
+      expect(map['packageId'], 'com.test.app');
+      expect(map['appName'], 'TestApp');
+      expect(map['mutexSuffix'], 'test');
 
-    //   // Map을 사용한 검증
-    //   final args = mockPlatform.lastArguments;
-    //   expect(args, isNotNull);
-    //   expect(args!['type'], 'custom');
-    //   expect(args['customTitle'], 'Test');
-    //   expect(args['customMessage'], 'Message');
-    // });
+      // Check window config
+      expect(map['windowTitle'], 'Test Window');
+
+      // Check duplicate check config
+      expect(map['enableInDebugMode'], true);
+
+      // Check message config
+      expect(map['type'], 'custom');
+      expect(map['customTitle'], 'Test Title');
+      expect(map['customMessage'], 'Test Message');
+      expect(map['showMessageBox'], false);
+    });
+  });
+
+  group('Plugin functionality tests', () {
+    test('checkAndRun should pass correct config to platform', () async {
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.app',
+          appName: 'TestApp',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: EnMessageConfig(),
+      );
+
+      final result = await flutterAlone.checkAndRun(config: config);
+
+      expect(result, true);
+      expect(mockPlatform.checkAndRunCalled, true);
+
+      final args = mockPlatform.lastArguments;
+      expect(args, isNotNull);
+      expect(args!['packageId'], 'com.test.app');
+      expect(args['appName'], 'TestApp');
+      expect(args['type'], 'en');
+    });
 
     test('dispose should be called correctly', () async {
       await flutterAlone.dispose();
@@ -1181,37 +1383,42 @@ void main() {
     });
   });
 
-  test('Window title should be handled correctly in config', () {
-    const windowTitle = 'My Application Window';
-    const config = CustomMessageConfig(
-      customTitle: 'Test',
-      customMessage: 'Message',
-      packageId: 'com.test.app',
-      appName: 'TestApp',
-      windowTitle: windowTitle,
-    );
-    final map = config.toMap();
+  group('Integration tests', () {
+    test('Full configuration with all options', () async {
+      const config = FlutterAloneConfig(
+        mutexConfig: MutexConfig(
+          packageId: 'com.test.app',
+          appName: 'TestApp',
+          mutexSuffix: 'production',
+        ),
+        windowConfig: WindowConfig(
+          windowTitle: 'Test Window',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: CustomMessageConfig(
+          customTitle: 'Test Title',
+          customMessage: 'Test Message',
+          showMessageBox: true,
+        ),
+      );
 
-    expect(map['windowTitle'], windowTitle);
+      await flutterAlone.checkAndRun(config: config);
+
+      final args = mockPlatform.lastArguments;
+      expect(args, isNotNull);
+      expect(args!['packageId'], 'com.test.app');
+      expect(args['appName'], 'TestApp');
+      expect(args['mutexSuffix'], 'production');
+      expect(args['windowTitle'], 'Test Window');
+      expect(args['enableInDebugMode'], true);
+      expect(args['type'], 'custom');
+      expect(args['customTitle'], 'Test Title');
+      expect(args['customMessage'], 'Test Message');
+      expect(args['showMessageBox'], true);
+    });
   });
-
-  // test('Window title should be passed to platform correctly', () async {
-  //   const windowTitle = 'My Application Window';
-  //   const messageConfig = CustomMessageConfig(
-  //     customTitle: 'Test',
-  //     customMessage: 'Message',
-  //     windowTitle: windowTitle,
-  //   );
-
-  //   await flutterAlone.checkAndRun(messageConfig: messageConfig);
-
-  //   expect(mockPlatform.checkAndRunCalled, true);
-
-  //   // Map을 사용한 검증
-  //   final args = mockPlatform.lastArguments;
-  //   expect(args, isNotNull);
-  //   expect(args!['windowTitle'], windowTitle);
-  // });
 }
 
 ```
