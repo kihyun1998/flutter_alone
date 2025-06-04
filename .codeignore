@@ -30,7 +30,7 @@ example/macos/Flutter
 .metadata
 CODE.md
 codemd*
-
+*.md
 example/assets/app_icon*
 **/.flutter-plugin*
 

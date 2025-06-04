@@ -108,7 +108,6 @@ void FlutterAlonePlugin::ShowMessageBox(const MessageBoxInfo& info) {
 //         config.suffix
 //     );
 // }
-
 ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& mutexName, const std::wstring& windowTitle) {
     ProcessCheckResult result;
     result.canRun = true;
@@ -125,7 +124,10 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& 
         auto existingProcess = ProcessUtils::FindExistingProcess();
         if (existingProcess.has_value()) {
             OutputDebugStringW(L"[DEBUG] Existing process window found\n");
+            OutputDebugStringW((L"[DEBUG] 1st detection HWND: " + std::to_wstring((uintptr_t)existingProcess->windowHandle) + L"\n").c_str());
             result.existingWindow = existingProcess->windowHandle;
+        } else {
+            OutputDebugStringW(L"[DEBUG] Existing process window NOT found\n");
         }
         
         // Try finding by window title if the existing window is not found
@@ -135,10 +137,13 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& 
             HWND hwnd = FindWindowW(NULL, windowTitle.c_str());
             if (hwnd != NULL) {
                 OutputDebugStringW(L"[DEBUG] Window found by title\n");
+                OutputDebugStringW((L"[DEBUG] 2nd detection HWND: " + std::to_wstring((uintptr_t)hwnd) + L"\n").c_str());
                 result.existingWindow = hwnd;
             } else {
                 OutputDebugStringW(L"[DEBUG] Window NOT found by title\n");
             }
+        } else if (result.existingWindow != NULL) {
+            OutputDebugStringW(L"[DEBUG] Skipping 2nd detection (1st was successful)\n");
         }
     }
 

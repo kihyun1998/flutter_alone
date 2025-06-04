@@ -15,6 +15,7 @@ void main() async {
     center: true,
     title: appTitle,
   );
+
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
@@ -161,7 +162,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // title: appTitle,
+      title: appTitle,
       home: Scaffold(
         appBar: AppBar(
           title: const Text(appTitle),

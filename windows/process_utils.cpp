@@ -25,11 +25,14 @@ ProcessInfo ProcessUtils::GetProcessInfoById(DWORD processId) {
 }
 
 std::optional<ProcessInfo> ProcessUtils::FindExistingProcess() {
+    OutputDebugStringW(L"[DEBUG] Starting process-based detection\n");
+    
     DWORD currentPid = GetCurrentProcessId();
     std::wstring currentPath = GetProcessPath(currentPid);
     
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (snapshot == INVALID_HANDLE_VALUE) {
+        OutputDebugStringW(L"[DEBUG] Failed to create process snapshot\n");
         return std::nullopt;
     }
 
@@ -41,14 +44,23 @@ std::optional<ProcessInfo> ProcessUtils::FindExistingProcess() {
             if (processEntry.th32ProcessID != currentPid) {
                 std::wstring processPath = GetProcessPath(processEntry.th32ProcessID);
                 if (IsSameExecutable(currentPath, processPath)) {
+                    OutputDebugStringW((L"[DEBUG] Found same executable process PID: " + 
+                                       std::to_wstring(processEntry.th32ProcessID) + L"\n").c_str());
+                    
                     CloseHandle(snapshot);
-                    return GetProcessInfoById(processEntry.th32ProcessID);
+                    ProcessInfo info = GetProcessInfoById(processEntry.th32ProcessID);
+                    
+                    OutputDebugStringW((L"[DEBUG] Process window handle: " + 
+                                       std::to_wstring((uintptr_t)info.windowHandle) + L"\n").c_str());
+                    
+                    return info;
                 }
             }
         } while (Process32NextW(snapshot, &processEntry));
     }
 
     CloseHandle(snapshot);
+    OutputDebugStringW(L"[DEBUG] No matching process found\n");
     return std::nullopt;
 }
 

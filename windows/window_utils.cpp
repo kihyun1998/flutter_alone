@@ -37,13 +37,31 @@ bool WindowUtils::RestoreWindow(HWND hwnd) {
     // If the window is not visible, display it
     if (!IsWindowVisible(hwnd)) {
         OutputDebugStringW(L"[DEBUG] Window is hidden, showing it\n");
-        return ShowWindow(hwnd, SW_SHOW);
+        BOOL result = ShowWindow(hwnd, SW_SHOW);
+        OutputDebugStringW((L"[DEBUG] Restore result: " + std::to_wstring(result) + L"\n").c_str());
+        
+        // 복원 후 상태 확인 추가
+        BOOL visibleAfter = IsWindowVisible(hwnd);
+        BOOL iconicAfter = IsIconic(hwnd);
+        OutputDebugStringW((L"[DEBUG] After restore - Visible: " + std::to_wstring(visibleAfter) + 
+                           L", Minimized: " + std::to_wstring(iconicAfter) + L"\n").c_str());
+        
+        return result;
     }
     
     // If the window is minimized, restore it to original size
     if (IsIconic(hwnd)) {
         OutputDebugStringW(L"[DEBUG] Window is minimized, restoring it\n");
-        return ShowWindow(hwnd, SW_RESTORE);
+        BOOL result = ShowWindow(hwnd, SW_RESTORE);
+        OutputDebugStringW((L"[DEBUG] Restore result: " + std::to_wstring(result) + L"\n").c_str());
+        
+        // 복원 후 상태 확인 추가
+        BOOL visibleAfter = IsWindowVisible(hwnd);
+        BOOL iconicAfter = IsIconic(hwnd);
+        OutputDebugStringW((L"[DEBUG] After restore - Visible: " + std::to_wstring(visibleAfter) + 
+                           L", Minimized: " + std::to_wstring(iconicAfter) + L"\n").c_str());
+        
+        return result;
     }
     
     return true;

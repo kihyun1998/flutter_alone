@@ -7,6 +7,7 @@ flutter_alone/
     ├── integration_test/
     │   └── plugin_integration_test.dart
     ├── lib/
+    │   ├── const.dart
     │   └── main.dart
     └── test/
     │   └── widget_test.dart
@@ -15,19 +16,20 @@ flutter_alone/
     │   └── models/
     │   │   ├── config.dart
     │   │   ├── exception.dart
-    │   │   └── message_config.dart
+    │   │   ├── message_config.dart
+    │   │   └── mutex_config.dart
     ├── flutter_alone.dart
     ├── flutter_alone_method_channel.dart
     └── flutter_alone_platform_interface.dart
 ├── test/
     ├── flutter_alone_method_channel_test.dart
     └── flutter_alone_test.dart
-├── windows/
+└── windows/
     ├── include/
-    │   └── flutter_alone/
-    │   │   └── flutter_alone_plugin_c_api.h
+        └── flutter_alone/
+        │   └── flutter_alone_plugin_c_api.h
     ├── test/
-    │   └── flutter_alone_plugin_test.cpp
+        └── flutter_alone_plugin_test.cpp
     ├── CMakeLists.txt
     ├── flutter_alone_plugin.cpp
     ├── flutter_alone_plugin.h
@@ -36,14 +38,10 @@ flutter_alone/
     ├── icon_utils.h
     ├── message_utils.cpp
     ├── message_utils.h
-    ├── mutex_utils.cpp
-    ├── mutex_utils.h
     ├── process_utils.cpp
     ├── process_utils.h
     ├── window_utils.cpp
     └── window_utils.h
-├── plan.md
-└── scenario.md
 ```
 
 ## example/integration_test/plugin_integration_test.dart
@@ -73,11 +71,22 @@ void main() {
     late FlutterAlone flutterAlone;
     const channel = MethodChannel('flutter_alone');
 
-    // Shared test configuration data
-    final testConfig = FlutterAloneConfig(
-      mutexConfig: const MutexConfig(
+    // Shared test configuration data with DefaultMutexConfig
+    final defaultMutexTestConfig = FlutterAloneConfig(
+      mutexConfig: const DefaultMutexConfig(
         packageId: 'com.test.integration',
         appName: 'IntegrationTestApp',
+      ),
+      duplicateCheckConfig: const DuplicateCheckConfig(
+        enableInDebugMode: true,
+      ),
+      messageConfig: const EnMessageConfig(),
+    );
+
+    // Shared test configuration data with CustomMutexConfig
+    final customMutexTestConfig = FlutterAloneConfig(
+      mutexConfig: const CustomMutexConfig(
+        customMutexName: 'IntegrationTestMutex',
       ),
       duplicateCheckConfig: const DuplicateCheckConfig(
         enableInDebugMode: true,
@@ -119,10 +128,20 @@ void main() {
           .setMockMethodCallHandler(channel, null);
     });
 
-    test('Basic functionality test - successful mutex creation', () async {
-      final result = await flutterAlone.checkAndRun(config: testConfig);
+    test('Basic functionality test with DefaultMutexConfig', () async {
+      final result =
+          await flutterAlone.checkAndRun(config: defaultMutexTestConfig);
       expect(result, true,
-          reason: 'Verify successful mutex creation on platform');
+          reason:
+              'Verify successful mutex creation on platform with DefaultMutexConfig');
+    });
+
+    test('Basic functionality test with CustomMutexConfig', () async {
+      final result =
+          await flutterAlone.checkAndRun(config: customMutexTestConfig);
+      expect(result, true,
+          reason:
+              'Verify successful mutex creation on platform with CustomMutexConfig');
     });
 
     test('Error handling test - handles platform exceptions properly',
@@ -139,7 +158,8 @@ void main() {
 
       // Catch exception and verify type
       expect(
-        () async => await flutterAlone.checkAndRun(config: testConfig),
+        () async =>
+            await flutterAlone.checkAndRun(config: defaultMutexTestConfig),
         throwsA(isA<AloneException>()
             .having((e) => e.code, 'error code', 'mutex_error')),
         reason:
@@ -160,16 +180,17 @@ void main() {
       });
     });
 
-    // Additional test: Verify that configuration parameters are correctly passed
-    test('Configuration parameters are correctly passed to platform', () async {
+    // Additional test: Verify that DefaultMutexConfig parameters are correctly passed
+    test('DefaultMutexConfig parameters are correctly passed to platform',
+        () async {
       bool configVerified = false;
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
         if (methodCall.method == 'checkAndRun') {
           final args = methodCall.arguments as Map<dynamic, dynamic>;
-          configVerified = args['packageId'] == 'com.test.integration' &&
-              args['appName'] == 'IntegrationTestApp' &&
+          configVerified = args['mutexName'] ==
+                  'Global\\com.test.integration_IntegrationTestApp' &&
               args['enableInDebugMode'] == true &&
               args['type'] == 'en';
           return true;
@@ -177,15 +198,40 @@ void main() {
         return null;
       });
 
-      await flutterAlone.checkAndRun(config: testConfig);
+      await flutterAlone.checkAndRun(config: defaultMutexTestConfig);
       expect(configVerified, true,
           reason:
-              'Verify configuration parameters are passed to platform correctly');
+              'Verify DefaultMutexConfig parameters are passed to platform correctly');
     });
 
-    test('Test with all configuration options', () async {
+    // Additional test: Verify that CustomMutexConfig parameters are correctly passed
+    test('CustomMutexConfig parameters are correctly passed to platform',
+        () async {
+      bool configVerified = false;
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        if (methodCall.method == 'checkAndRun') {
+          final args = methodCall.arguments as Map<dynamic, dynamic>;
+          configVerified =
+              args['mutexName'] == 'Global\\IntegrationTestMutex' &&
+                  args['enableInDebugMode'] == true &&
+                  args['type'] == 'en';
+          return true;
+        }
+        return null;
+      });
+
+      await flutterAlone.checkAndRun(config: customMutexTestConfig);
+      expect(configVerified, true,
+          reason:
+              'Verify CustomMutexConfig parameters are passed to platform correctly');
+    });
+
+    test('Test with all configuration options using DefaultMutexConfig',
+        () async {
       final fullConfig = FlutterAloneConfig(
-        mutexConfig: const MutexConfig(
+        mutexConfig: const DefaultMutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTestApp',
           mutexSuffix: 'integration_test',
@@ -218,9 +264,52 @@ void main() {
       await flutterAlone.checkAndRun(config: fullConfig);
 
       expect(capturedArguments, isNotNull);
-      expect(capturedArguments!['packageId'], 'com.test.integration');
-      expect(capturedArguments!['appName'], 'IntegrationTestApp');
-      expect(capturedArguments!['mutexSuffix'], 'integration_test');
+      expect(capturedArguments!['mutexName'],
+          'Global\\com.test.integration_IntegrationTestApp_integration_test');
+      expect(capturedArguments!['windowTitle'], 'Integration Test Window');
+      expect(capturedArguments!['enableInDebugMode'], true);
+      expect(capturedArguments!['type'], 'custom');
+      expect(capturedArguments!['customTitle'], 'Integration Test');
+      expect(capturedArguments!['customMessage'], 'Integration test message');
+      expect(capturedArguments!['showMessageBox'], false);
+    });
+
+    test('Test with all configuration options using CustomMutexConfig',
+        () async {
+      final fullConfig = FlutterAloneConfig(
+        mutexConfig: const CustomMutexConfig(
+          customMutexName: 'CustomIntegrationTestMutex',
+        ),
+        windowConfig: const WindowConfig(
+          windowTitle: 'Integration Test Window',
+        ),
+        duplicateCheckConfig: const DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: const CustomMessageConfig(
+          customTitle: 'Integration Test',
+          customMessage: 'Integration test message',
+          showMessageBox: false,
+        ),
+      );
+
+      Map<String, dynamic>? capturedArguments;
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        if (methodCall.method == 'checkAndRun') {
+          capturedArguments =
+              Map<String, dynamic>.from(methodCall.arguments as Map);
+          return true;
+        }
+        return null;
+      });
+
+      await flutterAlone.checkAndRun(config: fullConfig);
+
+      expect(capturedArguments, isNotNull);
+      expect(capturedArguments!['mutexName'],
+          'Global\\CustomIntegrationTestMutex');
       expect(capturedArguments!['windowTitle'], 'Integration Test Window');
       expect(capturedArguments!['enableInDebugMode'], true);
       expect(capturedArguments!['type'], 'custom');
@@ -232,12 +321,18 @@ void main() {
 }
 
 ```
+## example/lib/const.dart
+```dart
+const String appTitle = 'Flutter Alone Example';
+
+```
 ## example/lib/main.dart
 ```dart
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_alone/flutter_alone.dart';
+import 'package:flutter_alone_example/const.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -248,7 +343,7 @@ void main() async {
   WindowOptions windowOptions = const WindowOptions(
     size: Size(500, 800),
     center: true,
-    title: 'Tray App Example',
+    title: appTitle,
   );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
@@ -256,31 +351,55 @@ void main() async {
   });
 
   if (Platform.isWindows) {
-    final config = FlutterAloneConfig(
-      // 뮤텍스 설정
-      mutexConfig: const MutexConfig(
-        packageId: 'com.example.myapp',
-        appName: 'MyFlutterApp',
-        mutexSuffix: 'production',
+    // Example 1: DefaultMutexConfig (Legacy method)
+    // final defaultConfig = FlutterAloneConfig(
+    //   // Legacy mutex config using packageId and appName
+    //   mutexConfig: const DefaultMutexConfig(
+    //     packageId: 'com.example.myapp',
+    //     appName: 'MyFlutterApp',
+    //     mutexSuffix: 'production',
+    //   ),
+
+    //   // Window configuration
+    //   windowConfig: const WindowConfig(
+    //     windowTitle: 'Tray App Example',
+    //   ),
+
+    //   // Debug mode setting
+    //   duplicateCheckConfig: const DuplicateCheckConfig(
+    //     enableInDebugMode: true,
+    //   ),
+
+    //   // Custom message configuration
+    //   messageConfig: const CustomMessageConfig(
+    //     customTitle: 'Example App',
+    //     customMessage: 'Application is already running in another account',
+    //     showMessageBox: true,
+    //   ),
+    // );
+
+    // Example 2: CustomMutexConfig (Recommended method)
+    final customConfig = FlutterAloneConfig(
+      // Custom mutex name
+      mutexConfig: const CustomMutexConfig(
+        customMutexName: 'MyUniqueApplicationMutex',
       ),
 
-      // 창 관리 설정
+      // Window configuration
       windowConfig: const WindowConfig(
-        windowTitle: 'Tray App Example',
+        windowTitle: appTitle,
       ),
 
-      // 디버그 모드 설정
+      // Debug mode setting
       duplicateCheckConfig: const DuplicateCheckConfig(
-        enableInDebugMode: true, // 디버그 모드에서도 중복 실행 검사 활성화
+        enableInDebugMode: true,
       ),
 
-      // 메시지 설정
-      messageConfig: const CustomMessageConfig(
-        customTitle: 'Example App',
-        customMessage: 'Application is already running in another account',
-        showMessageBox: true,
-      ),
+      // Default English messages
+      messageConfig: const EnMessageConfig(),
     );
+
+    final config = customConfig; // or use defaultConfig
 
     if (!await FlutterAlone.instance.checkAndRun(config: config)) {
       exit(0);
@@ -316,7 +435,7 @@ class _MyAppState extends State<MyApp> {
     String path =
         Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon_64.png';
     if (!await File(path).exists()) {
-      debugPrint("icon file not found: $path");
+      debugPrint("Icon file not found: $path");
     }
 
     await _systemTray.initSystemTray(iconPath: path);
@@ -372,9 +491,10 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      // title: appTitle,
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Flutter Alone Example'),
+          title: const Text(appTitle),
         ),
         body: Center(
           child: Column(
@@ -386,25 +506,17 @@ class _MyAppState extends State<MyApp> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Prevent duplicate execution with custom mutex name:',
+                'Prevent duplicate execution with custom mutex:',
                 style: TextStyle(fontSize: 14),
               ),
               const Text(
-                'packageId: com.example.myapp',
-                style: TextStyle(fontSize: 14),
-              ),
-              const Text(
-                'appName: MyFlutterApp',
-                style: TextStyle(fontSize: 14),
-              ),
-              const Text(
-                'suffix: production',
+                'Using CustomMutexConfig with name: MyUniqueApplicationMutex',
                 style: TextStyle(fontSize: 14),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: hideWindow,
-                child: const Text('hide window'),
+                child: const Text('Hide window'),
               ),
             ],
           ),
@@ -456,6 +568,7 @@ import 'flutter_alone_platform_interface.dart';
 export 'src/models/config.dart';
 export 'src/models/exception.dart';
 export 'src/models/message_config.dart';
+export 'src/models/mutex_config.dart';
 
 /// Main class for the Flutter Alone plugin
 class FlutterAlone {
@@ -612,12 +725,11 @@ abstract class FlutterAlonePlatform extends PlatformInterface {
 ## lib/src/models/config.dart
 ```dart
 import 'message_config.dart';
+import 'mutex_config.dart';
 
 enum ConfigJsonKey {
   enableInDebugMode,
-  packageId,
-  appName,
-  mutexSuffix,
+
   windowTitle,
   ;
 
@@ -646,41 +758,6 @@ class DuplicateCheckConfig implements AloneConfig {
     return {
       ConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
     };
-  }
-}
-
-/// Configuration for mutex naming and identification
-class MutexConfig implements AloneConfig {
-  /// Package identifier for mutex name generation
-  /// Required for mutex name generation
-  final String packageId;
-
-  /// Application name for mutex name generation
-  /// Required for mutex name generation
-  final String appName;
-
-  /// Optional suffix for mutex name
-  final String? mutexSuffix;
-
-  /// Constructor
-  const MutexConfig({
-    required this.packageId,
-    required this.appName,
-    this.mutexSuffix,
-  });
-
-  @override
-  Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{
-      ConfigJsonKey.packageId.key: packageId,
-      ConfigJsonKey.appName.key: appName,
-    };
-
-    if (mutexSuffix != null) {
-      map[ConfigJsonKey.mutexSuffix.key] = mutexSuffix;
-    }
-
-    return map;
   }
 }
 
@@ -849,69 +926,93 @@ class CustomMessageConfig extends MessageConfig {
 }
 
 ```
-## plan.md
-```md
+## lib/src/models/mutex_config.dart
+```dart
+import 'config.dart';
 
-### macOS 구현 단계별 목표
+enum MutexConfigJsonKey {
+  enableInDebugMode,
+  packageId,
+  appName,
+  mutexSuffix,
+  windowTitle,
+  mutexName,
+  ;
 
-**1단계: 기본 중복 실행 감지 (NSRunningApplication 활용)**
-- 목표: 동일한 번들 ID를 가진 다른 프로세스 감지
-- 작업:
-  - NSRunningApplication API를 사용해 현재 실행 중인 같은 앱 찾기
-  - 현재 프로세스 ID와 비교해서 다른 인스턴스 확인
-  - 테스트: 앱을 두 번 실행해서 두 번째 실행이 감지되는지 확인
+  String get key => toString().split('.').last;
+}
 
-**2단계: 창 활성화 기능**
-- 목표: 이미 실행 중인 앱의 창을 활성화
-- 작업:
-  - NSRunningApplication의 activate 메서드 사용
-  - 앱을 포그라운드로 가져오기
-  - 테스트: 이미 실행 중인 앱이 있을 때 새 인스턴스 실행 시 기존 앱이 활성화되는지 확인
+/// Base abstract class for mutex configuration
+abstract class MutexConfig implements AloneConfig {
+  /// Constructor
+  const MutexConfig();
 
-**3단계: 메시지 설정 구현**
-- 목표: Windows와 동일한 메시지 설정 지원
-- 작업:
-  - NSAlert를 사용해 알림 창 표시
-  - 메시지 타입별(영어/한국어/커스텀) 텍스트 설정
-  - 테스트: 다양한 메시지 설정으로 알림이 제대로 표시되는지 확인
+  /// Get the complete mutex name to be used
+  String getMutexName();
+}
 
-**4단계: 디버그 모드 지원**
-- 목표: 디버그 모드에서 중복 검사 설정 지원
-- 작업:
-  - 디버그 모드 감지
-  - enableInDebugMode 플래그 처리
-  - 테스트: 디버그 모드에서 설정에 따라 동작이 달라지는지 확인
+/// Configuration for mutex naming and identification using package ID and app name
+class DefaultMutexConfig extends MutexConfig {
+  /// Package identifier for mutex name generation
+  /// Required for mutex name generation
+  final String packageId;
 
-**5단계: 리소스 정리 및 정리 기능**
-- 목표: 앱 종료 시 리소스 정리
-- 작업:
-  - dispose 메서드 구현
-  - 테스트: 메모리 누수 없이 정리되는지 확인
+  /// Application name for mutex name generation
+  /// Required for mutex name generation
+  final String appName;
 
-**6단계: Dart 인터페이스 연결**
-- 목표: Dart 코드와 플랫폼 코드 연결
-- 작업:
-  - 메서드 채널 구현
-  - 예외 처리 적용
-  - 테스트: Dart에서 호출 시 정상 작동하는지 확인
+  /// Optional suffix for mutex name
+  final String? mutexSuffix;
 
-```
-## scenario.md
-```md
-## Senario
+  /// Constructor
+  const DefaultMutexConfig({
+    required this.packageId,
+    required this.appName,
+    this.mutexSuffix,
+  });
 
-```mermaid
-flowchart TD
-    A[애플리케이션 실행] --> B{뮤텍스 존재 확인}
-    B -->|존재하지 않음| C[새 인스턴스 실행]
-    B -->|존재함| D{같은 계정인지 확인}
-    D -->|같은 계정| E{창 찾기}
-    E -->|창 찾음| F[찾은 창 활성화하기]
-    E -->|창 찾지 못함\n시스템 트레이| G[FindWindow로 창 찾기]
-    G -->|창 찾음| F
-    G -->|창 찾지 못함| I[경고창 표시]
-    D -->|다른 계정| I
-```
+  @override
+  Map<String, dynamic> toMap() {
+    return {
+      MutexConfigJsonKey.mutexName.key: getMutexName(),
+    };
+  }
+
+  @override
+  String getMutexName() {
+    // Create mutex name in format "Global\packageId_appName_suffix"
+    final String baseName = 'Global\\${packageId}_$appName';
+    return mutexSuffix != null ? '${baseName}_$mutexSuffix' : baseName;
+  }
+}
+
+/// Configuration for mutex using a custom name
+class CustomMutexConfig extends MutexConfig {
+  /// Custom mutex name to use directly
+  final String customMutexName;
+
+  /// Constructor
+  const CustomMutexConfig({
+    required this.customMutexName,
+  });
+
+  @override
+  Map<String, dynamic> toMap() {
+    return {
+      MutexConfigJsonKey.mutexName.key: getMutexName(),
+    };
+  }
+
+  @override
+  String getMutexName() {
+    // Create mutex name in format "Global\customName"
+    // If the name already starts with "Global\", use as is
+    if (customMutexName.startsWith('Global\\')) {
+      return customMutexName;
+    }
+    return 'Global\\$customMutexName';
+  }
+}
 
 ```
 ## test/flutter_alone_method_channel_test.dart
@@ -963,9 +1064,10 @@ void main() {
       log.clear();
     });
 
-    test('checkAndRun with Korean message config', () async {
+    test('checkAndRun with Korean message config and DefaultMutexConfig',
+        () async {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTest',
         ),
@@ -981,15 +1083,16 @@ void main() {
       expect(methodCall.method, 'checkAndRun');
       expect(methodCall.arguments['type'], 'ko');
       expect(methodCall.arguments['showMessageBox'], true);
-      expect(methodCall.arguments['packageId'], 'com.test.integration');
-      expect(methodCall.arguments['appName'], 'IntegrationTest');
+      expect(methodCall.arguments['mutexName'],
+          'Global\\com.test.integration_IntegrationTest');
 
       expect(result, true);
     });
 
-    test('checkAndRun with English message config', () async {
+    test('checkAndRun with English message config and DefaultMutexConfig',
+        () async {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTest',
         ),
@@ -1005,17 +1108,17 @@ void main() {
       expect(methodCall.method, 'checkAndRun');
       expect(methodCall.arguments['type'], 'en');
       expect(methodCall.arguments['showMessageBox'], false);
-      expect(methodCall.arguments['packageId'], 'com.test.integration');
-      expect(methodCall.arguments['appName'], 'IntegrationTest');
+      expect(methodCall.arguments['mutexName'],
+          'Global\\com.test.integration_IntegrationTest');
 
       expect(result, true);
     });
 
-    test('checkAndRun with custom message config', () async {
+    test('checkAndRun with custom message config and CustomMutexConfig',
+        () async {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
-          packageId: 'com.test.integration',
-          appName: 'IntegrationTest',
+        mutexConfig: CustomMutexConfig(
+          customMutexName: 'TestCustomMutex',
         ),
         messageConfig: CustomMessageConfig(
           customTitle: 'Notice',
@@ -1034,8 +1137,7 @@ void main() {
       expect(
           methodCall.arguments['customMessage'], 'Program is already running');
       expect(methodCall.arguments['showMessageBox'], true);
-      expect(methodCall.arguments['packageId'], 'com.test.integration');
-      expect(methodCall.arguments['appName'], 'IntegrationTest');
+      expect(methodCall.arguments['mutexName'], 'Global\\TestCustomMutex');
 
       expect(result, true);
     });
@@ -1059,7 +1161,7 @@ void main() {
       });
 
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTest',
         ),
@@ -1087,9 +1189,10 @@ void main() {
       );
     });
 
-    test('checkAndRun with full configuration', () async {
+    test('checkAndRun with full configuration using DefaultMutexConfig',
+        () async {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.integration',
           appName: 'IntegrationTest',
           mutexSuffix: 'test',
@@ -1114,9 +1217,46 @@ void main() {
       expect(methodCall.method, 'checkAndRun');
 
       // Check all configuration parameters
-      expect(methodCall.arguments['packageId'], 'com.test.integration');
-      expect(methodCall.arguments['appName'], 'IntegrationTest');
-      expect(methodCall.arguments['mutexSuffix'], 'test');
+      expect(methodCall.arguments['mutexName'],
+          'Global\\com.test.integration_IntegrationTest_test');
+      expect(methodCall.arguments['windowTitle'], 'Test Window Title');
+      expect(methodCall.arguments['enableInDebugMode'], true);
+      expect(methodCall.arguments['type'], 'custom');
+      expect(methodCall.arguments['customTitle'], 'Notice');
+      expect(
+          methodCall.arguments['customMessage'], 'Program is already running');
+      expect(methodCall.arguments['showMessageBox'], true);
+
+      expect(result, true);
+    });
+
+    test('checkAndRun with full configuration using CustomMutexConfig',
+        () async {
+      const config = FlutterAloneConfig(
+        mutexConfig: CustomMutexConfig(
+          customMutexName: 'MyUniqueTestMutex',
+        ),
+        windowConfig: WindowConfig(
+          windowTitle: 'Test Window Title',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: CustomMessageConfig(
+          customTitle: 'Notice',
+          customMessage: 'Program is already running',
+          showMessageBox: true,
+        ),
+      );
+
+      final result = await platform.checkAndRun(config: config);
+
+      expect(log, hasLength(1));
+      final methodCall = log.first;
+      expect(methodCall.method, 'checkAndRun');
+
+      // Check all configuration parameters
+      expect(methodCall.arguments['mutexName'], 'Global\\MyUniqueTestMutex');
       expect(methodCall.arguments['windowTitle'], 'Test Window Title');
       expect(methodCall.arguments['enableInDebugMode'], true);
       expect(methodCall.arguments['type'], 'custom');
@@ -1178,8 +1318,6 @@ void main() {
 ```
 ## test/flutter_alone_test.dart
 ```dart
-// test/flutter_alone_test.dart
-import 'package:flutter/foundation.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 import 'package:flutter_alone/flutter_alone_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1195,20 +1333,9 @@ class MockFlutterAlonePlatform
 
   @override
   Future<bool> checkAndRun({required FlutterAloneConfig config}) async {
-    try {
-      // Skip duplicate check in debug mode unless explicitly enabled
-      if (kDebugMode && !config.duplicateCheckConfig.enableInDebugMode) {
-        return true;
-      }
-
-      final result = await FlutterAlonePlatform.instance.checkAndRun(
-        config: config,
-      );
-      return result;
-    } catch (e) {
-      debugPrint('Error checking application instance: $e');
-      rethrow;
-    }
+    checkAndRunCalled = true;
+    lastArguments = config.toMap();
+    return true;
   }
 
   @override
@@ -1228,29 +1355,43 @@ void main() {
   });
 
   group('Configuration tests', () {
-    test('Basic MutexConfig should be created correctly', () {
-      const config = MutexConfig(
+    test('DefaultMutexConfig should be created correctly', () {
+      const config = DefaultMutexConfig(
         packageId: 'com.test.app',
         appName: 'TestApp',
       );
       final map = config.toMap();
 
-      expect(map[ConfigJsonKey.packageId.key], 'com.test.app');
-      expect(map['appName'], 'TestApp');
-      expect(map.containsKey('mutexSuffix'), false);
+      expect(map['mutexName'], 'Global\\com.test.app_TestApp');
     });
 
-    test('MutexConfig with suffix should be created correctly', () {
-      const config = MutexConfig(
+    test('DefaultMutexConfig with suffix should be created correctly', () {
+      const config = DefaultMutexConfig(
         packageId: 'com.test.app',
         appName: 'TestApp',
         mutexSuffix: 'production',
       );
       final map = config.toMap();
 
-      expect(map['packageId'], 'com.test.app');
-      expect(map['appName'], 'TestApp');
-      expect(map['mutexSuffix'], 'production');
+      expect(map['mutexName'], 'Global\\com.test.app_TestApp_production');
+    });
+
+    test('CustomMutexConfig should be created correctly', () {
+      const config = CustomMutexConfig(
+        customMutexName: 'MyCustomMutex',
+      );
+      final map = config.toMap();
+
+      expect(map['mutexName'], 'Global\\MyCustomMutex');
+    });
+
+    test('CustomMutexConfig with Global prefix should preserve it', () {
+      const config = CustomMutexConfig(
+        customMutexName: 'Global\\MyCustomMutex',
+      );
+      final map = config.toMap();
+
+      expect(map['mutexName'], 'Global\\MyCustomMutex');
     });
 
     test('WindowConfig should be created correctly', () {
@@ -1311,9 +1452,11 @@ void main() {
   });
 
   group('FlutterAloneConfig tests', () {
-    test('Combined config should include all components', () {
+    test(
+        'Combined config with DefaultMutexConfig should include all components',
+        () {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.app',
           appName: 'TestApp',
           mutexSuffix: 'test',
@@ -1334,9 +1477,7 @@ void main() {
       final map = config.toMap();
 
       // Check mutex config
-      expect(map['packageId'], 'com.test.app');
-      expect(map['appName'], 'TestApp');
-      expect(map['mutexSuffix'], 'test');
+      expect(map['mutexName'], 'Global\\com.test.app_TestApp_test');
 
       // Check window config
       expect(map['windowTitle'], 'Test Window');
@@ -1350,12 +1491,44 @@ void main() {
       expect(map['customMessage'], 'Test Message');
       expect(map['showMessageBox'], false);
     });
+
+    test('Combined config with CustomMutexConfig should include all components',
+        () {
+      const config = FlutterAloneConfig(
+        mutexConfig: CustomMutexConfig(
+          customMutexName: 'MyCustomMutexName',
+        ),
+        windowConfig: WindowConfig(
+          windowTitle: 'Test Window',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: EnMessageConfig(),
+      );
+
+      final map = config.toMap();
+
+      // Check mutex config
+      expect(map['mutexName'], 'Global\\MyCustomMutexName');
+
+      // Check window config
+      expect(map['windowTitle'], 'Test Window');
+
+      // Check duplicate check config
+      expect(map['enableInDebugMode'], true);
+
+      // Check message config
+      expect(map['type'], 'en');
+      expect(map['showMessageBox'], true);
+    });
   });
 
   group('Plugin functionality tests', () {
-    test('checkAndRun should pass correct config to platform', () async {
+    test('checkAndRun should pass correct config with DefaultMutexConfig',
+        () async {
       const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
+        mutexConfig: DefaultMutexConfig(
           packageId: 'com.test.app',
           appName: 'TestApp',
         ),
@@ -1372,51 +1545,36 @@ void main() {
 
       final args = mockPlatform.lastArguments;
       expect(args, isNotNull);
-      expect(args!['packageId'], 'com.test.app');
-      expect(args['appName'], 'TestApp');
+      expect(args!['mutexName'], 'Global\\com.test.app_TestApp');
+      expect(args['type'], 'en');
+    });
+
+    test('checkAndRun should pass correct config with CustomMutexConfig',
+        () async {
+      const config = FlutterAloneConfig(
+        mutexConfig: CustomMutexConfig(
+          customMutexName: 'MyCustomMutexForTesting',
+        ),
+        duplicateCheckConfig: DuplicateCheckConfig(
+          enableInDebugMode: true,
+        ),
+        messageConfig: EnMessageConfig(),
+      );
+
+      final result = await flutterAlone.checkAndRun(config: config);
+
+      expect(result, true);
+      expect(mockPlatform.checkAndRunCalled, true);
+
+      final args = mockPlatform.lastArguments;
+      expect(args, isNotNull);
+      expect(args!['mutexName'], 'Global\\MyCustomMutexForTesting');
       expect(args['type'], 'en');
     });
 
     test('dispose should be called correctly', () async {
       await flutterAlone.dispose();
       expect(mockPlatform.disposeCalled, true);
-    });
-  });
-
-  group('Integration tests', () {
-    test('Full configuration with all options', () async {
-      const config = FlutterAloneConfig(
-        mutexConfig: MutexConfig(
-          packageId: 'com.test.app',
-          appName: 'TestApp',
-          mutexSuffix: 'production',
-        ),
-        windowConfig: WindowConfig(
-          windowTitle: 'Test Window',
-        ),
-        duplicateCheckConfig: DuplicateCheckConfig(
-          enableInDebugMode: true,
-        ),
-        messageConfig: CustomMessageConfig(
-          customTitle: 'Test Title',
-          customMessage: 'Test Message',
-          showMessageBox: true,
-        ),
-      );
-
-      await flutterAlone.checkAndRun(config: config);
-
-      final args = mockPlatform.lastArguments;
-      expect(args, isNotNull);
-      expect(args!['packageId'], 'com.test.app');
-      expect(args['appName'], 'TestApp');
-      expect(args['mutexSuffix'], 'production');
-      expect(args['windowTitle'], 'Test Window');
-      expect(args['enableInDebugMode'], true);
-      expect(args['type'], 'custom');
-      expect(args['customTitle'], 'Test Title');
-      expect(args['customMessage'], 'Test Message');
-      expect(args['showMessageBox'], true);
     });
   });
 }
@@ -1454,8 +1612,6 @@ list(APPEND PLUGIN_SOURCES
   "window_utils.h"
   "icon_utils.cpp"
   "icon_utils.h"
-  "mutex_utils.cpp"
-  "mutex_utils.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
@@ -1507,7 +1663,6 @@ set(flutter_alone_bundled_libraries
 #include <flutter/standard_method_codec.h>
 #include "window_utils.h"
 #include "icon_utils.h"
-#include "mutex_utils.h"
 
 #include <memory>
 #include <sstream>
@@ -1597,14 +1752,14 @@ void FlutterAlonePlugin::ShowMessageBox(const MessageBoxInfo& info) {
 }
 
 
-std::wstring FlutterAlonePlugin::GetMutexName(const MutexConfig& config) {
-    // Use MutexUtils to generate mutex name
-    return MutexUtils::GenerateMutexName(
-        config.packageId,
-        config.appName,
-        config.suffix
-    );
-}
+// std::wstring FlutterAlonePlugin::GetMutexName(const MutexConfig& config) {
+//     // Use MutexUtils to generate mutex name
+//     return MutexUtils::GenerateMutexName(
+//         config.packageId,
+//         config.appName,
+//         config.suffix
+//     );
+// }
 
 ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& mutexName, const std::wstring& windowTitle) {
     ProcessCheckResult result;
@@ -1676,17 +1831,16 @@ std::string WideStringToString(const std::wstring& wstr) {
 }
 
 // Check for duplicate instance function with custom mutex name
-bool FlutterAlonePlugin::CheckAndCreateMutex(const MutexConfig& config) {
+bool FlutterAlonePlugin::CheckAndCreateMutex(const std::wstring& mutexName) {
     if (mutex_handle_ != NULL) {
-      // Mutex already created
-      return false;
+        // Mutex already created
+        return false;
     }
-  
-    // Generate mutex name
-    current_mutex_name_ = GetMutexName(config);
+
+    current_mutex_name_ = mutexName;
     
     OutputDebugStringW((L"[DEBUG] Creating mutex with name: " + current_mutex_name_ + L"\n").c_str());
-  
+
     // Set security attributes - Allow access all user
     SECURITY_ATTRIBUTES sa;
     sa.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -1696,25 +1850,25 @@ bool FlutterAlonePlugin::CheckAndCreateMutex(const MutexConfig& config) {
     InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
     SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
     sa.lpSecurityDescriptor = &sd;
-  
-    // Try to create global mutex with the generated name
+
+    // Try to create global mutex with the given name
     mutex_handle_ = CreateMutexW(
         &sa,     // security attribute
         TRUE,    // request init
-        current_mutex_name_.c_str()  // custom mutex name
+        current_mutex_name_.c_str()  // mutex name
     );
-  
+
     if (mutex_handle_ == NULL) {
-      return false;
+        return false;
     }
-  
+
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
-      CleanupResources();
-      return false;
+        CleanupResources();
+        return false;
     }
-  
+
     return true;
-  }
+}
 
 // Resource cleanup function
 void FlutterAlonePlugin::CleanupResources() {
@@ -1738,6 +1892,14 @@ void FlutterAlonePlugin::HandleMethodCall(
         if (windowTitleIt != arguments->end() && !windowTitleIt->second.IsNull()) {
             windowTitle = MessageUtils::Utf8ToWide(
                 std::get<std::string>(windowTitleIt->second));
+        }
+
+        // Get mutex name directly from arguments
+        std::wstring mutexName;
+        auto mutexNameIt = arguments->find(flutter::EncodableValue("mutexName"));
+        if (mutexNameIt != arguments->end() && !mutexNameIt->second.IsNull()) {
+            mutexName = MessageUtils::Utf8ToWide(
+                std::get<std::string>(mutexNameIt->second));
         }
         
         // get showmessage box
@@ -1768,30 +1930,6 @@ void FlutterAlonePlugin::HandleMethodCall(
                     std::get<std::string>(customMessageIt->second));
             }
         }
-
-        // Get mutex configuration
-        MutexConfig mutexConfig;
-
-        // Check if packageId is provided
-        auto packageIdIt = arguments->find(flutter::EncodableValue("packageId"));
-        if (packageIdIt != arguments->end() && !std::get<std::string>(packageIdIt->second).empty()) {
-            mutexConfig.packageId = MessageUtils::Utf8ToWide(std::get<std::string>(packageIdIt->second));
-        }
-
-        // Check if appName is provided
-        auto appNameIt = arguments->find(flutter::EncodableValue("appName"));
-        if (appNameIt != arguments->end() && !std::get<std::string>(appNameIt->second).empty()) {
-            mutexConfig.appName = MessageUtils::Utf8ToWide(std::get<std::string>(appNameIt->second));
-        }
-
-        // Check if mutexSuffix is provided
-        auto mutexSuffixIt = arguments->find(flutter::EncodableValue("mutexSuffix"));
-        if (mutexSuffixIt != arguments->end() && mutexSuffixIt->second.IsNull() == false) {
-            mutexConfig.suffix = MessageUtils::Utf8ToWide(std::get<std::string>(mutexSuffixIt->second));
-        }
-
-        // Generate mutex name
-        std::wstring mutexName = GetMutexName(mutexConfig);
 
         // Check for running instance
         auto checkResult = CheckRunningInstance(mutexName,windowTitle);
@@ -1833,7 +1971,7 @@ void FlutterAlonePlugin::HandleMethodCall(
         }
 
         // Create new mutex
-        bool success = CheckAndCreateMutex(mutexConfig);
+        bool success = CheckAndCreateMutex(mutexName);
         result->Success(flutter::EncodableValue(success));
     } 
     else if (method_call.method_name().compare("dispose") == 0) {
@@ -1863,7 +2001,6 @@ void FlutterAlonePluginRegisterWithRegistrar(
 #include <flutter/plugin_registrar_windows.h>
 #include "process_utils.h"
 #include "message_utils.h"
-#include "mutex_utils.h"
 
 
 
@@ -1918,8 +2055,8 @@ class FlutterAlonePlugin : public flutter::Plugin {
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 	
-  // Check and create mutex with specified configuration
-  bool CheckAndCreateMutex(const MutexConfig& config);
+  // Check and create mutex with specified name
+  bool CheckAndCreateMutex(const std::wstring& mutexName);
   
 
   // Get mutex name for the application
@@ -2181,146 +2318,6 @@ private:
 }  // namespace flutter_alone
 
 #endif  // FLUTTER_PLUGIN_MESSAGE_UTILS_H_
-```
-## windows/mutex_utils.cpp
-```cpp
-#include "mutex_utils.h"
-#include <algorithm>
-#include <regex>
-
-namespace flutter_alone {
-
-// Default mutex prefix (used for global scope)
-const std::wstring MutexUtils::DEFAULT_MUTEX_PREFIX = L"Global\\";
-
-// Default app identifier used when packageId and appName are missing
-const std::wstring MutexUtils::DEFAULT_APP_IDENTIFIER = L"FlutterAloneApp_UniqueId";
-
-std::wstring MutexUtils::GenerateMutexName(
-    const std::wstring& packageId,
-    const std::wstring& appName,
-    const std::wstring& suffix){
-
-    // Check if required parameters are valid
-    if (!ValidateMutexNameInputs(packageId, appName)) {
-        return GetDefaultMutexName();
-    }
-
-    // Sanitize input strings
-    std::wstring sanitizedPackageId = SanitizeNamePart(packageId);
-    std::wstring sanitizedAppName = SanitizeNamePart(appName);
-    std::wstring sanitizedSuffix = suffix.empty() ? L"" : L"_" + SanitizeNamePart(suffix);
-
-    // Combine to form mutex name
-    std::wstring mutexName = DEFAULT_MUTEX_PREFIX + 
-                            sanitizedPackageId + L"_" + 
-                            sanitizedAppName + 
-                            sanitizedSuffix;
-
-    // Check if the resulting name is too long (max 260 characters for Windows)
-    if(mutexName.length() > 260){
-        // OutputDebugStringW(L"[WARNING] Mutex name is too long, using truncated version");
-    mutexName = mutexName.substr(0, 260);
-    }
-
-    return mutexName;
-}
-
-bool MutexUtils::ValidateMutexNameInputs(
-    const std::wstring& packageId,
-    const std::wstring& appName){
-
-    // Both packageId and appName must be non-empty
-    return !packageId.empty() && !appName.empty();
-}
-
-std::wstring MutexUtils::GetDefaultMutexName() {
-    return DEFAULT_MUTEX_PREFIX + DEFAULT_APP_IDENTIFIER;
-}
-
-std::wstring MutexUtils::SanitizeNamePart(const std::wstring& input) {
-    std::wstring result = input;
-
-    // Remove invalid characters (only allow alphanumeric, underscore, dot, and dash)
-    std::wregex invalidChars(L"[^a-zA-Z0-9_.-]");
-    result = std::regex_replace(result, invalidChars, L"_");
-
-    // Remove consecutive underscores
-    std::wregex multipleUnderscores(L"_{2,}");
-    result = std::regex_replace(result, multipleUnderscores, L"_");
-
-    // Trim leading and trailing underscores
-    if (!result.empty() && result[0] == L'_') {
-        result = result.substr(1);
-    }
-
-    if (!result.empty() && result[result.length() - 1] == L'_') {
-        result = result.substr(0, result.length() - 1);
-    }
-
-    return result;
-}
-
-
-}  // namespace flutter_alone
-```
-## windows/mutex_utils.h
-```h
-#ifndef FLUTTER_PLUGIN_MUTEX_UTILS_H_
-#define FLUTTER_PLUGIN_MUTEX_UTILS_H_
-
-#include <string>
-#include <windows.h>
-
-namespace flutter_alone {
-
-class MutexUtils {
-public:
-    /**
-     * Generate mutex name based on package id, app name and optional suffix
-     * 
-     * @param packageId The package identifier
-     * @param appName The application name
-     * @param suffix Optional suffix for the mutex name
-     * @return Generated mutex name
-     */
-    static std::wstring GenerateMutexName(
-        const std::wstring& packageId,
-        const std::wstring& appName,
-        const std::wstring& suffix = L"");
-
-    /**
-     * Check if input strings are valid for mutex name creation
-     * 
-     * @param packageId The package identifier
-     * @param appName The application name
-     * @return True if valid, false otherwise
-     */
-    static bool ValidateMutexNameInputs(
-        const std::wstring& packageId,
-        const std::wstring& appName);
-
-    /**
-     * Create default mutex name when required fields are missing
-     * 
-     * @return Default mutex name
-     */
-    static std::wstring GetDefaultMutexName();
-
-private:
-    // Default mutex name prefix for global scope
-    static const std::wstring DEFAULT_MUTEX_PREFIX;
-    
-    // Default application identifier
-    static const std::wstring DEFAULT_APP_IDENTIFIER;
-    
-    // Sanitize input string for mutex name (remove invalid characters)
-    static std::wstring SanitizeNamePart(const std::wstring& input);
-};
-
-}  // namespace flutter_alone
-
-#endif  // FLUTTER_PLUGIN_MUTEX_UTILS_H_
 ```
 ## windows/process_utils.cpp
 ```cpp
