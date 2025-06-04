@@ -1,3 +1,14 @@
+## 3.1.1
+
+* **Documentation**
+  * Added critical setup guide for window_manager compatibility
+  * Documented window title conflict resolution
+  * Added FAQ and troubleshooting sections
+
+* **Improvements**
+  * Enhanced debug logging for window detection
+  * Improved error diagnostics for title conflicts
+
 ## 3.1.0
 
 * **New Features**

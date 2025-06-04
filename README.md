@@ -41,13 +41,125 @@ A robust Flutter plugin for preventing duplicate execution of desktop applicatio
 |:-------:|:-----:|:-----:|
 |    ✅    |   🚧   |   🚧   |
 
+## ⚠️ **Critical Setup for window_manager Users**
+
+If you're using flutter_alone with the **window_manager** package, you **MUST** configure window titles correctly to avoid detection failures.
+
+### 🚨 **The Problem**
+When window_manager and flutter_alone use **identical window titles**, window detection fails in system tray scenarios.
+
+### ❌ **Incorrect Setup (Detection Fails)**
+```dart
+// main.dart
+const String appTitle = 'My Flutter App';
+
+WindowOptions windowOptions = const WindowOptions(
+  title: appTitle,  // "My Flutter App"
+);
+
+FlutterAloneConfig config = FlutterAloneConfig(
+  windowConfig: const WindowConfig(
+    windowTitle: appTitle,  // "My Flutter App" (same!)
+  ),
+  messageConfig: const EnMessageConfig(),
+);
+```
+
+```cpp
+// windows/runner/main.cpp
+if (!window.Create(L"My Flutter App", origin, size)) {  // Same title!
+    return EXIT_FAILURE;
+}
+```
+
+### ✅ **Correct Setup (Detection Works)**
+```dart
+// main.dart - Keep your desired titles
+const String appTitle = 'My Flutter App';
+
+WindowOptions windowOptions = const WindowOptions(
+  title: appTitle,  // "My Flutter App" (user-visible)
+);
+
+FlutterAloneConfig config = FlutterAloneConfig(
+  windowConfig: const WindowConfig(
+    windowTitle: appTitle,  // "My Flutter App" (detection)
+  ),
+  messageConfig: const EnMessageConfig(),
+);
+```
+
+```cpp
+// windows/runner/main.cpp - Make this different!
+if (!window.Create(L"MyFlutterApp", origin, size)) {  // 🎯 Different!
+    return EXIT_FAILURE;
+}
+```
+
+### 📝 **Quick Fix Guide**
+
+#### 1. **Modify windows/runner/main.cpp Only**
+```cpp
+// BEFORE (same title - causes issues)
+if (!window.Create(L"My Flutter App", origin, size)) {
+    return EXIT_FAILURE;
+}
+
+// AFTER (remove spaces or use underscores)
+if (!window.Create(L"MyFlutterApp", origin, size)) {        // Remove spaces
+    return EXIT_FAILURE;
+}
+
+// OR
+if (!window.Create(L"My_Flutter_App", origin, size)) {      // Use underscores
+    return EXIT_FAILURE;
+}
+```
+
+#### 2. **Keep Dart Code Unchanged**
+```dart
+// Your flutter_alone and window_manager code stays the same
+const String appTitle = 'My Flutter App';  // Spaces OK here!
+
+WindowOptions windowOptions = const WindowOptions(
+  title: appTitle,  // User sees this title
+);
+
+FlutterAloneConfig config = FlutterAloneConfig(
+  windowConfig: const WindowConfig(
+    windowTitle: appTitle,  // flutter_alone uses this for detection
+  ),
+);
+```
+
+### 🤔 **Why Does This Happen?**
+
+Flutter Windows apps create windows in two stages:
+1. **Native Creation**: `window.Create()` creates the initial Win32 window
+2. **Flutter Setup**: `window_manager` later changes the title with `SetWindowText()`
+
+When titles are identical, the Windows `FindWindow()` API becomes unpredictable with multiple windows having the same name, causing detection failures.
+
+This follows [Microsoft's official recommendation](https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/obtain-console-window-handle) to use unique window titles.
+
+### 💡 **Title Conversion Examples**
+
+| Display Title | Native Title (main.cpp) |
+|---------------|-------------------------|
+| `"My App"` | `"MyApp"` |
+| `"Flutter Chat"` | `"FlutterChat"` |  
+| `"Data Analyzer"` | `"Data_Analyzer"` |
+| `"Music Player"` | `"MusicPlayer"` |
+
+---
+
 ## Getting Started
 
 Add flutter_alone to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_alone: ^3.1.0
+  flutter_alone: ^3.1.1
 ```
 
 ## Usage
@@ -380,6 +492,46 @@ try {
   - You have specific mutex naming requirements
   - You want to use the same mutex across different applications
 
+## Frequently Asked Questions (FAQ)
+
+### Q: Why do I need to set different native window titles when using window_manager?
+A: Flutter apps create windows in two stages. Having different native titles prevents Windows' FindWindow API from returning unpredictable results when multiple windows temporarily have the same title.
+
+### Q: Does the user see the native window title?
+A: No! The user only sees the title set by window_manager. The native title is used internally for window detection.
+
+### Q: Can I automate the title conversion?
+A: Yes! You can create a helper function to automatically generate native titles by removing spaces and special characters.
+
+### Q: What if I don't use window_manager?
+A: If you're not using window_manager, you don't need to worry about this issue. The plugin will work normally.
+
+### Q: Does this affect other desktop platforms?
+A: This is a Windows-specific issue. When macOS and Linux support are added, they may have different requirements.
+
+## Troubleshooting
+
+### System Tray Detection Issues
+If your system tray application isn't being detected properly:
+
+1. **Check window titles**: Ensure native and display titles follow the guidelines above
+2. **Verify window_manager setup**: Make sure window_manager is properly initialized
+3. **Enable debug mode**: Set `enableInDebugMode: true` to test detection in development
+4. **Check example project**: Reference the included system tray example
+
+### Window Activation Problems
+If existing windows aren't being brought to front:
+
+1. **Verify window title configuration**: Follow the window_manager setup guide
+2. **Check window state**: Ensure the window isn't in an invalid state
+3. **Test focus behavior**: Some security software may prevent window activation
+
 ## Contributing
 
 Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
+
+## References
+
+- [Windows FindWindow API Documentation](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-findwindow)
+- [Microsoft: Using Unique Window Titles](https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/obtain-console-window-handle)
+- [Flutter Desktop Documentation](https://docs.flutter.dev/platform-integration/desktop)
