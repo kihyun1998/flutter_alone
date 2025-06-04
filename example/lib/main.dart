@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_alone/flutter_alone.dart';
+import 'package:flutter_alone_example/const.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -12,7 +13,7 @@ void main() async {
   WindowOptions windowOptions = const WindowOptions(
     size: Size(500, 800),
     center: true,
-    title: 'Tray App Example',
+    title: appTitle,
   );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
@@ -56,7 +57,7 @@ void main() async {
 
       // Window configuration
       windowConfig: const WindowConfig(
-        windowTitle: 'Tray App Example',
+        windowTitle: appTitle,
       ),
 
       // Debug mode setting
@@ -160,9 +161,10 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      // title: appTitle,
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Flutter Alone Example'),
+          title: const Text(appTitle),
         ),
         body: Center(
           child: Column(
