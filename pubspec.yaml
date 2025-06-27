@@ -1,7 +1,7 @@
 name: flutter_alone
 description: "A Flutter plugin for preventing duplicate execution of desktop
   applications with customizable message support and cross-user detection"
-version: 3.1.1
+version: 3.1.2
 homepage: https://github.com/kihyun1998/flutter_alone
 repository: https://github.com/kihyun1998/flutter_alone
 issue_tracker: https://github.com/kihyun1998/flutter_alone/issues

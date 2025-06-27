@@ -1,3 +1,8 @@
+## 3.1.2
+
+* **Update**
+  * update license
+
 ## 3.1.1
 
 * **Documentation**
