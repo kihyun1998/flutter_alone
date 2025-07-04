@@ -1,0 +1,6 @@
+framework module flutter_alone {
+  umbrella header "flutter_alone-umbrella.h"
+
+  export *
+  module * { export * }
+}
