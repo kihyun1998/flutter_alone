@@ -1,9 +1,8 @@
-import 'message_config.dart';
 import 'dart:io' show Platform;
 
+import 'macos_config.dart';
 import 'message_config.dart';
 import 'windows_config.dart';
-import 'macos_config.dart';
 
 enum ConfigJsonKey {
   enableInDebugMode,

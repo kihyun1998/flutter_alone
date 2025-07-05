@@ -21,46 +21,18 @@ void main() async {
     await windowManager.focus();
   });
 
-  if (Platform.isWindows) {
-    // Example 1: Default configuration using fromAppId (Recommended)
-    // final defaultConfig = FlutterAloneConfig.fromAppId(
-    //   appId: 'com.example.myapp',
-    //   appName: 'MyFlutterApp',
-    //   windowConfig: const WindowConfig(
-    //     windowTitle: 'Tray App Example',
-    //   ),
-    //   duplicateCheckConfig: const DuplicateCheckConfig(
-    //     enableInDebugMode: true,
-    //   ),
-    //   messageConfig: const CustomMessageConfig(
-    //     customTitle: 'Example App',
-    //     customMessage: 'Application is already running in another account',
-    //     showMessageBox: true,
-    //   ),
-    // );
-
-    // Example 2: Custom configuration for Windows
-    final customConfig = FlutterAloneConfig.forWindows(
-      // Custom mutex name for Windows
-      windowsConfig: const CustomWindowsMutexConfig(
-        customMutexName: 'MyUniqueApplicationMutex',
-      ),
-
-      // Window configuration
+  if (Platform.isWindows || Platform.isMacOS) {
+    final config = FlutterAloneConfig.fromAppId(
+      appId: 'com.example.flutter_alone_example',
+      appName: appTitle,
       windowConfig: const WindowConfig(
         windowTitle: appTitle,
       ),
-
-      // Debug mode setting
       duplicateCheckConfig: const DuplicateCheckConfig(
         enableInDebugMode: true,
       ),
-
-      // Default English messages
       messageConfig: const EnMessageConfig(),
     );
-
-    final config = customConfig; // or use defaultConfig
 
     if (!await FlutterAlone.instance.checkAndRun(config: config)) {
       exit(0);
