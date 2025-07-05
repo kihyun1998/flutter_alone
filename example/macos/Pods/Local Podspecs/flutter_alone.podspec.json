@@ -1,24 +1,29 @@
 {
   "name": "flutter_alone",
-  "version": "3.1.3",
-  "summary": "A Flutter plugin for preventing duplicate execution of desktop applications.",
-  "description": "A Flutter plugin for preventing duplicate execution of desktop applications with customizable message support and cross-user detection.",
-  "homepage": "https://github.com/kihyun1998/flutter_alone",
+  "version": "0.0.1",
+  "summary": "A new Flutter plugin project.",
+  "description": "A new Flutter plugin project.",
+  "homepage": "http://example.com",
   "license": {
     "file": "../LICENSE"
   },
   "authors": {
-    "Your Name": "your@email.com"
+    "Your Company": "email@example.com"
   },
   "source": {
     "path": "."
   },
-  "source_files": "Classes/**/*.{h,m,swift}",
+  "source_files": "Classes/**/*",
   "dependencies": {
-    "FlutterMacOS": []
+    "FlutterMacOS": [
+
+    ]
   },
   "platforms": {
     "osx": "10.11"
+  },
+  "pod_target_xcconfig": {
+    "DEFINES_MODULE": "YES"
   },
   "swift_versions": "5.0",
   "swift_version": "5.0"

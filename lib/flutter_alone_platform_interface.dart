@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart'; // Add this import for VoidCallback
 import 'package:flutter_alone/src/models/config.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -28,16 +27,11 @@ abstract class FlutterAlonePlatform extends PlatformInterface {
   ///
   /// Parameters:
   /// - config: Combined configuration object
-  /// - onDuplicateLaunch: Optional callback function invoked when a duplicate instance is detected.
-  ///   This allows custom handling of the event, e.g., showing the main window or focusing it.
   ///
   /// Returns:
   /// - true: Application can start
   /// - false: Another instance is already running
-  Future<bool> checkAndRun({
-    required FlutterAloneConfig config,
-    VoidCallback? onDuplicateLaunch,
-  }) {
+  Future<bool> checkAndRun({required FlutterAloneConfig config}) {
     throw UnimplementedError('checkAndRun() has not been implemented.');
   }
 

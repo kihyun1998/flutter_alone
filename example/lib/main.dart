@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Add this import
 import 'package:flutter_alone/flutter_alone.dart';
 import 'package:flutter_alone_example/const.dart';
 import 'package:system_tray/system_tray.dart';
@@ -18,38 +17,62 @@ void main() async {
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {
-    debugPrint('main: Initial window show and focus');
     await windowManager.show();
     await windowManager.focus();
   });
 
-  // Platform-specific checkAndRun logic
-  if (Platform.isWindows || Platform.isMacOS) {
+  if (Platform.isWindows) {
+    // Example 1: DefaultMutexConfig (Legacy method)
+    // final defaultConfig = FlutterAloneConfig(
+    //   // Legacy mutex config using packageId and appName
+    //   mutexConfig: const DefaultMutexConfig(
+    //     packageId: 'com.example.myapp',
+    //     appName: 'MyFlutterApp',
+    //     mutexSuffix: 'production',
+    //   ),
+
+    //   // Window configuration
+    //   windowConfig: const WindowConfig(
+    //     windowTitle: 'Tray App Example',
+    //   ),
+
+    //   // Debug mode setting
+    //   duplicateCheckConfig: const DuplicateCheckConfig(
+    //     enableInDebugMode: true,
+    //   ),
+
+    //   // Custom message configuration
+    //   messageConfig: const CustomMessageConfig(
+    //     customTitle: 'Example App',
+    //     customMessage: 'Application is already running in another account',
+    //     showMessageBox: true,
+    //   ),
+    // );
+
+    // Example 2: CustomMutexConfig (Recommended method)
     final customConfig = FlutterAloneConfig(
+      // Custom mutex name
       mutexConfig: const CustomMutexConfig(
         customMutexName: 'MyUniqueApplicationMutex',
       ),
+
+      // Window configuration
       windowConfig: const WindowConfig(
         windowTitle: appTitle,
       ),
+
+      // Debug mode setting
       duplicateCheckConfig: const DuplicateCheckConfig(
         enableInDebugMode: true,
       ),
+
+      // Default English messages
       messageConfig: const EnMessageConfig(),
     );
 
-    final config = customConfig;
+    final config = customConfig; // or use defaultConfig
 
-    debugPrint('main: Calling checkAndRun');
-    if (!await FlutterAlone.instance.checkAndRun(
-      config: config,
-      onDuplicateLaunch: () async {
-        debugPrint('main: onDuplicateLaunch callback invoked');
-        await windowManager.show();
-        await windowManager.focus();
-      },
-    )) {
-      debugPrint('main: Duplicate instance detected, exiting.');
+    if (!await FlutterAlone.instance.checkAndRun(config: config)) {
       exit(0);
     }
   }
@@ -66,28 +89,24 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final SystemTray _systemTray = SystemTray();
-  static const MethodChannel _channel = MethodChannel('flutter_alone');
 
   @override
   void initState() {
     super.initState();
-    debugPrint('MyAppState: initState called');
     _initSystemTray();
   }
 
   @override
   void dispose() {
-    debugPrint('MyAppState: dispose called');
     FlutterAlone.instance.dispose();
     super.dispose();
   }
 
   Future<void> _initSystemTray() async {
-    debugPrint('MyAppState: _initSystemTray called');
     String path =
         Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon_64.png';
     if (!await File(path).exists()) {
-      debugPrint("MyAppState: Icon file not found: (path)");
+      debugPrint("Icon file not found: $path");
     }
 
     await _systemTray.initSystemTray(iconPath: path);
@@ -100,7 +119,6 @@ class _MyAppState extends State<MyApp> {
       MenuItemLabel(
         label: 'Open',
         onClicked: (_) async {
-          debugPrint('MyAppState: System tray menu - Open clicked');
           await windowManager.show();
           await windowManager.focus();
         },
@@ -108,7 +126,6 @@ class _MyAppState extends State<MyApp> {
       MenuItemLabel(
         label: 'Exit',
         onClicked: (_) async {
-          debugPrint('MyAppState: System tray menu - Exit clicked');
           await _systemTray.destroy();
           exit(0);
         },
@@ -119,7 +136,6 @@ class _MyAppState extends State<MyApp> {
 
     _systemTray.registerSystemTrayEventHandler(
       (eventName) async {
-        debugPrint('MyAppState: System tray event received: (eventName)');
         if (eventName == kSystemTrayEventClick) {
           if (Platform.isWindows) {
             await windowManager.show();
@@ -140,7 +156,6 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> hideWindow() async {
-    debugPrint('MyAppState: hideWindow called');
     await windowManager.hide();
   }
 

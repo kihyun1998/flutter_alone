@@ -34,10 +34,7 @@ class FlutterAlone {
   /// Returns:
   /// - true: Application can start (no duplicate instance found)
   /// - false: Another instance is already running
-  Future<bool> checkAndRun({
-    required FlutterAloneConfig config,
-    VoidCallback? onDuplicateLaunch, // New parameter
-  }) async {
+  Future<bool> checkAndRun({required FlutterAloneConfig config}) async {
     try {
       // Skip duplicate check in debug mode unless explicitly enabled
       if (kDebugMode && !config.duplicateCheckConfig.enableInDebugMode) {
@@ -46,7 +43,6 @@ class FlutterAlone {
 
       final result = await FlutterAlonePlatform.instance.checkAndRun(
         config: config,
-        onDuplicateLaunch: onDuplicateLaunch, // Pass the callback
       );
       return result;
     } catch (e) {
