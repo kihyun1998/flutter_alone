@@ -26,5 +26,5 @@ flutter:
     platforms:
       windows:
         pluginClass: FlutterAlonePluginCApi
-      # macos:
-      #   pluginClass: FlutterAlonePlugin
+      macos:
+        pluginClass: FlutterAlonePlugin
