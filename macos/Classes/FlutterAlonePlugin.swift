@@ -15,9 +15,33 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "checkAndRun":
-      guard let args = call.arguments as? [String: Any],
-            let lockFilePath = args["lockFilePath"] as? String else {
-        result(FlutterError(code: "INVALID_ARGUMENT", message: "lockFilePath is required", details: nil))
+      guard let args = call.arguments as? [String: Any] else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "Arguments are required", details: nil))
+        return
+      }
+
+      let lockFilePath: String
+      if let customLockFilePath = args["lockFilePath"] as? String {
+        lockFilePath = customLockFilePath
+      } else if let appName = args["appName"] as? String {
+        // Generate default lock file path using Application Support directory
+        let fileManager = FileManager.default
+        let appSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        if let appSupportURL = appSupportDirectory {
+          let appSpecificSupportURL = appSupportURL.appendingPathComponent(appName)
+          do {
+            try fileManager.createDirectory(at: appSpecificSupportURL, withIntermediateDirectories: true, attributes: nil)
+            lockFilePath = appSpecificSupportURL.appendingPathComponent("\(appName).lock").path
+          } catch {
+            result(FlutterError(code: "FILE_ERROR", message: "Could not create application support directory: \(error.localizedDescription)", details: nil))
+            return
+          }
+        } else {
+          result(FlutterError(code: "PATH_ERROR", message: "Could not find application support directory", details: nil))
+          return
+        }
+      } else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "Either lockFilePath or appName is required", details: nil))
         return
       }
       
