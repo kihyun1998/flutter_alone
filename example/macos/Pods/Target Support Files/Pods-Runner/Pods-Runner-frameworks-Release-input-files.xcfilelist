@@ -1,5 +1,0 @@
-${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh
-${BUILT_PRODUCTS_DIR}/flutter_alone/flutter_alone.framework
-${BUILT_PRODUCTS_DIR}/screen_retriever_macos/screen_retriever_macos.framework
-${BUILT_PRODUCTS_DIR}/system_tray/system_tray.framework
-${BUILT_PRODUCTS_DIR}/window_manager/window_manager.framework

@@ -1,4 +1,0 @@
-${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_alone.framework
-${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/screen_retriever_macos.framework
-${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/system_tray.framework
-${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/window_manager.framework
