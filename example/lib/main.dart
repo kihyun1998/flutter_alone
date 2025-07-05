@@ -22,26 +22,16 @@ void main() async {
   });
 
   if (Platform.isWindows) {
-    // Example 1: DefaultMutexConfig (Legacy method)
-    // final defaultConfig = FlutterAloneConfig(
-    //   // Legacy mutex config using packageId and appName
-    //   mutexConfig: const DefaultMutexConfig(
-    //     packageId: 'com.example.myapp',
-    //     appName: 'MyFlutterApp',
-    //     mutexSuffix: 'production',
-    //   ),
-
-    //   // Window configuration
+    // Example 1: Default configuration using fromAppId (Recommended)
+    // final defaultConfig = FlutterAloneConfig.fromAppId(
+    //   appId: 'com.example.myapp',
+    //   appName: 'MyFlutterApp',
     //   windowConfig: const WindowConfig(
     //     windowTitle: 'Tray App Example',
     //   ),
-
-    //   // Debug mode setting
     //   duplicateCheckConfig: const DuplicateCheckConfig(
     //     enableInDebugMode: true,
     //   ),
-
-    //   // Custom message configuration
     //   messageConfig: const CustomMessageConfig(
     //     customTitle: 'Example App',
     //     customMessage: 'Application is already running in another account',
@@ -49,10 +39,10 @@ void main() async {
     //   ),
     // );
 
-    // Example 2: CustomMutexConfig (Recommended method)
-    final customConfig = FlutterAloneConfig(
-      // Custom mutex name
-      mutexConfig: const CustomMutexConfig(
+    // Example 2: Custom configuration for Windows
+    final customConfig = FlutterAloneConfig.forWindows(
+      // Custom mutex name for Windows
+      windowsConfig: const CustomWindowsMutexConfig(
         customMutexName: 'MyUniqueApplicationMutex',
       ),
 
