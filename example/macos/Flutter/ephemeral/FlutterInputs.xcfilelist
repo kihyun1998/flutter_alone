@@ -875,10 +875,13 @@
 /Users/admin/dev/src/GitHub/flutter_alone/LICENSE
 /Users/admin/dev/src/GitHub/flutter_alone/example/assets/app_icon.ico
 /Users/admin/dev/src/GitHub/flutter_alone/example/assets/app_icon_64.png
+/Users/admin/dev/src/GitHub/flutter_alone/example/lib/const.dart
 /Users/admin/dev/src/GitHub/flutter_alone/example/lib/main.dart
 /Users/admin/dev/src/GitHub/flutter_alone/example/pubspec.yaml
 /Users/admin/dev/src/GitHub/flutter_alone/lib/flutter_alone.dart
-/Users/admin/dev/src/GitHub/flutter_alone/lib/src/exception.dart
-/Users/admin/dev/src/GitHub/flutter_alone/lib/src/flutter_alone_method_channel.dart
-/Users/admin/dev/src/GitHub/flutter_alone/lib/src/flutter_alone_platform_interface.dart
+/Users/admin/dev/src/GitHub/flutter_alone/lib/flutter_alone_method_channel.dart
+/Users/admin/dev/src/GitHub/flutter_alone/lib/flutter_alone_platform_interface.dart
+/Users/admin/dev/src/GitHub/flutter_alone/lib/src/models/config.dart
+/Users/admin/dev/src/GitHub/flutter_alone/lib/src/models/exception.dart
 /Users/admin/dev/src/GitHub/flutter_alone/lib/src/models/message_config.dart
+/Users/admin/dev/src/GitHub/flutter_alone/lib/src/models/mutex_config.dart

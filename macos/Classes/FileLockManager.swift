@@ -34,8 +34,8 @@ class FileLockManager {
     func writePID() {
         guard fileDescriptor != -1 else { return }
         
-        let pid = getpid()
-        var pidString = String(pid)
+        let pid = getpid() 
+        let pidString = String(pid)
         
         // Truncate the file to zero length before writing.
         ftruncate(fileDescriptor, 0)
