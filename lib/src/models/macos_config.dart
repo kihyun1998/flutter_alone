@@ -4,9 +4,6 @@ import 'config.dart';
 abstract class MacOSLockConfig implements AloneConfig {
   /// Constructor
   const MacOSLockConfig();
-
-  /// Get the lock file path to be used
-  String getLockFilePath();
 }
 
 /// Configuration for lock file path using app name
@@ -22,15 +19,8 @@ class DefaultMacOSLockConfig extends MacOSLockConfig {
   @override
   Map<String, dynamic> toMap() {
     return {
-      'lockFilePath': getLockFilePath(),
+      'appName': appName,
     };
-  }
-
-  @override
-  String getLockFilePath() {
-    // This is a placeholder. In a real implementation, 
-    // you would use path_provider to get the application support directory.
-    return '/tmp/$appName.lock';
   }
 }
 
@@ -47,12 +37,7 @@ class CustomMacOSLockConfig extends MacOSLockConfig {
   @override
   Map<String, dynamic> toMap() {
     return {
-      'lockFilePath': getLockFilePath(),
+      'lockFilePath': customLockFilePath,
     };
-  }
-
-  @override
-  String getLockFilePath() {
-    return customLockFilePath;
   }
 }
