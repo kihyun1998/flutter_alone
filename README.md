@@ -556,9 +556,11 @@ If your system tray application isn't being detected properly:
 ### Window Activation Problems
 If existing windows aren't being brought to front:
 
-1. **Verify window title configuration**: Follow the window_manager setup guide
-2. **Check window state**: Ensure the window isn't in an invalid state
-3. **Test focus behavior**: Some security software may prevent window activation
+With the improved macOS window activation, most issues related to hidden or minimized windows not being brought to front should be resolved. If you still encounter problems:
+
+1. **Verify window title configuration**: For Windows, ensure native and display titles follow the guidelines in "Critical Setup for window_manager Users".
+2. **Check window state**: Ensure the window isn't in an invalid state (e.g., completely destroyed).
+3. **Security software**: Some security software may prevent window activation.
 
 ## Contributing
 
