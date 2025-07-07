@@ -48,6 +48,33 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
     case "activateCurrentApp":
       print("[FlutterAlone] activateCurrentApp called. Attempting to activate current app.")
       NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps])
+
+      // 추가: 현재 앱의 모든 창을 순회하며 makeKeyAndOrderFront 호출
+      DispatchQueue.main.async {
+          if let appDelegate = NSApplication.shared.delegate as? FlutterAppDelegate {
+              // mainFlutterWindow는 FlutterAppDelegate에 정의된 메인 창입니다.
+              // windowScene?.windows는 macOS 10.15+에서 Scene 기반 앱의 창을 가져오는 방식입니다.
+              // 대부분의 Flutter 앱은 하나의 메인 창을 가집니다.
+              if let window = appDelegate.mainFlutterWindow {
+                  print("[FlutterAlone] Found mainFlutterWindow. Making key and ordering front.")
+                  window.makeKeyAndOrderFront(nil)
+              } else {
+                  print("[FlutterAlone] mainFlutterWindow not found. Checking all windows.")
+                  // Fallback: 모든 NSWindow를 순회하여 활성화 시도
+                  for window in NSApplication.shared.windows {
+                      print("[FlutterAlone] Processing NSApplication window: \(window.title) (isVisible: \(window.isVisible))")
+                      window.makeKeyAndOrderFront(nil)
+                  }
+              }
+          } else {
+              print("[FlutterAlone] AppDelegate is not FlutterAppDelegate or not found. Cannot directly access mainFlutterWindow.")
+              // Fallback: 모든 NSWindow를 순회하여 활성화 시도
+              for window in NSApplication.shared.windows {
+                  print("[FlutterAlone] Processing NSApplication window: \(window.title) (isVisible: \(window.isVisible))")
+                  window.makeKeyAndOrderFront(nil)
+              }
+          }
+      }
       result(nil)
 
     default:
@@ -73,6 +100,28 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
           if let app = NSRunningApplication(processIdentifier: existingPid) {
             app.activate(options: [.activateIgnoringOtherApps])
             print("[FlutterAlone] Activated existing app with PID: \(existingPid)")
+
+            // 추가: 기존 앱의 창을 활성화하는 로직
+            DispatchQueue.main.async {
+                if let appDelegate = NSApplication.shared.delegate as? FlutterAppDelegate {
+                    if let window = appDelegate.mainFlutterWindow {
+                        print("[FlutterAlone] Found mainFlutterWindow for existing app. Making key and ordering front.")
+                        window.makeKeyAndOrderFront(nil)
+                    } else {
+                        print("[FlutterAlone] mainFlutterWindow not found for existing app. Checking all windows.")
+                        for window in NSApplication.shared.windows {
+                            print("[FlutterAlone] Processing NSApplication window for existing app: \(window.title ?? "No Title") (isVisible: \(window.isVisible))")
+                            window.makeKeyAndOrderFront(nil)
+                        }
+                    }
+                } else {
+                    print("[FlutterAlone] AppDelegate is not FlutterAppDelegate or not found for existing app. Cannot directly access mainFlutterWindow.")
+                    for window in NSApplication.shared.windows {
+                        print("[FlutterAlone] Processing NSApplication window for existing app: \(window.title ?? "No Title") (isVisible: \(window.isVisible))")
+                        window.makeKeyAndOrderFront(nil)
+                    }
+                }
+            }
           } else {
             print("[FlutterAlone] Could not find NSRunningApplication for PID: \(existingPid)")
           }
