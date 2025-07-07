@@ -160,7 +160,7 @@ Add flutter_alone to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_alone: ^3.2.0
+  flutter_alone: ^3.2.1
 ```
 
 ## Usage

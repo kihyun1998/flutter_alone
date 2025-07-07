@@ -1,3 +1,8 @@
+## 3.2.1
+
+* **Documentation**
+  * Updated `README.md` to reflect the latest changes and improvements.
+
 ## 3.2.0
 
 * **New Features**
