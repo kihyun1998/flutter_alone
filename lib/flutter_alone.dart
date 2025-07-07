@@ -76,4 +76,19 @@ class FlutterAlone {
       return false;
     }
   }
+
+  /// [DEBUG ONLY] Activates the current application.
+  /// This is intended for debugging purposes on macOS to test applicationShouldHandleReopen.
+  Future<void> debugActivateCurrentApp() async {
+    if (!kDebugMode) {
+      debugPrint('This function is for debug mode only.');
+      return;
+    }
+    debugPrint('[FlutterAlone] Calling debugActivateCurrentApp...');
+    try {
+      await FlutterAlonePlatform.instance.debugActivateCurrentApp();
+    } catch (e) {
+      debugPrint('Error activating current app: $e');
+    }
+  }
 }

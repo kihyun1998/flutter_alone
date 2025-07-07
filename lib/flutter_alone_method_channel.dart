@@ -61,4 +61,17 @@ class MethodChannelFlutterAlone extends FlutterAlonePlatform {
       );
     }
   }
+
+  @override
+  Future<void> debugActivateCurrentApp() async {
+    try {
+      await _channel.invokeMethod<void>('activateCurrentApp');
+    } on PlatformException catch (e) {
+      throw AloneException(
+        code: e.code,
+        message: e.message ?? 'Error activating current app',
+        details: e.details,
+      );
+    }
+  }
 }

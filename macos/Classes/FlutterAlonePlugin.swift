@@ -45,6 +45,11 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
       let running = isRunning(pid: pid)
       result(running)
 
+    case "activateCurrentApp":
+      print("[FlutterAlone] activateCurrentApp called. Attempting to activate current app.")
+      NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps])
+      result(nil)
+
     default:
       result(FlutterMethodNotImplemented)
     }

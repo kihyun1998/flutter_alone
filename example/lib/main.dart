@@ -108,6 +108,16 @@ class _MyAppState extends State<MyApp> {
         },
       ),
       MenuItemLabel(
+        label: 'Reopen Window', // New menu item
+        onClicked: (_) async {
+          if (Platform.isMacOS) {
+            await FlutterAlone.instance.debugActivateCurrentApp();
+          } else {
+            debugPrint('[Debug Check] This feature is for macOS only.');
+          }
+        },
+      ),
+      MenuItemLabel(
         label: 'Exit',
         onClicked: (_) async {
           await _systemTray.destroy();
