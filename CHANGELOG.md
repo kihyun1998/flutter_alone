@@ -1,3 +1,12 @@
+## 3.2.0
+
+* **New Features**
+  * Added customizable lockfile name for macOS (`MacOSConfig.lockFileName`).
+
+* **Improvements**
+  * Enhanced macOS window activation logic when a duplicate instance is detected, ensuring hidden or minimized windows are brought to front.
+  * Refactored macOS lockfile path management to use native temporary directory API, removing `path_provider` dependency for lockfile handling.
+
 ## 3.1.3
 
 * **Update**

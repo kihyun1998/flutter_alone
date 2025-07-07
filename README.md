@@ -1,6 +1,6 @@
 # flutter_alone
 
-A robust Flutter plugin for preventing duplicate execution of desktop applications, offering advanced process management, window control, and cross-user detection.
+A robust Flutter plugin for preventing duplicate execution of desktop applications, offering advanced process management, window control, cross-user detection, and improved macOS window activation.
 
 [![pub package](https://img.shields.io/pub/v/flutter_alone.svg)](https://pub.dev/packages/flutter_alone)
 
@@ -23,6 +23,7 @@ A robust Flutter plugin for preventing duplicate execution of desktop applicatio
   - Rich MessageBox with application icon
   - Window detection by window title
   - System tray application support
+  - **Improved macOS window activation**: Ensures hidden or minimized macOS windows are brought to front when a duplicate instance is detected.
 
 - **Customizable Messaging**
   - Multi-language support (English/Korean)
@@ -39,7 +40,7 @@ A robust Flutter plugin for preventing duplicate execution of desktop applicatio
 
 | Windows | macOS | Linux |
 |:-------:|:-----:|:-----:|
-|    ✅    |   🚧   |   🚧   |
+|    ✅    |   ✅   |   🚧   |
 
 ## ⚠️ **Critical Setup for window_manager Users**
 
@@ -159,7 +160,7 @@ Add flutter_alone to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_alone: ^3.1.3
+  flutter_alone: ^3.2.0
 ```
 
 ## Usage
@@ -168,7 +169,6 @@ Import the package and other necessary packages:
 ```dart
 import 'dart:io';
 import 'package:flutter_alone/flutter_alone.dart';
-import 'package:path_provider/path_provider.dart';
 ```
 
 ### Windows Configuration
@@ -200,7 +200,7 @@ void main() async {
 
 ### macOS Configuration
 
-For macOS, you **must** provide a `lockFilePath`. We recommend using the `path_provider` package to get a reliable directory path.
+For macOS, you can now specify a `lockFileName` for the lock file. The plugin will use the system's temporary directory to store this file.
 
 ```dart
 // main.dart (for macOS)
@@ -208,12 +208,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (Platform.isMacOS) {
-    final tempDir = await getTemporaryDirectory();
-    final lockFilePath = '${tempDir.path}/my_app.lock';
-
     final config = FlutterAloneConfig.forMacOS(
-      macOSConfig: MacOSConfig(
-        lockFilePath: lockFilePath,
+      macOSConfig: const MacOSConfig(
+        lockFileName: 'my_app.lock', // Optional, defaults to '.lockfile'
       ),
       messageConfig: const EnMessageConfig(),
     );
