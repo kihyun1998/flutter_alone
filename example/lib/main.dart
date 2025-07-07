@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 import 'package:flutter_alone_example/const.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -40,12 +39,9 @@ void main() async {
       exit(0);
     }
   } else if (Platform.isMacOS) {
-    final tempDir = await getTemporaryDirectory();
-    final lockFilePath = '${tempDir.path}/flutter_alone_example.lock';
-
     final config = FlutterAloneConfig.forMacOS(
-      macOSConfig: MacOSConfig(
-        lockFilePath: lockFilePath,
+      macOSConfig: const MacOSConfig(
+        lockFileName: 'flutter_alone_example.lock',
       ),
       windowConfig: const WindowConfig(
         windowTitle: appTitle,

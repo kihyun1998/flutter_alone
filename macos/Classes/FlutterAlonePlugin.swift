@@ -20,13 +20,17 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
         return
       }
 
-      guard let lockFilePath = args["lockFilePath"] as? String else {
-        result(FlutterError(code: "INVALID_ARGUMENT", message: "lockFilePath is required for macOS", details: nil))
+      guard let lockFileName = args["lockFileName"] as? String else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "lockFileName is required for macOS", details: nil))
         return
       }
       
       let windowTitle = args["windowTitle"] as? String // Optional window title
       
+      // Construct lockFilePath from temporary directory and lockFileName
+      let tempDirectory = FileManager.default.temporaryDirectory
+      let lockFilePath = tempDirectory.appendingPathComponent(lockFileName).path
+
       self.currentLockFilePath = lockFilePath // Store for dispose
 
       let canRun = self.checkAndRun(lockFilePath: lockFilePath, windowTitle: windowTitle)

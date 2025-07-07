@@ -2,18 +2,18 @@ import 'config.dart';
 
 /// Configuration for macOS lock file
 class MacOSConfig implements AloneConfig {
-  /// The absolute path for the lock file. This is required.
-  final String lockFilePath;
+  /// The name of the lock file. Defaults to '.lockfile'.
+  final String lockFileName;
 
   /// Constructor
   const MacOSConfig({
-    required this.lockFilePath,
+    this.lockFileName = '.lockfile',
   });
 
   @override
   Map<String, dynamic> toMap() {
     return {
-      'lockFilePath': lockFilePath,
+      'lockFileName': lockFileName,
     };
   }
 }
