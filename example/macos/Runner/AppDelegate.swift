@@ -11,13 +11,8 @@ class AppDelegate: FlutterAppDelegate {
     _ sender: NSApplication,
     hasVisibleWindows flag: Bool
   ) -> Bool {
-    print("[AppDelegate] applicationShouldHandleReopen called.")
-    print("[AppDelegate] hasVisibleWindows: \(flag)")
-    print("[AppDelegate] Number of windows in sender.windows: \(sender.windows.count)")
-
     if !flag {
-      for (index, window) in sender.windows.enumerated() {
-        print("[AppDelegate] Processing window \(index): \(window.title) (isVisible: \(window.isVisible))")
+      for window in sender.windows {
         window.makeKeyAndOrderFront(self)
       }
     }
