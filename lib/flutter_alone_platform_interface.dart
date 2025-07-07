@@ -39,4 +39,9 @@ abstract class FlutterAlonePlatform extends PlatformInterface {
   Future<void> dispose() {
     throw UnimplementedError('dispose() has not been implemented.');
   }
+
+  /// [DEBUG ONLY] Checks if a process with the given PID is running.
+  Future<bool> debugIsRunning({required int pid}) {
+    throw UnimplementedError('debugIsRunning() has not been implemented.');
+  }
 }

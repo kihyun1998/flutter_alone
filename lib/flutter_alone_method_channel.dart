@@ -44,4 +44,21 @@ class MethodChannelFlutterAlone extends FlutterAlonePlatform {
       );
     }
   }
+
+  @override
+  Future<bool> debugIsRunning({required int pid}) async {
+    try {
+      final result = await _channel.invokeMethod<bool>(
+        'debugIsRunning',
+        {'pid': pid},
+      );
+      return result ?? false;
+    } on PlatformException catch (e) {
+      throw AloneException(
+        code: e.code,
+        message: e.message ?? 'Error checking process status',
+        details: e.details,
+      );
+    }
+  }
 }

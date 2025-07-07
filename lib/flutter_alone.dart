@@ -61,4 +61,19 @@ class FlutterAlone {
       rethrow;
     }
   }
+
+  /// [DEBUG ONLY] Checks if a process with the given PID is running.
+  /// This is intended for debugging purposes on macOS.
+  Future<bool> debugIsRunning({required int pid}) async {
+    if (!kDebugMode) {
+      debugPrint('This function is for debug mode only.');
+      return false;
+    }
+    try {
+      return await FlutterAlonePlatform.instance.debugIsRunning(pid: pid);
+    } catch (e) {
+      debugPrint('Error checking process status: $e');
+      return false;
+    }
+  }
 }

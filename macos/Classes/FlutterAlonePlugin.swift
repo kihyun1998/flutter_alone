@@ -36,6 +36,15 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
       self.dispose()
       result(nil)
 
+    case "debugIsRunning":
+      guard let args = call.arguments as? [String: Any],
+            let pid = args["pid"] as? pid_t else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "PID is required", details: nil))
+        return
+      }
+      let running = isRunning(pid: pid)
+      result(running)
+
     default:
       result(FlutterMethodNotImplemented)
     }

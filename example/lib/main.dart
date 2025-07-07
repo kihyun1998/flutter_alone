@@ -41,6 +41,7 @@ void main() async {
     }
   } else if (Platform.isMacOS) {
     final tempDir = await getTemporaryDirectory();
+    print(tempDir);
     final lockFilePath = '${tempDir.path}/flutter_alone_example.lock';
 
     final config = FlutterAloneConfig.forMacOS(
@@ -111,6 +112,38 @@ class _MyAppState extends State<MyApp> {
         onClicked: (_) async {
           await _systemTray.destroy();
           exit(0);
+        },
+      ),
+      MenuSeparator(),
+      MenuItemLabel(
+        label: 'Debug: Check isRunning',
+        onClicked: (_) async {
+          if (Platform.isMacOS) {
+            try {
+              final tempDir = await getTemporaryDirectory();
+              final lockFilePath =
+                  '${tempDir.path}/flutter_alone_example.lock';
+              final file = File(lockFilePath);
+              if (await file.exists()) {
+                final pidString = await file.readAsString();
+                final pid = int.tryParse(pidString.trim());
+                if (pid != null) {
+                  final running =
+                      await FlutterAlone.instance.debugIsRunning(pid: pid);
+                  debugPrint(
+                      '[Debug Check] PID $pid isRunning: $running');
+                } else {
+                  debugPrint('[Debug Check] Could not parse PID from lockfile.');
+                }
+              } else {
+                debugPrint('[Debug Check] Lockfile not found.');
+              }
+            } catch (e) {
+              debugPrint('[Debug Check] Error: $e');
+            }
+          } else {
+            debugPrint('[Debug Check] This feature is for macOS only.');
+          }
         },
       ),
     ]);
