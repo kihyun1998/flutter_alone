@@ -20,34 +20,8 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
         return
       }
 
-      let lockFilePath: String
-      if let customLockFilePath = args["lockFilePath"] as? String {
-        print("[FlutterAlone] Using custom lock file path: \(customLockFilePath)")
-        lockFilePath = customLockFilePath
-      } else if let appName = args["appName"] as? String {
-        print("[FlutterAlone] Generating default lock file path for app: \(appName)")
-        let fileManager = FileManager.default
-        let appSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-        if let appSupportURL = appSupportDirectory {
-          let appSpecificSupportURL = appSupportURL.appendingPathComponent(appName)
-          print("[FlutterAlone] App specific support URL: \(appSpecificSupportURL.path)")
-          do {
-            try fileManager.createDirectory(at: appSpecificSupportURL, withIntermediateDirectories: true, attributes: nil)
-            lockFilePath = appSpecificSupportURL.appendingPathComponent("\(appName).lock").path
-            print("[FlutterAlone] Generated lock file path: \(lockFilePath)")
-          } catch {
-            print("[FlutterAlone] Error creating application support directory: \(error.localizedDescription)")
-            result(FlutterError(code: "FILE_ERROR", message: "Could not create application support directory: \(error.localizedDescription)", details: nil))
-            return
-          }
-        } else {
-          print("[FlutterAlone] Could not find application support directory.")
-          result(FlutterError(code: "PATH_ERROR", message: "Could not find application support directory", details: nil))
-          return
-        }
-      } else {
-        print("[FlutterAlone] Neither lockFilePath nor appName provided.")
-        result(FlutterError(code: "INVALID_ARGUMENT", message: "Either lockFilePath or appName is required", details: nil))
+      guard let lockFilePath = args["lockFilePath"] as? String else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "lockFilePath is required for macOS", details: nil))
         return
       }
       

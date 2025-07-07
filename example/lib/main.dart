@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 import 'package:flutter_alone_example/const.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -21,10 +22,12 @@ void main() async {
     await windowManager.focus();
   });
 
-  if (Platform.isWindows || Platform.isMacOS) {
-    final config = FlutterAloneConfig.fromAppId(
-      appId: 'com.example.flutter_alone_example',
-      appName: appTitle,
+  if (Platform.isWindows) {
+    final config = FlutterAloneConfig.forWindows(
+      windowsConfig: const DefaultWindowsMutexConfig(
+        packageId: 'com.example.flutter_alone_example',
+        appName: appTitle,
+      ),
       windowConfig: const WindowConfig(
         windowTitle: appTitle,
       ),
@@ -33,7 +36,25 @@ void main() async {
       ),
       messageConfig: const EnMessageConfig(),
     );
+    if (!await FlutterAlone.instance.checkAndRun(config: config)) {
+      exit(0);
+    }
+  } else if (Platform.isMacOS) {
+    final tempDir = await getTemporaryDirectory();
+    final lockFilePath = '${tempDir.path}/flutter_alone_example.lock';
 
+    final config = FlutterAloneConfig.forMacOS(
+      macOSConfig: MacOSConfig(
+        lockFilePath: lockFilePath,
+      ),
+      windowConfig: const WindowConfig(
+        windowTitle: appTitle,
+      ),
+      duplicateCheckConfig: const DuplicateCheckConfig(
+        enableInDebugMode: true,
+      ),
+      messageConfig: const EnMessageConfig(),
+    );
     if (!await FlutterAlone.instance.checkAndRun(config: config)) {
       exit(0);
     }

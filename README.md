@@ -164,26 +164,63 @@ dependencies:
 
 ## Usage
 
-Import the package:
+Import the package and other necessary packages:
 ```dart
+import 'dart:io';
 import 'package:flutter_alone/flutter_alone.dart';
+import 'package:path_provider/path_provider.dart';
 ```
 
-### Basic Usage with Default Settings
+### Windows Configuration
+
+For Windows, you can use `DefaultWindowsMutexConfig` to automatically generate a mutex based on your application's ID and name, or `CustomWindowsMutexConfig` for full control.
+
 ```dart
+// main.dart (for Windows)
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isWindows) {
+    final config = FlutterAloneConfig.forWindows(
+      windowsConfig: const DefaultWindowsMutexConfig(
+        packageId: 'com.example.myapp',
+        appName: 'My App',
+      ),
+      messageConfig: const EnMessageConfig(),
+    );
+
+    if (!await FlutterAlone.instance.checkAndRun(config: config)) {
+      exit(0);
+    }
+  }
   
-  final config = FlutterAloneConfig(
-    mutexConfig: const DefaultMutexConfig(
-      packageId: 'com.example.myapp',
-      appName: 'MyFlutterApp'
-    ),
-    messageConfig: const EnMessageConfig(),
-  );
-  
-  if (!await FlutterAlone.instance.checkAndRun(config: config)) {
-    exit(0);
+  runApp(const MyApp());
+}
+```
+
+### macOS Configuration
+
+For macOS, you **must** provide a `lockFilePath`. We recommend using the `path_provider` package to get a reliable directory path.
+
+```dart
+// main.dart (for macOS)
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isMacOS) {
+    final tempDir = await getTemporaryDirectory();
+    final lockFilePath = '${tempDir.path}/my_app.lock';
+
+    final config = FlutterAloneConfig.forMacOS(
+      macOSConfig: MacOSConfig(
+        lockFilePath: lockFilePath,
+      ),
+      messageConfig: const EnMessageConfig(),
+    );
+
+    if (!await FlutterAlone.instance.checkAndRun(config: config)) {
+      exit(0);
+    }
   }
   
   runApp(const MyApp());

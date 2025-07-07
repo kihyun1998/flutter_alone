@@ -69,7 +69,7 @@ class FlutterAloneConfig implements AloneConfig {
   final WindowsMutexConfig? windowsConfig;
 
   /// macOS-specific configuration for lock file
-  final MacOSLockConfig? macOSConfig;
+  final MacOSConfig? macOSConfig;
 
   /// Configuration for window management
   final WindowConfig windowConfig;
@@ -85,40 +85,6 @@ class FlutterAloneConfig implements AloneConfig {
     this.windowConfig = const WindowConfig(),
     required this.messageConfig,
   });
-
-  /// Default factory constructor
-  ///
-  /// Creates a configuration with default settings for the current platform.
-  /// Requires [appId] for generating unique identifiers.
-  factory FlutterAloneConfig.fromAppId({
-    required String appId,
-    String? appName,
-    DuplicateCheckConfig duplicateCheckConfig = const DuplicateCheckConfig(),
-    WindowConfig windowConfig = const WindowConfig(),
-    required MessageConfig messageConfig,
-  }) {
-    WindowsMutexConfig? winConfig;
-    MacOSLockConfig? macConfig;
-
-    if (Platform.isWindows) {
-      winConfig = DefaultWindowsMutexConfig(
-        packageId: appId,
-        appName: appName ?? appId,
-      );
-    } else if (Platform.isMacOS) {
-      macConfig = DefaultMacOSLockConfig(
-        appName: appName ?? appId,
-      );
-    }
-
-    return FlutterAloneConfig._(
-      duplicateCheckConfig: duplicateCheckConfig,
-      windowsConfig: winConfig,
-      macOSConfig: macConfig,
-      windowConfig: windowConfig,
-      messageConfig: messageConfig,
-    );
-  }
 
   /// Factory constructor for Windows with custom settings
   factory FlutterAloneConfig.forWindows({
@@ -138,7 +104,7 @@ class FlutterAloneConfig implements AloneConfig {
   /// Factory constructor for macOS with custom settings
   factory FlutterAloneConfig.forMacOS({
     DuplicateCheckConfig duplicateCheckConfig = const DuplicateCheckConfig(),
-    required MacOSLockConfig macOSConfig,
+    required MacOSConfig macOSConfig,
     WindowConfig windowConfig = const WindowConfig(),
     required MessageConfig messageConfig,
   }) {
