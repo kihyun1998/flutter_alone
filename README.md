@@ -224,13 +224,13 @@ void main() async {
 }
 ```
 
-### Using Custom Mutex Name
+### Using Custom Mutex Name (Windows)
 
-When you need more direct control over mutex naming:
+When you need more direct control over mutex naming on Windows:
 
 ```dart
-final config = FlutterAloneConfig(
-  mutexConfig: const CustomMutexConfig(
+final config = FlutterAloneConfig.forWindows(
+  windowsConfig: const CustomWindowsMutexConfig(
     customMutexName: 'MyUniqueApplicationMutex',
   ),
   messageConfig: const EnMessageConfig(),
@@ -241,10 +241,10 @@ if (!await FlutterAlone.instance.checkAndRun(config: config)) {
 }
 ```
 
-### Using Korean Messages
+### Using Korean Messages (Windows)
 ```dart
-final config = FlutterAloneConfig(
-  mutexConfig: const DefaultMutexConfig(
+final config = FlutterAloneConfig.forWindows(
+  windowsConfig: const DefaultWindowsMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp'
   ),
@@ -256,10 +256,10 @@ if (!await FlutterAlone.instance.checkAndRun(config: config)) {
 }
 ```
 
-### Custom Message Configuration
+### Custom Message Configuration (Windows)
 ```dart
-final config = FlutterAloneConfig(
-  mutexConfig: const DefaultMutexConfig(
+final config = FlutterAloneConfig.forWindows(
+  windowsConfig: const DefaultWindowsMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp'
   ),
@@ -275,13 +275,13 @@ if (!await FlutterAlone.instance.checkAndRun(config: config)) {
 }
 ```
 
-### Default Mutex Configuration with Suffix
+### Default Mutex Configuration with Suffix (Windows)
 
 You can customize the default mutex name with package ID, app name and an optional suffix:
 
 ```dart
-final config = FlutterAloneConfig(
-  mutexConfig: const DefaultMutexConfig(
+final config = FlutterAloneConfig.forWindows(
+  windowsConfig: const DefaultWindowsMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp',
     mutexSuffix: 'production',
@@ -294,13 +294,13 @@ if (!await FlutterAlone.instance.checkAndRun(config: config)) {
 }
 ```
 
-### Window Title for Better Window Detection
+### Window Title for Better Window Detection (Windows)
 
 For system tray applications or when you need specific window identification:
 
 ```dart
-final config = FlutterAloneConfig(
-  mutexConfig: const DefaultMutexConfig(
+final config = FlutterAloneConfig.forWindows(
+  windowsConfig: const DefaultWindowsMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp',
   ),
@@ -325,12 +325,12 @@ The plugin provides special handling for debug mode:
 - By default, duplicate checks are skipped in debug mode for better development experience
 - You can enable duplicate checks in debug mode using the `enableInDebugMode` flag
 
-#### Debug Mode Examples
+#### Debug Mode Examples (Windows)
 
 ```dart
 // Default behavior (skips duplicate check in debug mode)
-final config = FlutterAloneConfig(
-  mutexConfig: const DefaultMutexConfig(
+final config = FlutterAloneConfig.forWindows(
+  windowsConfig: const DefaultWindowsMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp'
   ),
@@ -338,8 +338,8 @@ final config = FlutterAloneConfig(
 );
 
 // Enable duplicate check even in debug mode
-final config = FlutterAloneConfig(
-  mutexConfig: const DefaultMutexConfig(
+final config = FlutterAloneConfig.forWindows(
+  windowsConfig: const DefaultWindowsMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp'
   ),
@@ -354,11 +354,11 @@ final config = FlutterAloneConfig(
 
 Here are examples with all configuration options:
 
-**Using DefaultMutexConfig:**
+**Using DefaultWindowsMutexConfig (Windows):**
 ```dart
-final config = FlutterAloneConfig(
+final config = FlutterAloneConfig.forWindows(
   // Default Mutex configuration
-  mutexConfig: const DefaultMutexConfig(
+  windowsConfig: const DefaultWindowsMutexConfig(
     packageId: 'com.example.myapp',
     appName: 'MyFlutterApp',
     mutexSuffix: 'production',
@@ -389,9 +389,11 @@ if (!await FlutterAlone.instance.checkAndRun(config: config)) {
 
 **Using CustomMutexConfig:**
 ```dart
-final config = FlutterAloneConfig(
+**Using CustomWindowsMutexConfig (Windows):**
+```dart
+final config = FlutterAloneConfig.forWindows(
   // Custom Mutex configuration
-  mutexConfig: const CustomMutexConfig(
+  windowsConfig: const CustomWindowsMutexConfig(
     customMutexName: 'MyUniqueAppMutex',
   ),
 
@@ -417,14 +419,15 @@ if (!await FlutterAlone.instance.checkAndRun(config: config)) {
   exit(0);
 }
 ```
+```
 
-### System Tray Applications
+### System Tray Applications (Windows)
 
 For system tray applications, you can use the windowTitle parameter to help the plugin locate and activate your existing window:
 
 ```dart
-final config = FlutterAloneConfig(
-  mutexConfig: const CustomMutexConfig(
+final config = FlutterAloneConfig.forWindows(
+  windowsConfig: const CustomWindowsMutexConfig(
     customMutexName: 'MySystemTrayApp',
   ),
   windowConfig: const WindowConfig(
@@ -466,19 +469,20 @@ class _MyAppState extends State<MyApp> {
 
 ## Advanced Features
 
-### Mutex Configuration Types
-The plugin now provides two ways to configure mutex names:
+### Mutex Configuration Types (Windows)
+The plugin now provides two ways to configure mutex names for Windows:
 
-- **DefaultMutexConfig**: Uses package ID and app name to generate mutex names (traditional approach)
-- **CustomMutexConfig**: Allows direct specification of mutex name (new approach)
+- **DefaultWindowsMutexConfig**: Uses package ID and app name to generate mutex names (traditional approach)
+- **CustomWindowsMutexConfig**: Allows direct specification of mutex name (new approach)
 
 ### Configuration Classes
 The plugin provides a modular configuration system:
 
 - `FlutterAloneConfig`: Main configuration container
-  - `MutexConfig`: Abstract base class for mutex configuration
-    - `DefaultMutexConfig`: Controls mutex naming using package ID and app name
-    - `CustomMutexConfig`: Controls mutex naming with a custom name
+  - `WindowsMutexConfig`: Abstract base class for Windows mutex configuration
+    - `DefaultWindowsMutexConfig`: Controls mutex naming using package ID and app name
+    - `CustomWindowsMutexConfig`: Controls mutex naming with a custom name
+  - `MacOSConfig`: macOS lock file settings
   - `WindowConfig`: Window detection settings
   - `DuplicateCheckConfig`: Controls debug mode behavior
   - `MessageConfig`: Message display settings (includes `EnMessageConfig`, `KoMessageConfig`, and `CustomMessageConfig`)
@@ -514,14 +518,14 @@ try {
 }
 ```
 
-## Choosing Between Mutex Configuration Types
+## Choosing Between Mutex Configuration Types (Windows)
 
-- Use **DefaultMutexConfig** when:
+- Use **DefaultWindowsMutexConfig** when:
   - You want automatic mutex name generation based on your app's identity
   - You need backward compatibility with earlier versions
   - You want the plugin to handle name generation and sanitization
 
-- Use **CustomMutexConfig** when:
+- Use **CustomWindowsMutexConfig** when:
   - You need full control over mutex naming
   - You have specific mutex naming requirements
   - You want to use the same mutex across different applications
