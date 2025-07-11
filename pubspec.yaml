@@ -1,10 +1,24 @@
 name: flutter_alone
-description: "A Flutter plugin for preventing duplicate execution of desktop applications with customizable message support, cross-user detection, and improved macOS window activation."
-version: 3.2.1
+description: "A robust Flutter plugin designed to ensure only a single instance of your desktop application runs at a time, offering customizable messages, cross-user detection, and enhanced window management for Windows and macOS."
+version: 3.2.2
 homepage: https://github.com/kihyun1998/flutter_alone
 repository: https://github.com/kihyun1998/flutter_alone
 issue_tracker: https://github.com/kihyun1998/flutter_alone/issues
 documentation: https://github.com/kihyun1998/flutter_alone/blob/main/README.md
+keywords:
+  - flutter
+  - desktop
+  - windows
+  - macos
+  - single instance
+  - duplicate execution
+  - application lifecycle
+  - mutex
+  - window management
+  - system tray
+  - cross-platform
+  - app management
+  - singleton
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
