@@ -24,7 +24,7 @@ Add `flutter_alone` to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  flutter_alone: ^3.2.3
+  flutter_alone: ^3.2.4
 ```
 
 Then, run `flutter pub get`.

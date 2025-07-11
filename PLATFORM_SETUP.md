@@ -61,7 +61,7 @@ If your app can be hidden (e.g., in the system tray) or if you want to ensure th
 
 Add the `applicationShouldHandleReopen` method to your `AppDelegate` class.
 
-```swift
+```diff
 import Cocoa
 import FlutterMacOS
 
@@ -69,21 +69,21 @@ import FlutterMacOS
 class AppDelegate: FlutterAppDelegate {
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     // This should be `false` for system tray apps
-    return false
++    return false
   }
 
   // Add this method
-  override func applicationShouldHandleReopen(
-    _ sender: NSApplication,
-    hasVisibleWindows flag: Bool
-  ) -> Bool {
-    if !flag {
-      for window in sender.windows {
-        window.makeKeyAndOrderFront(self)
-      }
-    }
-    return true
-  }
++  override func applicationShouldHandleReopen(
++    _ sender: NSApplication,
++    hasVisibleWindows flag: Bool
++  ) -> Bool {
++    if !flag {
++      for window in sender.windows {
++        window.makeKeyAndOrderFront(self)
++      }
++    }
++    return true
++  }
 
   override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
     return true

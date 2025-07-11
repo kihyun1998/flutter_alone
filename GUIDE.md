@@ -52,3 +52,37 @@ if (!await FlutterAlone.instance.checkAndRun(config: config)) {
   exit(0);
 }
 ```
+
+## Comprehensive Example (macOS)
+
+Here’s an example that combines several custom configurations for a macOS application.
+
+```dart
+final config = FlutterAloneConfig.forMacOS(
+  // Specify a custom lock file name for macOS
+  macOSConfig: const MacOSConfig(
+    lockFileName: 'my_unique_app.lock',
+  ),
+
+  // Help find the window if it's in the system tray (if applicable for macOS)
+  windowConfig: const WindowConfig(
+    windowTitle: 'My Application Window',
+  ),
+
+  // Force duplicate checks even in debug mode
+  duplicateCheckConfig: const DuplicateCheckConfig(
+    enableInDebugMode: true,
+  ),
+
+  // Show a custom message
+  messageConfig: const CustomMessageConfig(
+    customTitle: 'Application Notice',
+    customMessage: 'Another instance of My App is already running.',
+    showMessageBox: true,
+  ),
+);
+
+if (!await FlutterAlone.instance.checkAndRun(config: config)) {
+  exit(0);
+}
+```

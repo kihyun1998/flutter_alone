@@ -1,3 +1,7 @@
+## 3.2.4
+*   **Maintenance**                                                              │
+    *   Maintenance release.  
+
 ## 3.2.3
 *   **Documentation**
     *   Updated `README.md`.
@@ -76,6 +80,11 @@
         *   Strengthened type verification
     *   Improved error handling and messages
     *   Better code organization through modularized configuration structure
+
+## 2.3.4
+
+*   **Maintenance**
+    *   Maintenance release.
 
 ## 2.3.1
 
