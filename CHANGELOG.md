@@ -1,7 +1,12 @@
+## 3.2.3
+*   **Documentation**
+    *   Updated `README.md`.
+
 ## 3.2.2
 
 *   **Documentation**
     *   Updated `pubspec.yaml` description and keywords.
+    *   Updated `README.md`.
 
 ## 3.2.1
 
