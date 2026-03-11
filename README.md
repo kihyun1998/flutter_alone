@@ -1,16 +1,9 @@
 # Flutter Alone
 
-A robust Flutter plugin to ensure only one instance of your desktop application runs at a time. Supports Windows and macOS.
+A Flutter plugin that ensures only a **single instance** of your desktop application runs at a time.
+When a duplicate is launched, it automatically focuses the original window and shows an alert message.
 
 [![pub package](https://img.shields.io/pub/v/flutter_alone.svg)](https://pub.dev/packages/flutter_alone)
-
-## Features
-
-- Prevents duplicate application instances on Windows & macOS.
-- Automatically focuses the original window when a duplicate is launched.
-- Customizable alert messages with multi-language support.
-- Flexible configuration for mutexes (Windows) and lockfiles (macOS).
-- Special handling for debug mode to improve development workflow.
 
 ## Platform Support
 
@@ -18,28 +11,21 @@ A robust Flutter plugin to ensure only one instance of your desktop application 
 |:-------:|:-----:|:-----:|
 |    ✅    |   ✅   |   🚧   |
 
-## Installation
+- **Windows**: Detects duplicates using system-level Mutex
+- **macOS**: Detects duplicates using lock files
 
-Add `flutter_alone` to your `pubspec.yaml` file:
+## Installation
 
 ```yaml
 dependencies:
   flutter_alone: ^3.2.4
 ```
 
-Then, run `flutter pub get`.
+```bash
+flutter pub get
+```
 
-## Platform-Specific Setup
-
-For the plugin to work correctly, some platform-specific setup is required. Please follow the detailed instructions in our **[Platform Setup Guide](./PLATFORM_SETUP.md)**.
-
-This guide covers:
-- **Windows**: Resolving conflicts when using the `window_manager` package.
-- **macOS**: Handling app reactivation (e.g., clicking the dock icon). This is **critical for system tray apps** to ensure the window reappears correctly.
-
-## Basic Usage
-
-Import the package in your `main.dart` file and add the initialization logic before `runApp`.
+## Quick Start
 
 ```dart
 import 'dart:io';
@@ -49,8 +35,8 @@ import 'package:flutter_alone/flutter_alone.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Platform-specific configuration
   FlutterAloneConfig? config;
+
   if (Platform.isWindows) {
     config = FlutterAloneConfig.forWindows(
       windowsConfig: const DefaultWindowsMutexConfig(
@@ -61,17 +47,13 @@ void main() async {
     );
   } else if (Platform.isMacOS) {
     config = FlutterAloneConfig.forMacOS(
-      macOSConfig: const MacOSConfig(
-        lockFileName: 'my_app.lock',
-      ),
+      macOSConfig: const MacOSConfig(lockFileName: 'my_app.lock'),
       messageConfig: const EnMessageConfig(),
     );
   }
 
-  // Check for duplicate instance
   if (config != null && !await FlutterAlone.instance.checkAndRun(config: config)) {
-    // Exit if another instance is running
-    exit(0);
+    exit(0); // Another instance is already running
   }
 
   runApp(const MyApp());
@@ -79,7 +61,6 @@ void main() async {
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
-
   @override
   State<MyApp> createState() => _MyAppState();
 }
@@ -87,39 +68,225 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
-    // IMPORTANT: Release resources on exit
-    FlutterAlone.instance.dispose();
+    FlutterAlone.instance.dispose(); // Always release resources
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello, World!'),
-        ),
-      ),
+      home: Scaffold(body: Center(child: Text('Hello, World!'))),
     );
   }
 }
 ```
 
-## Advanced Configuration
+## API
 
-For more detailed options, such as custom mutexes, messages, and debug settings, please see our **[Advanced Configuration Guide](./GUIDE.md)**.
+### `FlutterAlone.instance`
+
+| Method | Return | Description |
+|--------|--------|-------------|
+| `checkAndRun(config:)` | `Future<bool>` | Checks for a duplicate instance. Returns `true` if the app can start, `false` if another instance is already running. |
+| `dispose()` | `Future<void>` | Releases mutex/lock file resources. Must be called when the app exits. |
+
+### `FlutterAloneConfig`
+
+Use platform-specific factory constructors to create the configuration.
+
+```dart
+// Windows
+FlutterAloneConfig.forWindows(
+  windowsConfig: ...,        // required - Mutex settings
+  messageConfig: ...,        // required - Alert message settings
+  windowConfig: ...,         // optional - Window identification
+  duplicateCheckConfig: ..., // optional - Debug mode behavior
+)
+
+// macOS
+FlutterAloneConfig.forMacOS(
+  macOSConfig: ...,          // required - Lock file settings
+  messageConfig: ...,        // required - Alert message settings
+  windowConfig: ...,         // optional - Window identification
+  duplicateCheckConfig: ..., // optional - Debug mode behavior
+)
+```
+
+---
+
+## Configuration Options
+
+### Windows Mutex Config
+
+Configures the system mutex name used for duplicate detection.
+
+#### `DefaultWindowsMutexConfig`
+
+Auto-generates a mutex name from your package ID and app name.
+
+```dart
+const DefaultWindowsMutexConfig(
+  packageId: 'com.example.myapp',  // required
+  appName: 'My App',               // required
+  mutexSuffix: 'prod',             // optional
+)
+// Generated mutex name: "Global\com.example.myapp_My App_prod"
+```
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `packageId` | `String` | Yes | - | Package identifier (e.g., `com.example.myapp`) |
+| `appName` | `String` | Yes | - | Application name |
+| `mutexSuffix` | `String?` | No | `null` | Suffix appended to the mutex name. Useful for distinguishing environments (e.g., dev/prod) |
+
+#### `CustomWindowsMutexConfig`
+
+Specify the mutex name directly.
+
+```dart
+const CustomWindowsMutexConfig(
+  customMutexName: 'MyUniqueAppMutex',  // required
+)
+// Automatically prefixed with "Global\" if not already present
+```
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `customMutexName` | `String` | Yes | - | Custom mutex name. `Global\` prefix is added automatically if missing |
+
+---
+
+### macOS Lock File Config
+
+#### `MacOSConfig`
+
+```dart
+const MacOSConfig(
+  lockFileName: 'my_app.lock',  // optional
+)
+```
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `lockFileName` | `String` | No | `'.lockfile'` | Name of the lock file created in the system temp directory |
+
+---
+
+### Message Config
+
+Configures the alert message shown when a duplicate instance is detected.
+
+#### `EnMessageConfig` - English (built-in)
+
+```dart
+const EnMessageConfig(
+  showMessageBox: true,  // optional
+)
+```
+
+#### `KoMessageConfig` - Korean (built-in)
+
+```dart
+const KoMessageConfig(
+  showMessageBox: true,  // optional
+)
+```
+
+#### `CustomMessageConfig` - Custom message
+
+```dart
+const CustomMessageConfig(
+  customTitle: 'Notice',                                  // required
+  customMessage: 'The application is already running.',   // required
+  showMessageBox: true,                                   // optional
+)
+```
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `customTitle` | `String` | Yes | - | Title of the alert dialog |
+| `customMessage` | `String` | Yes | - | Body text of the alert dialog |
+| `showMessageBox` | `bool` | No | `true` | Set to `false` to silently exit without showing a message box |
+
+---
+
+### Window Config
+
+#### `WindowConfig`
+
+```dart
+const WindowConfig(
+  windowTitle: 'My Application',  // optional
+)
+```
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `windowTitle` | `String?` | No | `null` | Window title used to locate the original window. **Essential for system tray apps** where the window may not be immediately visible |
+
+---
+
+### Duplicate Check Config
+
+#### `DuplicateCheckConfig`
+
+```dart
+const DuplicateCheckConfig(
+  enableInDebugMode: true,  // optional
+)
+```
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `enableInDebugMode` | `bool` | No | `false` | When `true`, performs the duplicate check even in debug mode. By default, the check is skipped in debug mode for a smoother development workflow |
+
+---
+
+## Advanced Example
+
+A full-featured example using all available options, ideal for system tray applications.
+
+```dart
+final config = FlutterAloneConfig.forWindows(
+  windowsConfig: const CustomWindowsMutexConfig(
+    customMutexName: 'MyProductionAppMutex',
+  ),
+  windowConfig: const WindowConfig(
+    windowTitle: 'My Application',  // Needed to find the window when minimized to tray
+  ),
+  duplicateCheckConfig: const DuplicateCheckConfig(
+    enableInDebugMode: true,  // Test duplicate detection during development
+  ),
+  messageConfig: const CustomMessageConfig(
+    customTitle: 'Application Notice',
+    customMessage: 'Another instance is already running. Check the system tray.',
+    showMessageBox: true,
+  ),
+);
+
+if (!await FlutterAlone.instance.checkAndRun(config: config)) {
+  exit(0);
+}
+```
+
+## Platform-Specific Setup
+
+Some platforms require additional native-side setup. See the **[Platform Setup Guide](./PLATFORM_SETUP.md)** for details.
+
+- **Windows**: Resolving `FindWindow()` API conflicts when using the `window_manager` package
+- **macOS**: Handling app reactivation when the dock icon is clicked (critical for system tray apps)
 
 ## FAQ
 
-### Q: Why do I need different native window titles with `window_manager`?
-A: It prevents the Windows `FindWindow()` API from failing. See the [Platform Setup Guide](./PLATFORM_SETUP.md) for a full explanation.
-
-### Q: Does the user see the native window title?
-A: No. The user only sees the final title set by `window_manager`.
+### Q: Why do I need a different native window title when using `window_manager`?
+A: The Windows `FindWindow()` API requires a unique native window title to locate the original window. The user only sees the final title set by `window_manager`.
 
 ### Q: What if I don't use `window_manager`?
-A: You can ignore the `window_manager` setup guide.
+A: No additional platform setup is needed. The plugin works out of the box.
+
+### Q: The duplicate check doesn't work in debug mode.
+A: By default, the check is skipped in debug mode. Set `DuplicateCheckConfig(enableInDebugMode: true)` to enable it.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit pull requests or create issues.
+Contributions are welcome! Please submit a pull request or create an [issue](https://github.com/kihyun1998/flutter_alone/issues).
