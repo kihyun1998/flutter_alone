@@ -5,6 +5,7 @@ import 'flutter_alone_platform_interface.dart';
 
 export 'src/models/config.dart';
 export 'src/models/exception.dart';
+export 'src/models/linux_config.dart';
 export 'src/models/macos_config.dart';
 export 'src/models/message_config.dart';
 export 'src/models/windows_config.dart';

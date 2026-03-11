@@ -41,3 +41,5 @@ flutter:
         pluginClass: FlutterAlonePluginCApi
       macos:
         pluginClass: FlutterAlonePlugin
+      linux:
+        pluginClass: FlutterAlonePlugin

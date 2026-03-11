@@ -54,6 +54,22 @@ void main() async {
     if (!await FlutterAlone.instance.checkAndRun(config: config)) {
       exit(0);
     }
+  } else if (Platform.isLinux) {
+    final config = FlutterAloneConfig.forLinux(
+      linuxConfig: const LinuxConfig(
+        lockFileName: 'flutter_alone_example.lock',
+      ),
+      windowConfig: const WindowConfig(
+        windowTitle: appTitle,
+      ),
+      duplicateCheckConfig: const DuplicateCheckConfig(
+        enableInDebugMode: true,
+      ),
+      messageConfig: const EnMessageConfig(),
+    );
+    if (!await FlutterAlone.instance.checkAndRun(config: config)) {
+      exit(0);
+    }
   }
 
   runApp(const MyApp());

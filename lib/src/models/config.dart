@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'linux_config.dart';
 import 'macos_config.dart';
 import 'message_config.dart';
 import 'windows_config.dart';
@@ -71,6 +72,9 @@ class FlutterAloneConfig implements AloneConfig {
   /// macOS-specific configuration for lock file
   final MacOSConfig? macOSConfig;
 
+  /// Linux-specific configuration for lock file
+  final LinuxConfig? linuxConfig;
+
   /// Configuration for window management
   final WindowConfig windowConfig;
 
@@ -82,6 +86,7 @@ class FlutterAloneConfig implements AloneConfig {
     this.duplicateCheckConfig = const DuplicateCheckConfig(),
     this.windowsConfig,
     this.macOSConfig,
+    this.linuxConfig,
     this.windowConfig = const WindowConfig(),
     required this.messageConfig,
   });
@@ -116,6 +121,21 @@ class FlutterAloneConfig implements AloneConfig {
     );
   }
 
+  /// Factory constructor for Linux with custom settings
+  factory FlutterAloneConfig.forLinux({
+    DuplicateCheckConfig duplicateCheckConfig = const DuplicateCheckConfig(),
+    required LinuxConfig linuxConfig,
+    WindowConfig windowConfig = const WindowConfig(),
+    required MessageConfig messageConfig,
+  }) {
+    return FlutterAloneConfig._(
+      duplicateCheckConfig: duplicateCheckConfig,
+      linuxConfig: linuxConfig,
+      windowConfig: windowConfig,
+      messageConfig: messageConfig,
+    );
+  }
+
   @override
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{};
@@ -124,6 +144,8 @@ class FlutterAloneConfig implements AloneConfig {
       map.addAll(windowsConfig!.toMap());
     } else if (Platform.isMacOS && macOSConfig != null) {
       map.addAll(macOSConfig!.toMap());
+    } else if (Platform.isLinux && linuxConfig != null) {
+      map.addAll(linuxConfig!.toMap());
     }
     map.addAll(windowConfig.toMap());
     map.addAll(messageConfig.toMap());
