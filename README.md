@@ -20,7 +20,7 @@ When a duplicate is launched, it automatically focuses the original window and s
 
 ```yaml
 dependencies:
-  flutter_alone: ^4.0.0
+  flutter_alone: ^4.0.1
 ```
 
 ```bash

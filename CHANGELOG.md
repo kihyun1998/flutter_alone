@@ -1,3 +1,9 @@
+## 4.0.1
+
+*   **Bug Fixes**
+    *   **Windows**: Fixed build failure in consumer projects caused by missing `<flutter/encodable_value.h>` include in `flutter_alone_plugin.h`. The header referenced `flutter::EncodableMap` without including the defining header, which only compiled when transitively pulled in by other Flutter headers depending on include order.
+    *   **Windows**: Renamed `MessageUtils::GetMessage` / `GetTitle` / `GetKoreanMessage` / `GetEnglishMessage` to `GetMessageText` / `GetTitleText` / `GetKoreanMessageText` / `GetEnglishMessageText` to avoid collision with the `GetMessage` preprocessor macro from `windows.h` (expands to `GetMessageW` under UNICODE), which caused `C2039: 'GetMessageW' is not a member of 'MessageUtils'` compile errors.
+
 ## 4.0.0
 
 *   **New Features**

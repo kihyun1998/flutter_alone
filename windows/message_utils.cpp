@@ -3,7 +3,7 @@
 
 namespace flutter_alone {
 
-std::wstring MessageUtils::GetTitle(MessageType type, const std::wstring& customTitle) {
+std::wstring MessageUtils::GetTitleText(MessageType type, const std::wstring& customTitle) {
     switch (type) {
         case MessageType::Korean:
             return GetKoreanTitle();
@@ -16,15 +16,15 @@ std::wstring MessageUtils::GetTitle(MessageType type, const std::wstring& custom
     }
 }
 
-std::wstring MessageUtils::GetMessage(
+std::wstring MessageUtils::GetMessageText(
     MessageType type,
     const std::wstring& customMessage
 ) {
     switch (type) {
         case MessageType::Korean:
-            return GetKoreanMessage();
+            return GetKoreanMessageText();
         case MessageType::English:
-            return GetEnglishMessage();
+            return GetEnglishMessageText();
         case MessageType::Custom:
             return customMessage.empty() ?
                 L"Application is already running in another account" : customMessage;
@@ -33,11 +33,11 @@ std::wstring MessageUtils::GetMessage(
     }
 }
 
-std::wstring MessageUtils::GetKoreanMessage() {
+std::wstring MessageUtils::GetKoreanMessageText() {
     return L"\xC774\xBBF8 \xB2E4\xB978 \xACC4\xC815\xC5D0\xC11C \xC571\xC744 \xC2E4\xD589\xC911\xC785\xB2C8\xB2E4.";
 }
 
-std::wstring MessageUtils::GetEnglishMessage() {
+std::wstring MessageUtils::GetEnglishMessageText() {
     return L"Application is already running in another account.";
 }
 

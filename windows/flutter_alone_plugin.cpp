@@ -291,8 +291,8 @@ void FlutterAlonePlugin::HandleMethodCall(
                 WindowUtils::BringWindowToFront(checkResult.existingWindow);
                 WindowUtils::FocusWindow(checkResult.existingWindow);
             } else {
-                std::wstring title = MessageUtils::GetTitle(type, customTitle);
-                std::wstring message = MessageUtils::GetMessage(type, customMessage);
+                std::wstring title = MessageUtils::GetTitleText(type, customTitle);
+                std::wstring message = MessageUtils::GetMessageText(type, customMessage);
                 ShowAlreadyRunningMessage(title, message, showMessageBox);
             }
 
