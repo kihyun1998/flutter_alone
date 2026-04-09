@@ -1,11 +1,11 @@
 class AloneException implements Exception {
-  /// error code
+  /// Error code
   final String code;
 
-  /// error message
+  /// Error message
   final String message;
 
-  /// additional details
+  /// Additional details
   final dynamic details;
 
   AloneException({
@@ -15,5 +15,6 @@ class AloneException implements Exception {
   });
 
   @override
-  String toString() => 'AloneException($code): $message';
+  String toString() =>
+      'AloneException($code): $message${details != null ? ' [$details]' : ''}';
 }

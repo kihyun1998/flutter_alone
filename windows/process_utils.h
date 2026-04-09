@@ -1,4 +1,4 @@
-﻿#ifndef FLUTTER_PLUGIN_PROCESS_UTILS_H_
+#ifndef FLUTTER_PLUGIN_PROCESS_UTILS_H_
 #define FLUTTER_PLUGIN_PROCESS_UTILS_H_
 
 #include <windows.h>
@@ -21,42 +21,12 @@ struct ProcessInfo {
 
 class ProcessUtils {
 public:
-    /**
-     * Get process info for given process ID
-     */
     static ProcessInfo GetProcessInfoById(DWORD processId);
-    
-    /**
-     * Get current process information
-     */
-    static ProcessInfo GetCurrentProcessInfo();
-    
-    /**
-     * Find existing instance of our application
-     */
     static std::optional<ProcessInfo> FindExistingProcess();
-    
-    /**
-     * Get process executable path
-     */
     static std::wstring GetProcessPath(DWORD processId);
-    
-    /**
-     * Get process start time
-     */
     static FILETIME GetProcessStartTime(HANDLE hProcess);
-    
-    static HICON GetExecutableIcon();
-
-    /**
-     * Get last error message
-     */
-    static std::wstring GetLastErrorMessage();
 
 private:
-    /**
-     * Check if two paths point to same executable
-     */
     static bool IsSameExecutable(const std::wstring& path1, const std::wstring& path2);
 };
 

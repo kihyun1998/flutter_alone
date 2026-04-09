@@ -6,22 +6,22 @@ import 'src/models/exception.dart';
 
 /// Platform implementation using method channel
 class MethodChannelFlutterAlone extends FlutterAlonePlatform {
-  /// Method channel for platform communication
   final MethodChannel _channel = const MethodChannel('flutter_alone');
 
   @override
   Future<bool> checkAndRun({required FlutterAloneConfig config}) async {
     try {
-      // Convert config to map
       final map = config.toMap();
-
-      // Remove null values
-      map.removeWhere((key, value) => value == null);
 
       final result = await _channel.invokeMethod<bool>(
         'checkAndRun',
         map,
       );
+
+      // In debug mode, assert that the platform returned a valid result
+      assert(result != null, 'flutter_alone: platform returned null from checkAndRun');
+
+      // In release mode, treat null as "cannot run" (safety-first)
       return result ?? false;
     } on PlatformException catch (e) {
       throw AloneException(

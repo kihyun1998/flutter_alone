@@ -8,11 +8,15 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+#include <cerrno>
 
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <signal.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <spawn.h>
 
 #ifdef HAVE_X11
 #include <X11/Xlib.h>
@@ -23,6 +27,10 @@
 #define FLUTTER_ALONE_PLUGIN(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), flutter_alone_plugin_get_type(), \
                               FlutterAlonePlugin))
+
+static constexpr char kChannelName[] = "flutter_alone";
+static constexpr char kMethodCheckAndRun[] = "checkAndRun";
+static constexpr char kMethodDispose[] = "dispose";
 
 struct _FlutterAlonePlugin {
   GObject parent_instance;
@@ -41,24 +49,57 @@ static std::string get_lock_file_path(const gchar* lock_file_name) {
   return std::string(tmp_dir) + "/" + lock_file_name;
 }
 
-static pid_t read_pid_from_file(const std::string& path) {
-  std::ifstream file(path);
-  if (!file.is_open()) return -1;
-  pid_t pid = -1;
-  file >> pid;
-  return pid;
+// Read PID from an already-opened file descriptor (avoids re-open TOCTOU)
+static pid_t read_pid_from_fd(int fd) {
+  char buf[32];
+  if (lseek(fd, 0, SEEK_SET) != 0) return -1;
+  ssize_t n = read(fd, buf, sizeof(buf) - 1);
+  if (n <= 0) return -1;
+  buf[n] = '\0';
+  char* end = nullptr;
+  long pid = strtol(buf, &end, 10);
+  if (end == buf || pid <= 0) return -1;
+  return static_cast<pid_t>(pid);
 }
 
 static bool is_process_running(pid_t pid) {
   if (pid <= 0) return false;
-  return kill(pid, 0) == 0;
+  if (kill(pid, 0) == 0) return true;
+  // errno == EPERM means the process exists but we lack permission (cross-user)
+  if (errno == EPERM) return true;
+  return false;
 }
 
-static bool write_pid_to_file(const std::string& path, pid_t pid) {
-  std::ofstream file(path, std::ios::trunc);
-  if (!file.is_open()) return false;
-  file << pid;
-  file.close();
+// Verify process identity by checking /proc/<pid>/exe
+static bool is_same_executable(pid_t pid) {
+  char self_path[PATH_MAX];
+  char target_path[PATH_MAX];
+
+  ssize_t self_len = readlink("/proc/self/exe", self_path, sizeof(self_path) - 1);
+  if (self_len < 0) return false;
+  self_path[self_len] = '\0';
+
+  // "/proc/<max-pid>/exe" fits well within 64 chars
+  char proc_path[64];
+  snprintf(proc_path, sizeof(proc_path), "/proc/%d/exe", static_cast<int>(pid));
+  ssize_t target_len = readlink(proc_path, target_path, sizeof(target_path) - 1);
+  if (target_len < 0) return false;
+  target_path[target_len] = '\0';
+
+  return strcmp(self_path, target_path) == 0;
+}
+
+// Overwrites fd content with the decimal PID.
+// fd must be open for write and advisory-locked by the caller.
+static bool write_pid_to_fd(int fd, pid_t pid) {
+  if (ftruncate(fd, 0) != 0) return false;
+  if (lseek(fd, 0, SEEK_SET) != 0) return false;
+
+  std::string pid_str = std::to_string(pid);
+  ssize_t written = write(fd, pid_str.c_str(), pid_str.length());
+  if (written < 0 || static_cast<size_t>(written) != pid_str.length()) return false;
+
+  fdatasync(fd);
   return true;
 }
 
@@ -72,12 +113,13 @@ static bool is_x11_session() {
   const char* session_type = getenv("XDG_SESSION_TYPE");
   if (session_type && strcmp(session_type, "x11") == 0) return true;
 
-  // Also check if GDK is using X11 backend
   GdkDisplay* display = gdk_display_get_default();
   if (display && GDK_IS_X11_DISPLAY(display)) return true;
 
   return false;
 }
+
+static constexpr long kMaxClientListItems = 4096;
 
 static Window find_window_by_pid(Display* display, Window root, pid_t target_pid) {
   Atom pid_atom = XInternAtom(display, "_NET_WM_PID", True);
@@ -88,18 +130,21 @@ static Window find_window_by_pid(Display* display, Window root, pid_t target_pid
   unsigned long nitems, bytes_after;
   unsigned char* prop_data = nullptr;
 
-  // Get list of all top-level windows
   Atom client_list_atom = XInternAtom(display, "_NET_CLIENT_LIST", True);
   if (client_list_atom == None) return None;
 
   if (XGetWindowProperty(display, root, client_list_atom,
-                         0, 1024, False, XA_WINDOW,
+                         0, kMaxClientListItems, False, XA_WINDOW,
                          &actual_type, &actual_format,
                          &nitems, &bytes_after, &prop_data) != Success) {
     return None;
   }
 
   if (!prop_data) return None;
+
+  if (bytes_after > 0) {
+    g_warning("flutter_alone: _NET_CLIENT_LIST truncated, %lu bytes remaining", bytes_after);
+  }
 
   Window* windows = reinterpret_cast<Window*>(prop_data);
   Window found = None;
@@ -115,8 +160,9 @@ static Window find_window_by_pid(Display* display, Window root, pid_t target_pid
                            &pid_actual_type, &pid_actual_format,
                            &pid_nitems, &pid_bytes_after, &pid_data) == Success) {
       if (pid_data && pid_nitems > 0) {
-        pid_t window_pid = static_cast<pid_t>(*reinterpret_cast<unsigned long*>(pid_data));
-        if (window_pid == target_pid) {
+        uint32_t window_pid = 0;
+        memcpy(&window_pid, pid_data, sizeof(uint32_t));
+        if (static_cast<pid_t>(window_pid) == target_pid) {
           found = windows[i];
           XFree(pid_data);
           break;
@@ -142,7 +188,6 @@ static bool activate_window_x11(pid_t target_pid) {
     return false;
   }
 
-  // Send _NET_ACTIVE_WINDOW client message to activate the window
   Atom active_atom = XInternAtom(display, "_NET_ACTIVE_WINDOW", True);
   if (active_atom != None) {
     XEvent event;
@@ -154,7 +199,8 @@ static bool activate_window_x11(pid_t target_pid) {
     event.xclient.window = target;
     event.xclient.message_type = active_atom;
     event.xclient.format = 32;
-    event.xclient.data.l[0] = 2;  // Source: pager
+    // Source indication: 2 = pager (EWMH spec _NET_ACTIVE_WINDOW)
+    event.xclient.data.l[0] = 2;
     event.xclient.data.l[1] = CurrentTime;
     event.xclient.data.l[2] = 0;
 
@@ -162,7 +208,6 @@ static bool activate_window_x11(pid_t target_pid) {
                SubstructureRedirectMask | SubstructureNotifyMask,
                &event);
 
-    // Also raise and map the window
     XMapRaised(display, target);
     XFlush(display);
   }
@@ -174,35 +219,48 @@ static bool activate_window_x11(pid_t target_pid) {
 #endif  // HAVE_X11
 
 // ============================================================
-// Wayland window activation (best-effort via gdbus)
+// Wayland window activation (best-effort via xdotool on XWayland)
+// Uses posix_spawn instead of system() to avoid shell injection.
 // ============================================================
 
-static bool activate_window_wayland(pid_t target_pid) {
-  // On Wayland, direct window activation from another process is restricted.
-  // Try using gdbus to call GNOME Shell or KDE's activation interface.
-  // This is best-effort - if it fails, the dialog will still inform the user.
+extern char **environ;
 
-  // Try GNOME Shell's activation via wmctrl (works on XWayland)
-  char cmd[256];
-  snprintf(cmd, sizeof(cmd),
-           "wmctrl -i -a $(wmctrl -l -p | awk '$3 == %d {print $1; exit}') 2>/dev/null",
-           static_cast<int>(target_pid));
+static bool run_command(const char* prog, char* const argv[]) {
+  pid_t child_pid;
+  int status;
 
-  int ret = system(cmd);
-  if (ret == 0) return true;
+  posix_spawn_file_actions_t actions;
+  posix_spawn_file_actions_init(&actions);
 
-  // Try xdotool as fallback (may work on XWayland)
-  snprintf(cmd, sizeof(cmd),
-           "xdotool search --pid %d --onlyvisible windowactivate 2>/dev/null",
-           static_cast<int>(target_pid));
+  if (posix_spawn_file_actions_addopen(&actions, STDOUT_FILENO, "/dev/null", O_WRONLY, 0) != 0 ||
+      posix_spawn_file_actions_addopen(&actions, STDERR_FILENO, "/dev/null", O_WRONLY, 0) != 0) {
+    posix_spawn_file_actions_destroy(&actions);
+    return false;
+  }
 
-  ret = system(cmd);
-  return (ret == 0);
+  int ret = posix_spawnp(&child_pid, prog, &actions, nullptr, argv, environ);
+  posix_spawn_file_actions_destroy(&actions);
+
+  if (ret != 0) return false;
+
+  waitpid(child_pid, &status, 0);
+  return WIFEXITED(status) && WEXITSTATUS(status) == 0;
 }
 
-// ============================================================
-// Activate existing instance window
-// ============================================================
+static bool activate_window_wayland(pid_t target_pid) {
+  std::string pid_str = std::to_string(static_cast<int>(target_pid));
+
+  char* argv[] = {
+    const_cast<char*>("xdotool"),
+    const_cast<char*>("search"),
+    const_cast<char*>("--pid"),
+    const_cast<char*>(pid_str.c_str()),
+    const_cast<char*>("--onlyvisible"),
+    const_cast<char*>("windowactivate"),
+    nullptr
+  };
+  return run_command("xdotool", argv);
+}
 
 static bool activate_existing_window(pid_t target_pid) {
 #ifdef HAVE_X11
@@ -210,7 +268,6 @@ static bool activate_existing_window(pid_t target_pid) {
     if (activate_window_x11(target_pid)) return true;
   }
 #endif
-  // Fallback: try Wayland methods (wmctrl/xdotool via XWayland)
   return activate_window_wayland(target_pid);
 }
 
@@ -218,8 +275,9 @@ static bool activate_existing_window(pid_t target_pid) {
 // GTK message dialog
 // ============================================================
 
-static void show_message_dialog(const gchar* title, const gchar* message, gboolean show) {
-  if (!show) return;
+// Intentionally synchronous: the dialog blocks before the app exits.
+static void show_message_dialog(const gchar* title, const gchar* message, gboolean should_show) {
+  if (!should_show) return;
 
   GtkWidget* dialog = gtk_message_dialog_new(
       nullptr,
@@ -234,119 +292,181 @@ static void show_message_dialog(const gchar* title, const gchar* message, gboole
 }
 
 // ============================================================
-// Message utilities (same as Windows/macOS)
+// Message utilities
 // ============================================================
 
+static const gchar* get_localized_string(const gchar* locale_key,
+                                          const gchar* ko_str,
+                                          const gchar* en_str,
+                                          const gchar* custom_str) {
+  if (strcmp(locale_key, "ko") == 0) return ko_str;
+  if (strcmp(locale_key, "en") == 0) return en_str;
+  if (strcmp(locale_key, "custom") == 0 && custom_str && strlen(custom_str) > 0) return custom_str;
+  return en_str;
+}
+
 static const gchar* get_title_for_type(const gchar* type, const gchar* custom_title) {
-  if (strcmp(type, "ko") == 0) return "알림";
-  if (strcmp(type, "en") == 0) return "Notice";
-  if (strcmp(type, "custom") == 0 && custom_title && strlen(custom_title) > 0) return custom_title;
-  return "Notice";
+  return get_localized_string(type, "\xEC\x95\x8C\xEB\xA6\xBC", "Notice", custom_title);
 }
 
 static const gchar* get_message_for_type(const gchar* type, const gchar* custom_message) {
-  if (strcmp(type, "ko") == 0) return "이미 다른 계정에서 앱을 실행중입니다.";
-  if (strcmp(type, "en") == 0) return "Application is already running in another account.";
-  if (strcmp(type, "custom") == 0 && custom_message && strlen(custom_message) > 0) return custom_message;
-  return "Application is already running in another account.";
+  return get_localized_string(type,
+      "\xEC\x9D\xB4\xEB\xAF\xB8 \xEB\x8B\xA4\xEB\xA5\xB8 \xEA\xB3\x84\xEC\xA0\x95\xEC\x97\x90\xEC\x84\x9C \xEC\x95\xB1\xEC\x9D\x84 \xEC\x8B\xA4\xED\x96\x89\xEC\xA4\x91\xEC\x9E\x85\xEB\x8B\x88\xEB\x8B\xA4.",
+      "Application is already running in another account.",
+      custom_message);
+}
+
+// Show "already running" notification dialog
+static void notify_already_running(const gchar* type, const gchar* custom_title,
+                                    const gchar* custom_message, gboolean show_message_box) {
+  const gchar* title = get_title_for_type(type, custom_title);
+  const gchar* message = get_message_for_type(type, custom_message);
+  show_message_dialog(title, message, show_message_box);
+}
+
+// ============================================================
+// Lock cleanup helper (shared between dispose handler and GObject dispose)
+// ============================================================
+
+static void release_lock(FlutterAlonePlugin* self) {
+  if (self->lock_fd >= 0) {
+    if (flock(self->lock_fd, LOCK_UN) != 0) {
+      g_warning("flutter_alone: flock LOCK_UN failed: errno %d", errno);
+    }
+    close(self->lock_fd);
+    self->lock_fd = -1;
+  }
+  if (self->lock_file_path) {
+    if (unlink(self->lock_file_path) != 0 && errno != ENOENT) {
+      g_warning("flutter_alone: unlink failed for %s: errno %d", self->lock_file_path, errno);
+    }
+    g_free(self->lock_file_path);
+    self->lock_file_path = nullptr;
+  }
 }
 
 // ============================================================
 // Method call handler
 // ============================================================
 
+static void handle_check_and_run(FlutterAlonePlugin* self, FlValue* args, FlMethodCall* method_call) {
+  g_autoptr(FlMethodResponse) response = nullptr;
+
+  // Get lockFileName
+  FlValue* lock_file_value = fl_value_lookup_string(args, "lockFileName");
+  if (!lock_file_value || fl_value_get_type(lock_file_value) == FL_VALUE_TYPE_NULL) {
+    response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+        "INVALID_ARGUMENT", "lockFileName is required for Linux", nullptr));
+    fl_method_call_respond(method_call, response, nullptr);
+    return;
+  }
+  const gchar* lock_file_name = fl_value_get_string(lock_file_value);
+
+  // Validate lockFileName: no path separators, not empty, not "." or ".."
+  if (strchr(lock_file_name, '/') != nullptr ||
+      strlen(lock_file_name) == 0 ||
+      strcmp(lock_file_name, ".") == 0 ||
+      strcmp(lock_file_name, "..") == 0) {
+    response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+        "INVALID_ARGUMENT", "lockFileName must be a simple filename without path separators", nullptr));
+    fl_method_call_respond(method_call, response, nullptr);
+    return;
+  }
+
+  // Get message config
+  FlValue* type_value = fl_value_lookup_string(args, "type");
+  const gchar* type = type_value ? fl_value_get_string(type_value) : "en";
+
+  FlValue* show_msg_value = fl_value_lookup_string(args, "showMessageBox");
+  gboolean show_message_box = show_msg_value ? fl_value_get_bool(show_msg_value) : TRUE;
+
+  FlValue* custom_title_value = fl_value_lookup_string(args, "customTitle");
+  const gchar* custom_title = (custom_title_value && fl_value_get_type(custom_title_value) != FL_VALUE_TYPE_NULL)
+      ? fl_value_get_string(custom_title_value) : "";
+
+  FlValue* custom_message_value = fl_value_lookup_string(args, "customMessage");
+  const gchar* custom_message = (custom_message_value && fl_value_get_type(custom_message_value) != FL_VALUE_TYPE_NULL)
+      ? fl_value_get_string(custom_message_value) : "";
+
+  // Build lock file path
+  std::string lock_path = get_lock_file_path(lock_file_name);
+
+  g_free(self->lock_file_path);
+  self->lock_file_path = g_strdup(lock_path.c_str());
+
+  // Open lock file with O_NOFOLLOW to prevent symlink attacks
+  int fd = open(lock_path.c_str(), O_CREAT | O_RDWR | O_NOFOLLOW, 0644);
+  if (fd < 0) {
+    response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+        "IO_ERROR", "Failed to open lock file", nullptr));
+    fl_method_call_respond(method_call, response, nullptr);
+    return;
+  }
+
+  // Try to acquire exclusive advisory lock (non-blocking)
+  if (flock(fd, LOCK_EX | LOCK_NB) != 0) {
+    // Read PID from the already-opened fd to avoid re-open TOCTOU
+    pid_t existing_pid = read_pid_from_fd(fd);
+    close(fd);
+
+    if (existing_pid > 0 && is_process_running(existing_pid) && is_same_executable(existing_pid)) {
+      bool activated = activate_existing_window(existing_pid);
+      if (!activated) {
+        notify_already_running(type, custom_title, custom_message, show_message_box);
+      }
+    } else {
+      notify_already_running(type, custom_title, custom_message, show_message_box);
+    }
+
+    g_autoptr(FlValue) result = fl_value_new_bool(FALSE);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+    fl_method_call_respond(method_call, response, nullptr);
+    return;
+  }
+
+  // We hold the lock. Write our PID.
+  pid_t current_pid = getpid();
+  if (!write_pid_to_fd(fd, current_pid)) {
+    flock(fd, LOCK_UN);
+    close(fd);
+    response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+        "IO_ERROR", "Failed to write PID to lock file", nullptr));
+    fl_method_call_respond(method_call, response, nullptr);
+    return;
+  }
+
+  // Keep fd open for the lifetime of the plugin
+  self->lock_fd = fd;
+
+  g_autoptr(FlValue) result = fl_value_new_bool(TRUE);
+  response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+  fl_method_call_respond(method_call, response, nullptr);
+}
+
 static void flutter_alone_plugin_handle_method_call(
     FlutterAlonePlugin* self,
     FlMethodCall* method_call) {
-  g_autoptr(FlMethodResponse) response = nullptr;
   const gchar* method = fl_method_call_get_name(method_call);
 
-  if (strcmp(method, "checkAndRun") == 0) {
+  if (strcmp(method, kMethodCheckAndRun) == 0) {
     FlValue* args = fl_method_call_get_args(method_call);
     if (fl_value_get_type(args) != FL_VALUE_TYPE_MAP) {
-      response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+      g_autoptr(FlMethodResponse) response = FL_METHOD_RESPONSE(fl_method_error_response_new(
           "INVALID_ARGUMENT", "Arguments are required", nullptr));
       fl_method_call_respond(method_call, response, nullptr);
       return;
     }
+    handle_check_and_run(self, args, method_call);
 
-    // Get lockFileName
-    FlValue* lock_file_value = fl_value_lookup_string(args, "lockFileName");
-    if (!lock_file_value || fl_value_get_type(lock_file_value) == FL_VALUE_TYPE_NULL) {
-      response = FL_METHOD_RESPONSE(fl_method_error_response_new(
-          "INVALID_ARGUMENT", "lockFileName is required for Linux", nullptr));
-      fl_method_call_respond(method_call, response, nullptr);
-      return;
-    }
-    const gchar* lock_file_name = fl_value_get_string(lock_file_value);
-
-    // Get message config
-    FlValue* type_value = fl_value_lookup_string(args, "type");
-    const gchar* type = type_value ? fl_value_get_string(type_value) : "en";
-
-    FlValue* show_msg_value = fl_value_lookup_string(args, "showMessageBox");
-    gboolean show_message_box = show_msg_value ? fl_value_get_bool(show_msg_value) : TRUE;
-
-    FlValue* custom_title_value = fl_value_lookup_string(args, "customTitle");
-    const gchar* custom_title = (custom_title_value && fl_value_get_type(custom_title_value) != FL_VALUE_TYPE_NULL)
-        ? fl_value_get_string(custom_title_value) : "";
-
-    FlValue* custom_message_value = fl_value_lookup_string(args, "customMessage");
-    const gchar* custom_message = (custom_message_value && fl_value_get_type(custom_message_value) != FL_VALUE_TYPE_NULL)
-        ? fl_value_get_string(custom_message_value) : "";
-
-    // Build lock file path
-    std::string lock_path = get_lock_file_path(lock_file_name);
-
-    // Store lock file path for dispose
-    g_free(self->lock_file_path);
-    self->lock_file_path = g_strdup(lock_path.c_str());
-
-    // Check if another instance is running
-    pid_t existing_pid = read_pid_from_file(lock_path);
-    pid_t current_pid = getpid();
-
-    if (existing_pid > 0 && existing_pid != current_pid && is_process_running(existing_pid)) {
-      // Another instance is running - try to activate its window
-      bool activated = activate_existing_window(existing_pid);
-
-      if (!activated) {
-        // Could not activate window - show message dialog
-        const gchar* title = get_title_for_type(type, custom_title);
-        const gchar* message = get_message_for_type(type, custom_message);
-        show_message_dialog(title, message, show_message_box);
-      }
-
-      g_autoptr(FlValue) result = fl_value_new_bool(FALSE);
-      response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
-      fl_method_call_respond(method_call, response, nullptr);
-      return;
-    }
-
-    // No existing instance (or stale lock file) - write our PID
-    bool written = write_pid_to_file(lock_path, current_pid);
-
-    g_autoptr(FlValue) result = fl_value_new_bool(written ? TRUE : FALSE);
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
-
-  } else if (strcmp(method, "dispose") == 0) {
-    // Clean up lock file
-    if (self->lock_file_path) {
-      unlink(self->lock_file_path);
-      g_free(self->lock_file_path);
-      self->lock_file_path = nullptr;
-    }
-    if (self->lock_fd > 0) {
-      close(self->lock_fd);
-      self->lock_fd = -1;
-    }
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (strcmp(method, kMethodDispose) == 0) {
+    release_lock(self);
+    g_autoptr(FlMethodResponse) response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+    fl_method_call_respond(method_call, response, nullptr);
 
   } else {
-    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+    g_autoptr(FlMethodResponse) response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+    fl_method_call_respond(method_call, response, nullptr);
   }
-
-  fl_method_call_respond(method_call, response, nullptr);
 }
 
 // ============================================================
@@ -355,18 +475,7 @@ static void flutter_alone_plugin_handle_method_call(
 
 static void flutter_alone_plugin_dispose(GObject* object) {
   FlutterAlonePlugin* self = FLUTTER_ALONE_PLUGIN(object);
-
-  // Clean up lock file on dispose
-  if (self->lock_file_path) {
-    unlink(self->lock_file_path);
-    g_free(self->lock_file_path);
-    self->lock_file_path = nullptr;
-  }
-  if (self->lock_fd > 0) {
-    close(self->lock_fd);
-    self->lock_fd = -1;
-  }
-
+  release_lock(self);
   G_OBJECT_CLASS(flutter_alone_plugin_parent_class)->dispose(object);
 }
 
@@ -392,7 +501,7 @@ void flutter_alone_plugin_register_with_registrar(FlPluginRegistrar* registrar) 
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
   g_autoptr(FlMethodChannel) channel =
       fl_method_channel_new(fl_plugin_registrar_get_messenger(registrar),
-                            "flutter_alone",
+                            kChannelName,
                             FL_METHOD_CODEC(codec));
   fl_method_channel_set_method_call_handler(channel, method_call_cb,
                                             g_object_ref(plugin),

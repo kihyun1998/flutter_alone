@@ -40,7 +40,7 @@ void main() async {
     }
   } else if (Platform.isMacOS) {
     final config = FlutterAloneConfig.forMacOS(
-      macOSConfig: const MacOSConfig(
+      macOSConfig: MacOSConfig(
         lockFileName: 'flutter_alone_example.lock',
       ),
       windowConfig: const WindowConfig(
@@ -56,7 +56,7 @@ void main() async {
     }
   } else if (Platform.isLinux) {
     final config = FlutterAloneConfig.forLinux(
-      linuxConfig: const LinuxConfig(
+      linuxConfig: LinuxConfig(
         lockFileName: 'flutter_alone_example.lock',
       ),
       windowConfig: const WindowConfig(

@@ -5,28 +5,19 @@ import 'macos_config.dart';
 import 'message_config.dart';
 import 'windows_config.dart';
 
-enum ConfigJsonKey {
-  enableInDebugMode,
-
-  windowTitle,
-  ;
-
-  String get key => toString().split('.').last;
-}
-
 /// Base configuration interface
 abstract class AloneConfig {
-  /// Convert to map for MethodChannel communication
+  /// Convert to map for MethodChannel communication.
+  /// All returned values must be non-null.
   Map<String, dynamic> toMap();
 }
 
 /// Configuration for duplicate execution check
 class DuplicateCheckConfig implements AloneConfig {
-  /// Whether to enable duplicate check in debug mode
-  /// Defaults to false
+  /// Whether to enable duplicate check in debug mode.
+  /// Defaults to false.
   final bool enableInDebugMode;
 
-  /// Constructor
   const DuplicateCheckConfig({
     this.enableInDebugMode = false,
   });
@@ -34,7 +25,7 @@ class DuplicateCheckConfig implements AloneConfig {
   @override
   Map<String, dynamic> toMap() {
     return {
-      ConfigJsonKey.enableInDebugMode.key: enableInDebugMode,
+      'enableInDebugMode': enableInDebugMode,
     };
   }
 }
@@ -44,7 +35,6 @@ class WindowConfig implements AloneConfig {
   /// Window title for window identification
   final String? windowTitle;
 
-  /// Constructor
   const WindowConfig({
     this.windowTitle,
   });
@@ -52,36 +42,29 @@ class WindowConfig implements AloneConfig {
   @override
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{};
-
     if (windowTitle != null) {
-      map[ConfigJsonKey.windowTitle.key] = windowTitle;
+      map['windowTitle'] = windowTitle;
     }
-
     return map;
   }
 }
 
-/// Combined configuration for flutter_alone plugin
+/// Combined configuration for flutter_alone plugin.
+///
+/// Instances must be created via the platform-specific factory constructors:
+/// - [FlutterAloneConfig.forWindows] for Windows
+/// - [FlutterAloneConfig.forMacOS] for macOS
+/// - [FlutterAloneConfig.forLinux] for Linux
+///
+/// This ensures the correct platform config is paired with the runtime platform.
 class FlutterAloneConfig implements AloneConfig {
-  /// Configuration for duplicate check behavior
   final DuplicateCheckConfig duplicateCheckConfig;
-
-  /// Windows-specific configuration for mutex naming
   final WindowsMutexConfig? windowsConfig;
-
-  /// macOS-specific configuration for lock file
   final MacOSConfig? macOSConfig;
-
-  /// Linux-specific configuration for lock file
   final LinuxConfig? linuxConfig;
-
-  /// Configuration for window management
   final WindowConfig windowConfig;
-
-  /// Configuration for message display
   final MessageConfig messageConfig;
 
-  /// Private constructor
   const FlutterAloneConfig._({
     this.duplicateCheckConfig = const DuplicateCheckConfig(),
     this.windowsConfig,
@@ -140,13 +123,24 @@ class FlutterAloneConfig implements AloneConfig {
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{};
     map.addAll(duplicateCheckConfig.toMap());
-    if (Platform.isWindows && windowsConfig != null) {
+
+    if (Platform.isWindows) {
+      if (windowsConfig == null) {
+        throw StateError('FlutterAloneConfig.forWindows must be used on Windows');
+      }
       map.addAll(windowsConfig!.toMap());
-    } else if (Platform.isMacOS && macOSConfig != null) {
+    } else if (Platform.isMacOS) {
+      if (macOSConfig == null) {
+        throw StateError('FlutterAloneConfig.forMacOS must be used on macOS');
+      }
       map.addAll(macOSConfig!.toMap());
-    } else if (Platform.isLinux && linuxConfig != null) {
+    } else if (Platform.isLinux) {
+      if (linuxConfig == null) {
+        throw StateError('FlutterAloneConfig.forLinux must be used on Linux');
+      }
       map.addAll(linuxConfig!.toMap());
     }
+
     map.addAll(windowConfig.toMap());
     map.addAll(messageConfig.toMap());
     return map;

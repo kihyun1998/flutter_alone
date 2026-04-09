@@ -1,6 +1,6 @@
 name: flutter_alone
-description: "A robust Flutter plugin designed to ensure only a single instance of your desktop application runs at a time, offering customizable messages, cross-user detection, and enhanced window management for Windows and macOS."
-version: 3.2.4
+description: "A robust Flutter plugin designed to ensure only a single instance of your desktop application runs at a time, offering customizable messages, cross-user detection, and enhanced window management for Windows, macOS, and Linux."
+version: 4.0.0
 homepage: https://github.com/kihyun1998/flutter_alone
 repository: https://github.com/kihyun1998/flutter_alone
 issue_tracker: https://github.com/kihyun1998/flutter_alone/issues
@@ -10,6 +10,7 @@ keywords:
   - desktop
   - windows
   - macos
+  - linux
   - single instance
   - duplicate execution
   - application lifecycle
@@ -26,7 +27,7 @@ environment:
 
 dependencies:
   flutter:
-    sdk: flutter 
+    sdk: flutter
   plugin_platform_interface: ^2.0.2
 
 dev_dependencies:

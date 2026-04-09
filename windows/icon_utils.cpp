@@ -1,29 +1,23 @@
-﻿#include "icon_utils.h"
+#include "icon_utils.h"
 
 namespace flutter_alone {
 
 HICON IconUtils::GetAppIcon() {
    std::wstring exePath = GetExecutablePath();
+   if (exePath.empty()) return NULL;
 
-   // Extract icon
-   HICON hIcon = ExtractIconW(
-       GetModuleHandleW(NULL),  // Current process
-       exePath.c_str(),         // Executable path
-       0                        // First icon
+   return ExtractIconW(
+       GetModuleHandleW(NULL),
+       exePath.c_str(),
+       0
    );
-
-   return hIcon;
-}
-
-void IconUtils::DestroyAppIcon(HICON hIcon) {
-   if (hIcon) {
-       DestroyIcon(hIcon);
-   }
 }
 
 std::wstring IconUtils::GetExecutablePath() {
    WCHAR path[MAX_PATH];
-   GetModuleFileNameW(NULL, path, MAX_PATH);
+   if (GetModuleFileNameW(NULL, path, MAX_PATH) == 0) {
+       return std::wstring();
+   }
    return std::wstring(path);
 }
 

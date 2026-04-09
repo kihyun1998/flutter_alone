@@ -7,18 +7,20 @@ When a duplicate is launched, it automatically focuses the original window and s
 
 ## Platform Support
 
-| Windows | macOS | Linux |
-|:-------:|:-----:|:-----:|
-|    ✅    |   ✅   |   🚧   |
+| Windows | macOS | Linux (X11) | Linux (Wayland) |
+|:-------:|:-----:|:-----------:|:---------------:|
+|    ✅    |   ✅   |      ✅      |   ⚠️ Partial    |
 
-- **Windows**: Detects duplicates using system-level Mutex
-- **macOS**: Detects duplicates using lock files
+- **Windows**: Detects duplicates using system-level Mutex with cross-user support
+- **macOS**: Detects duplicates using advisory file locks (`flock`)
+- **Linux (X11)**: Full support — duplicate detection via `flock` and window activation via `_NET_ACTIVE_WINDOW`
+- **Linux (Wayland)**: **Partial support** — duplicate detection works reliably, but window activation is best-effort only. Wayland does not provide an API for cross-process window raising by design. The plugin falls back to `xdotool` via XWayland; if `xdotool` is unavailable or the app is a native Wayland client, only the alert dialog is shown (no window activation).
 
 ## Installation
 
 ```yaml
 dependencies:
-  flutter_alone: ^3.2.4
+  flutter_alone: ^4.0.0
 ```
 
 ```bash
@@ -47,7 +49,12 @@ void main() async {
     );
   } else if (Platform.isMacOS) {
     config = FlutterAloneConfig.forMacOS(
-      macOSConfig: const MacOSConfig(lockFileName: 'my_app.lock'),
+      macOSConfig: MacOSConfig(lockFileName: 'my_app.lock'),
+      messageConfig: const EnMessageConfig(),
+    );
+  } else if (Platform.isLinux) {
+    config = FlutterAloneConfig.forLinux(
+      linuxConfig: LinuxConfig(lockFileName: 'my_app.lock'),
       messageConfig: const EnMessageConfig(),
     );
   }
@@ -110,6 +117,14 @@ FlutterAloneConfig.forMacOS(
   windowConfig: ...,         // optional - Window identification
   duplicateCheckConfig: ..., // optional - Debug mode behavior
 )
+
+// Linux
+FlutterAloneConfig.forLinux(
+  linuxConfig: ...,          // required - Lock file settings
+  messageConfig: ...,        // required - Alert message settings
+  windowConfig: ...,         // optional - Window identification
+  duplicateCheckConfig: ..., // optional - Debug mode behavior
+)
 ```
 
 ---
@@ -144,7 +159,7 @@ const DefaultWindowsMutexConfig(
 Specify the mutex name directly.
 
 ```dart
-const CustomWindowsMutexConfig(
+CustomWindowsMutexConfig(
   customMutexName: 'MyUniqueAppMutex',  // required
 )
 // Automatically prefixed with "Global\" if not already present
@@ -161,14 +176,32 @@ const CustomWindowsMutexConfig(
 #### `MacOSConfig`
 
 ```dart
-const MacOSConfig(
+MacOSConfig(
   lockFileName: 'my_app.lock',  // optional
 )
 ```
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `lockFileName` | `String` | No | `'.lockfile'` | Name of the lock file created in the system temp directory |
+| `lockFileName` | `String` | No | `'.lockfile'` | Name of the lock file created in the system temp directory. **Must be unique per app** to avoid collisions |
+
+---
+
+### Linux Lock File Config
+
+#### `LinuxConfig`
+
+```dart
+LinuxConfig(
+  lockFileName: 'my_app.lock',  // optional
+)
+```
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `lockFileName` | `String` | No | `'.lockfile'` | Name of the lock file created in `/tmp`. **Must be unique per app** to avoid collisions |
+
+> **Note**: On Wayland sessions, window activation of the existing instance requires `xdotool` (run via XWayland). Native Wayland does not permit cross-process window raising, so on pure Wayland setups only the alert dialog will be shown when a duplicate is detected.
 
 ---
 
@@ -248,7 +281,7 @@ A full-featured example using all available options, ideal for system tray appli
 
 ```dart
 final config = FlutterAloneConfig.forWindows(
-  windowsConfig: const CustomWindowsMutexConfig(
+  windowsConfig: CustomWindowsMutexConfig(
     customMutexName: 'MyProductionAppMutex',
   ),
   windowConfig: const WindowConfig(
@@ -286,6 +319,9 @@ A: No additional platform setup is needed. The plugin works out of the box.
 
 ### Q: The duplicate check doesn't work in debug mode.
 A: By default, the check is skipped in debug mode. Set `DuplicateCheckConfig(enableInDebugMode: true)` to enable it.
+
+### Q: Two different apps using flutter_alone conflict with each other.
+A: Both `MacOSConfig` and `LinuxConfig` default to `.lockfile`. Use a unique `lockFileName` per app (e.g., `'com.example.myapp.lock'`).
 
 ## Contributing
 

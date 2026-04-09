@@ -3,8 +3,8 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'flutter_alone_method_channel.dart';
 
-/// Platform interface for the plugin
-/// Defines the interface that all platform implementations must follow
+/// Platform interface for the plugin.
+/// Defines the interface that all platform implementations must follow.
 abstract class FlutterAlonePlatform extends PlatformInterface {
   /// Constructs a FlutterAlonePlatform
   FlutterAlonePlatform() : super(token: _token);
@@ -23,20 +23,13 @@ abstract class FlutterAlonePlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  /// Check if application can run and perform initialization
-  ///
-  /// Parameters:
-  /// - config: Combined configuration object
+  /// Check if application can run and perform initialization.
   ///
   /// Returns:
   /// - true: Application can start
   /// - false: Another instance is already running
-  Future<bool> checkAndRun({required FlutterAloneConfig config}) {
-    throw UnimplementedError('checkAndRun() has not been implemented.');
-  }
+  Future<bool> checkAndRun({required FlutterAloneConfig config});
 
-  /// Clean up resources
-  Future<void> dispose() {
-    throw UnimplementedError('dispose() has not been implemented.');
-  }
+  /// Clean up resources (release mutex, delete lock file).
+  Future<void> dispose();
 }

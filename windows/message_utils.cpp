@@ -1,15 +1,15 @@
-﻿#include "message_utils.h"
+#include "message_utils.h"
 #include <windows.h>
 
 namespace flutter_alone {
 
 std::wstring MessageUtils::GetTitle(MessageType type, const std::wstring& customTitle) {
     switch (type) {
-        case MessageType::ko:
+        case MessageType::Korean:
             return GetKoreanTitle();
-        case MessageType::en:
+        case MessageType::English:
             return GetEnglishTitle();
-        case MessageType::custom:
+        case MessageType::Custom:
             return customTitle.empty() ? L"Error" : customTitle;
         default:
             return L"Error";
@@ -21,12 +21,12 @@ std::wstring MessageUtils::GetMessage(
     const std::wstring& customMessage
 ) {
     switch (type) {
-        case MessageType::ko:
+        case MessageType::Korean:
             return GetKoreanMessage();
-        case MessageType::en:
+        case MessageType::English:
             return GetEnglishMessage();
-        case MessageType::custom:
-            return customMessage.empty() ? 
+        case MessageType::Custom:
+            return customMessage.empty() ?
                 L"Application is already running in another account" : customMessage;
         default:
             return L"Application is already running in another account";
@@ -34,7 +34,7 @@ std::wstring MessageUtils::GetMessage(
 }
 
 std::wstring MessageUtils::GetKoreanMessage() {
-    return L"이미 다른 계정에서 앱을 실행중입니다.";
+    return L"\xC774\xBBF8 \xB2E4\xB978 \xACC4\xC815\xC5D0\xC11C \xC571\xC744 \xC2E4\xD589\xC911\xC785\xB2C8\xB2E4.";
 }
 
 std::wstring MessageUtils::GetEnglishMessage() {
@@ -43,27 +43,14 @@ std::wstring MessageUtils::GetEnglishMessage() {
 
 std::wstring MessageUtils::Utf8ToWide(const std::string& str) {
     if (str.empty()) return std::wstring();
-    
-    int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), 
-        static_cast<int>(str.length()), nullptr, 0);
-    
-    std::wstring result(size_needed, 0);
-    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), 
-        static_cast<int>(str.length()), &result[0], size_needed);
-    
-    return result;
-}
 
-std::string MessageUtils::WideToUtf8(const std::wstring& wstr) {
-    if (wstr.empty()) return std::string();
-    
-    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), 
-        static_cast<int>(wstr.length()), nullptr, 0, nullptr, nullptr);
-    
-    std::string result(size_needed, 0);
-    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), 
-        static_cast<int>(wstr.length()), &result[0], size_needed, nullptr, nullptr);
-    
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(),
+        static_cast<int>(str.length()), nullptr, 0);
+
+    std::wstring result(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(),
+        static_cast<int>(str.length()), &result[0], size_needed);
+
     return result;
 }
 
