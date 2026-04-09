@@ -126,7 +126,8 @@ class FlutterAloneConfig implements AloneConfig {
 
     if (Platform.isWindows) {
       if (windowsConfig == null) {
-        throw StateError('FlutterAloneConfig.forWindows must be used on Windows');
+        throw StateError(
+            'FlutterAloneConfig.forWindows must be used on Windows');
       }
       map.addAll(windowsConfig!.toMap());
     } else if (Platform.isMacOS) {

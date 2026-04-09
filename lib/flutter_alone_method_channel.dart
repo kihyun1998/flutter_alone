@@ -19,7 +19,8 @@ class MethodChannelFlutterAlone extends FlutterAlonePlatform {
       );
 
       // In debug mode, assert that the platform returned a valid result
-      assert(result != null, 'flutter_alone: platform returned null from checkAndRun');
+      assert(result != null,
+          'flutter_alone: platform returned null from checkAndRun');
 
       // In release mode, treat null as "cannot run" (safety-first)
       return result ?? false;
