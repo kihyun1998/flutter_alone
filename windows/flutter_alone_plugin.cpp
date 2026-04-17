@@ -114,21 +114,16 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& 
             result.existingWindow = existingProcess->windowHandle;
         }
 
-        // Fallback: find by window title, but verify process identity to prevent title-spoofing
+        // Fallback: iterate all top-level windows with matching title and pick the
+        // one whose owning process matches our executable path. Using EnumWindows
+        // (instead of FindWindowW, which only returns the first title match) keeps
+        // this correct when a portable build and an installed build share the same
+        // window title — we skip same-title windows belonging to a different exe.
         if (result.existingWindow == NULL && !windowTitle.empty()) {
-            HWND hwnd = FindWindowW(NULL, windowTitle.c_str());
-            if (hwnd != NULL) {
-                // Verify the window belongs to the same executable
-                DWORD windowPid = 0;
-                GetWindowThreadProcessId(hwnd, &windowPid);
-                if (windowPid != 0) {
-                    std::wstring currentPath = ProcessUtils::GetProcessPath(GetCurrentProcessId());
-                    std::wstring windowPath = ProcessUtils::GetProcessPath(windowPid);
-                    if (!currentPath.empty() && !windowPath.empty() &&
-                        _wcsicmp(currentPath.c_str(), windowPath.c_str()) == 0) {
-                        result.existingWindow = hwnd;
-                    }
-                }
+            std::wstring currentPath = ProcessUtils::GetProcessPath(GetCurrentProcessId());
+            if (!currentPath.empty()) {
+                result.existingWindow = WindowUtils::FindWindowByTitleAndPath(
+                    windowTitle, currentPath);
             }
         }
     }

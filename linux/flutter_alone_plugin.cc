@@ -250,12 +250,16 @@ static bool run_command(const char* prog, char* const argv[]) {
 static bool activate_window_wayland(pid_t target_pid) {
   std::string pid_str = std::to_string(static_cast<int>(target_pid));
 
+  // Do NOT pass --onlyvisible: a tray-minimized / hidden main window must still
+  // be reachable so it can be activated (xdotool's windowactivate maps it back).
+  // --limit 1 avoids activating multiple helper windows belonging to the same PID.
   char* argv[] = {
     const_cast<char*>("xdotool"),
     const_cast<char*>("search"),
     const_cast<char*>("--pid"),
     const_cast<char*>(pid_str.c_str()),
-    const_cast<char*>("--onlyvisible"),
+    const_cast<char*>("--limit"),
+    const_cast<char*>("1"),
     const_cast<char*>("windowactivate"),
     nullptr
   };

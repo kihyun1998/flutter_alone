@@ -20,7 +20,7 @@ When a duplicate is launched, it automatically focuses the original window and s
 
 ```yaml
 dependencies:
-  flutter_alone: ^4.0.1
+  flutter_alone: ^4.0.2
 ```
 
 ```bash
@@ -255,7 +255,7 @@ const WindowConfig(
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `windowTitle` | `String?` | No | `null` | Window title used to locate the original window. **Essential for system tray apps** where the window may not be immediately visible |
+| `windowTitle` | `String?` | No | `null` | Window title used to locate the original window. **Essential for system tray apps** where the window may not be immediately visible. On Windows, the plugin enumerates all top-level windows matching this title and verifies the owning process path, so hidden/minimized windows are still reachable and windows from a different build that happens to share the same title are filtered out |
 
 ---
 
@@ -322,6 +322,13 @@ A: By default, the check is skipped in debug mode. Set `DuplicateCheckConfig(ena
 
 ### Q: Two different apps using flutter_alone conflict with each other.
 A: Both `MacOSConfig` and `LinuxConfig` default to `.lockfile`. Use a unique `lockFileName` per app (e.g., `'com.example.myapp.lock'`).
+
+### Q: I ship both an installed and a portable build of my app. How do I let them run side-by-side?
+A: The two builds must be distinguishable at every identity layer the OS / this plugin inspects:
+
+- **Windows** — give each build a different mutex name (e.g., derive it from the executable directory via `CustomWindowsMutexConfig`). The plugin already verifies process path, so even if both builds share the same `windowTitle`, the title fallback will skip windows from a different executable.
+- **macOS** — give each build a different `lockFileName`, and also use a different `CFBundleIdentifier` in the portable build's `Info.plist`. Launch Services treats apps with the same bundle ID as the same app, so the OS itself may coalesce them even before this plugin is reached. A post-build `PlistBuddy` step is usually simpler than adding a new Xcode configuration.
+- **Linux** — give each build a different `lockFileName`. Process identity is verified via `/proc/<pid>/exe`, so activation of an existing instance will never cross over to a different executable.
 
 ## Contributing
 

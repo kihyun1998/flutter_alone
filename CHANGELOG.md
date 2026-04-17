@@ -1,3 +1,10 @@
+## 4.0.2
+
+*   **Bug Fixes**
+    *   **Windows**: Fixed hidden main windows (e.g., minimized to the system tray via `SW_HIDE`) not being found by PID-based lookup. The `IsWindowVisible` filter in `EnumWindowsCallback` was preventing restoration of tray-hidden instances; it has been replaced with a `GetWindow(..., GW_OWNER) == NULL` top-level check, so hidden main windows remain findable while tooltip/popup helper windows are still excluded.
+    *   **Windows**: Replaced the `FindWindowW`-based title fallback in `CheckRunningInstance` with a new `WindowUtils::FindWindowByTitleAndPath` helper that enumerates **all** top-level windows with a matching title and picks the one whose owning process matches the current executable path. This fixes a scenario where two builds of the same app (e.g., installed and portable) share the same window title — previously `FindWindowW` would return only the first title match, and path verification would silently fail, leaving the intended instance unreachable.
+    *   **Linux (Wayland)**: Removed `--onlyvisible` from the `xdotool` search arguments in `activate_window_wayland` so tray-minimized / hidden windows can still be activated by the fallback path. Added `--limit 1` as a safety bound against activating multiple helper windows that share the PID.
+
 ## 4.0.1
 
 *   **Bug Fixes**
