@@ -66,7 +66,7 @@ BOOL CALLBACK WindowUtils::EnumWindowsCallback(HWND handle, LPARAM lParam) {
 
     if (processId == args->processId) {
         // Top-level only (exclude tooltip/popup helpers) with a non-empty title.
-        // Do NOT filter by IsWindowVisible — a hidden main window (e.g. tray-minimized)
+        // Do NOT filter by IsWindowVisible: a hidden main window (e.g. tray-minimized)
         // must still be findable so it can be restored.
         if (GetWindow(handle, GW_OWNER) == NULL) {
             WCHAR title[kMaxWindowTitleLength];

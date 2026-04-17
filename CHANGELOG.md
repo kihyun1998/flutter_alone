@@ -1,3 +1,8 @@
+## 4.0.3
+
+*   **Bug Fixes**
+    *   **Windows**: Fixed build failure in consumer projects on Korean (and other non-UTF-8 default codepage) Windows where MSVC read source files as CP949 and rejected em-dash (`—`, U+2014) characters in the newly added comments of `window_utils.cpp` and `flutter_alone_plugin.cpp` (C4819 promoted to C2220 via `/WX`). All non-ASCII punctuation in plugin source comments has been replaced with ASCII equivalents.
+
 ## 4.0.2
 
 *   **Bug Fixes**
