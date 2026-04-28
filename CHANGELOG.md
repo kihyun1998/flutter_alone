@@ -1,3 +1,11 @@
+## 4.0.4
+
+*   **Bug Fixes**
+    *   **macOS**: Fixed hidden and Dock-minimized windows not being restored when a duplicate instance is launched.
+        *   `bringWindowsToFront()` was called from the second instance's process context, making `NSApplication.shared.windows` refer to the second instance rather than the first — it has been removed.
+        *   Added `app.unhide()` before activation so apps hidden via Cmd+H are properly restored.
+        *   Replaced `app.activate(options:)` with `NSWorkspace.shared.open(bundleURL)`, which sends the standard `applicationShouldHandleReopen` event to the running instance and correctly restores Dock-minimized windows — analogous to the `IsWindowVisible` fix applied to Windows in v4.0.2.
+
 ## 4.0.3
 
 *   **Bug Fixes**

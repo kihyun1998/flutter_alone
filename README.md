@@ -12,7 +12,7 @@ When a duplicate is launched, it automatically focuses the original window and s
 |    ✅    |   ✅   |      ✅      |   ⚠️ Partial    |
 
 - **Windows**: Detects duplicates using system-level Mutex with cross-user support
-- **macOS**: Detects duplicates using advisory file locks (`flock`)
+- **macOS**: Detects duplicates using advisory file locks (`flock`). When a duplicate is launched, the running instance is restored via `NSWorkspace.open()` (sends `applicationShouldHandleReopen`), so Cmd+H-hidden and Dock-minimized windows are correctly brought back
 - **Linux (X11)**: Full support — duplicate detection via `flock` and window activation via `_NET_ACTIVE_WINDOW`
 - **Linux (Wayland)**: **Partial support** — duplicate detection works reliably, but window activation is best-effort only. Wayland does not provide an API for cross-process window raising by design. The plugin falls back to `xdotool` via XWayland; if `xdotool` is unavailable or the app is a native Wayland client, only the alert dialog is shown (no window activation).
 
@@ -20,7 +20,7 @@ When a duplicate is launched, it automatically focuses the original window and s
 
 ```yaml
 dependencies:
-  flutter_alone: ^4.0.3
+  flutter_alone: ^4.0.4
 ```
 
 ```bash

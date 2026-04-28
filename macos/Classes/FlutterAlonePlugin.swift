@@ -111,21 +111,16 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
           let appBundleId = app.bundleIdentifier,
           currentBundleId == appBundleId else { return }
 
-    app.activate(options: [.activateIgnoringOtherApps])
-
-    DispatchQueue.main.async {
-      self.bringWindowsToFront()
+    // Unhide first so Cmd+H-hidden instances become visible.
+    if app.isHidden {
+      app.unhide()
     }
-  }
-
-  private func bringWindowsToFront() {
-    if let appDelegate = NSApplication.shared.delegate as? FlutterAppDelegate,
-       let window = appDelegate.mainFlutterWindow {
-      window.makeKeyAndOrderFront(nil)
+    // open() sends applicationShouldHandleReopen to the running instance,
+    // which restores Dock-minimized windows — activate() alone does not.
+    if let bundleURL = app.bundleURL {
+      NSWorkspace.shared.open(bundleURL)
     } else {
-      for window in NSApplication.shared.windows {
-        window.makeKeyAndOrderFront(nil)
-      }
+      app.activate(options: [.activateIgnoringOtherApps])
     }
   }
 
