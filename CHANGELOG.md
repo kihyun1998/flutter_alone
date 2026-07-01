@@ -1,3 +1,8 @@
+## 4.0.13
+
+*   **Internal**
+    *   **Windows**: Broke the `process_utils` <-> `window_utils` circular dependency (issue #5 / F6). The existing-instance window lookup moved from `ProcessUtils::GetProcessInfoById` into the plugin, so `process_utils` no longer depends on `window_utils` (the dependency is now one-way). Also made the `ShowMessageBox` CBT-hook state `thread_local` instead of `static` (F7), removing a data race if the dialog is ever shown from multiple threads. No behavior change.
+
 ## 4.0.12
 
 *   **Internal**

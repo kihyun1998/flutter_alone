@@ -9,11 +9,10 @@ namespace flutter_alone {
 
 struct ProcessInfo {
     DWORD processId;
-    HWND windowHandle;
     std::wstring processPath;
     FILETIME startTime;
 
-    ProcessInfo() : processId(0), windowHandle(NULL) {
+    ProcessInfo() : processId(0) {
         startTime.dwLowDateTime = 0;
         startTime.dwHighDateTime = 0;
     }
