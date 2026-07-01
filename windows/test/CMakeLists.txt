@@ -34,5 +34,13 @@ target_link_libraries(mutex_guard_test PRIVATE GTest::gtest_main)
 # Advapi32 provides the SDDL security-descriptor helpers used by MutexGuard.
 target_link_libraries(mutex_guard_test PRIVATE Advapi32)
 
+add_executable(message_utils_test
+  message_utils_test.cpp
+  ../message_utils.cpp
+)
+target_include_directories(message_utils_test PRIVATE ..)
+target_link_libraries(message_utils_test PRIVATE GTest::gtest_main)
+
 include(GoogleTest)
 gtest_discover_tests(mutex_guard_test)
+gtest_discover_tests(message_utils_test)
