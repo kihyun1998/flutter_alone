@@ -55,10 +55,12 @@ void FlutterAlonePlugin::ShowMessageBox(const MessageBoxInfo& info) {
 
    HICON hIcon = IconUtils::GetAppIcon();
 
-   // Use non-static locals + capture via static pointer for the CBT hook.
-   // This is safe because ShowMessageBox blocks on MessageBoxW (single-threaded).
-   static HHOOK s_hook = NULL;
-   static HICON s_icon = NULL;
+   // The CBT hook proc is captureless, so it reaches the icon through
+   // thread-local state. thread_local (rather than a plain static) keeps
+   // concurrent ShowMessageBox calls on different threads from racing on shared
+   // globals; each call blocks on its own MessageBoxW on its own thread.
+   thread_local HHOOK s_hook = NULL;
+   thread_local HICON s_icon = NULL;
    s_icon = hIcon;
 
    s_hook = SetWindowsHookEx(
@@ -107,7 +109,10 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& 
 
         auto existingProcess = ProcessUtils::FindExistingProcess();
         if (existingProcess.has_value()) {
-            result.existingWindow = existingProcess->windowHandle;
+            // Look up the window here (rather than inside ProcessUtils) so
+            // process_utils has no dependency on window_utils.
+            result.existingWindow =
+                WindowUtils::FindMainWindow(existingProcess->processId);
         }
 
         // Fallback: iterate all top-level windows with matching title and pick the

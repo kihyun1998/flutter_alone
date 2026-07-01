@@ -1,5 +1,4 @@
 #include "process_utils.h"
-#include "window_utils.h"
 #include <windows.h>
 #include <tlhelp32.h>
 #include <memory>
@@ -17,7 +16,6 @@ ProcessInfo ProcessUtils::GetProcessInfoById(DWORD processId) {
         CloseHandle(hProcess);
     }
 
-    info.windowHandle = WindowUtils::FindMainWindow(processId);
     return info;
 }
 
