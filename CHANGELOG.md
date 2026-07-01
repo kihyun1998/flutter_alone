@@ -1,3 +1,8 @@
+## 4.0.12
+
+*   **Internal**
+    *   Centralized the method-channel argument keys into a single `MethodChannelKeys` source on the Dart side, so the config classes no longer repeat the key strings as scattered literals (issue #5 / F5). No behavior change.
+
 ## 4.0.11
 
 *   **Consistency**
