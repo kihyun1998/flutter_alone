@@ -1,7 +1,6 @@
 #include "flutter_alone_plugin.h"
 
 #include <windows.h>
-#include <sddl.h>
 
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
@@ -32,7 +31,7 @@ void FlutterAlonePlugin::RegisterWithRegistrar(
   registrar->AddPlugin(std::move(plugin));
 }
 
-FlutterAlonePlugin::FlutterAlonePlugin() : mutex_handle_(NULL) {}
+FlutterAlonePlugin::FlutterAlonePlugin() {}
 
 FlutterAlonePlugin::~FlutterAlonePlugin() {
   CleanupResources();
@@ -100,13 +99,10 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& 
     ProcessCheckResult result;
     result.canRun = true;
 
-    HANDLE existingMutex = OpenMutexW(SYNCHRONIZE, FALSE, mutexName.c_str());
-
-    if (existingMutex != NULL) {
+    if (MutexGuard::Exists(mutexName)) {
 #ifdef _DEBUG
         OutputDebugStringW((L"[DEBUG] Existing mutex found: " + mutexName + L"\n").c_str());
 #endif
-        CloseHandle(existingMutex);
         result.canRun = false;
 
         auto existingProcess = ProcessUtils::FindExistingProcess();
@@ -132,73 +128,11 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& 
 }
 
 bool FlutterAlonePlugin::CheckAndCreateMutex(const std::wstring& mutexName) {
-    // Guard: mutex already held by this plugin instance
-    if (mutex_handle_ != NULL) {
-        return false;
-    }
-
-    if (mutexName.empty() || mutexName.length() > kMaxMutexNameLength) {
-        return false;
-    }
-
-    // Validate no embedded backslash after the Global\ or Local\ prefix
-    auto backslashPos = mutexName.find(L'\\', 7);
-    if (backslashPos != std::wstring::npos) {
-        return false;
-    }
-
-    current_mutex_name_ = mutexName;
-
-#ifdef _DEBUG
-    OutputDebugStringW((L"[DEBUG] Creating mutex with name: " + current_mutex_name_ + L"\n").c_str());
-#endif
-
-    SECURITY_ATTRIBUTES sa;
-    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
-    sa.bInheritHandle = FALSE;
-
-    PSECURITY_DESCRIPTOR pSD = nullptr;
-    if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(
-            kMutexSecurityDescriptor,
-            SDDL_REVISION_1, &pSD, nullptr)) {
-#ifdef _DEBUG
-        OutputDebugStringW((L"[DEBUG] SDDL conversion failed, error: " +
-            std::to_wstring(GetLastError()) + L"\n").c_str());
-#endif
-        pSD = nullptr;
-    }
-    sa.lpSecurityDescriptor = pSD;
-
-    mutex_handle_ = CreateMutexW(
-        &sa,
-        TRUE,
-        current_mutex_name_.c_str()
-    );
-
-    DWORD lastErr = GetLastError();
-
-    if (pSD) {
-        LocalFree(pSD);
-    }
-
-    if (mutex_handle_ == NULL) {
-        return false;
-    }
-
-    if (lastErr == ERROR_ALREADY_EXISTS) {
-        CleanupResources();
-        return false;
-    }
-
-    return true;
+    return mutex_.Acquire(mutexName) == MutexAcquireOutcome::kAcquired;
 }
 
 void FlutterAlonePlugin::CleanupResources() {
-    if (mutex_handle_ != NULL) {
-        ReleaseMutex(mutex_handle_);
-        CloseHandle(mutex_handle_);
-        mutex_handle_ = NULL;
-    }
+    mutex_.Release();
 }
 
 bool FlutterAlonePlugin::ParseCheckAndRunArgs(

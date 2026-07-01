@@ -20,6 +20,8 @@ set(PLUGIN_NAME "flutter_alone_plugin")
 list(APPEND PLUGIN_SOURCES
   "flutter_alone_plugin.cpp"
   "flutter_alone_plugin.h"
+  "mutex_guard.cpp"
+  "mutex_guard.h"
   "process_utils.cpp"
   "process_utils.h"
   "message_utils.cpp"
