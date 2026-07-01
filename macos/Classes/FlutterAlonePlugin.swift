@@ -39,7 +39,20 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
       let tempDirectory = FileManager.default.temporaryDirectory
       let lockFilePath = tempDirectory.appendingPathComponent(lockFileName).path
 
-      let canRun = self.checkAndRun(lockFilePath: lockFilePath)
+      // Message config (previously ignored on macOS). Used to notify the user
+      // when a duplicate is detected but the existing instance cannot be
+      // activated -- parity with Windows and Linux.
+      let messageType = args["type"] as? String ?? "en"
+      let showMessageBox = args["showMessageBox"] as? Bool ?? true
+      let customTitle = args["customTitle"] as? String ?? ""
+      let customMessage = args["customMessage"] as? String ?? ""
+
+      let canRun = self.checkAndRun(
+        lockFilePath: lockFilePath,
+        messageType: messageType,
+        showMessageBox: showMessageBox,
+        customTitle: customTitle,
+        customMessage: customMessage)
       result(canRun)
 
     case "dispose":
@@ -53,7 +66,13 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
 
   // MARK: - Core Logic
 
-  private func checkAndRun(lockFilePath: String) -> Bool {
+  private func checkAndRun(
+    lockFilePath: String,
+    messageType: String,
+    showMessageBox: Bool,
+    customTitle: String,
+    customMessage: String
+  ) -> Bool {
     let currentPid = ProcessInfo.processInfo.processIdentifier
 
     let fd = open(lockFilePath, O_CREAT | O_RDWR | O_NOFOLLOW, Self.lockFilePermissions)
@@ -67,9 +86,15 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
       close(fd)
 
       if flockErrno == EWOULDBLOCK || flockErrno == EAGAIN {
-        // Another instance holds the lock — try to activate it
-        if let existingPid = readPid(from: lockFilePath) {
-          activateExistingInstance(pid: existingPid)
+        // Another instance holds the lock. Try to activate it; if we cannot
+        // (no PID, dead process, or a different bundle id), notify the user so
+        // a duplicate launch is never a silent no-op (parity with Win/Linux).
+        let activated =
+          readPid(from: lockFilePath).map { activateExistingInstance(pid: $0) } ?? false
+        if !activated && showMessageBox {
+          showAlreadyRunningAlert(
+            title: DuplicateMessage.title(type: messageType, custom: customTitle),
+            message: DuplicateMessage.body(type: messageType, custom: customMessage))
         }
       } else {
         NSLog("flutter_alone: flock failed with errno %d", flockErrno)
@@ -102,26 +127,42 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
     return written == data.count
   }
 
-  private func activateExistingInstance(pid: pid_t) {
-    guard isRunning(pid: pid) else { return }
-    guard let app = NSRunningApplication(processIdentifier: pid) else { return }
+  /// Returns true if an existing instance was found and activation was attempted,
+  /// false if there is no matching instance to bring forward (in which case the
+  /// caller shows the "already running" notification instead).
+  @discardableResult
+  private func activateExistingInstance(pid: pid_t) -> Bool {
+    guard isRunning(pid: pid) else { return false }
+    guard let app = NSRunningApplication(processIdentifier: pid) else { return false }
 
     // Require both bundle IDs to be present and match
     guard let currentBundleId = Bundle.main.bundleIdentifier,
           let appBundleId = app.bundleIdentifier,
-          currentBundleId == appBundleId else { return }
+          currentBundleId == appBundleId else { return false }
 
     // Unhide first so Cmd+H-hidden instances become visible.
     if app.isHidden {
       app.unhide()
     }
-    // open() sends applicationShouldHandleReopen to the running instance,
-    // which restores Dock-minimized windows — activate() alone does not.
+    // open() sends applicationShouldHandleReopen to the running instance, which
+    // restores Dock-minimized windows; activate() alone does not.
     if let bundleURL = app.bundleURL {
       NSWorkspace.shared.open(bundleURL)
     } else {
       app.activate(options: [.activateIgnoringOtherApps])
     }
+    return true
+  }
+
+  // Synchronous by design: the alert blocks before the duplicate instance exits,
+  // matching MessageBoxW on Windows and gtk_dialog_run on Linux.
+  private func showAlreadyRunningAlert(title: String, message: String) {
+    let alert = NSAlert()
+    alert.messageText = title
+    alert.informativeText = message
+    alert.alertStyle = .informational
+    alert.addButton(withTitle: "OK")
+    alert.runModal()
   }
 
   private func dispose() {
