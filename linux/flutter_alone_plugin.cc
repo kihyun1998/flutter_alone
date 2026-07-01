@@ -1,7 +1,6 @@
 #include "include/flutter_alone/flutter_alone_plugin.h"
 
 #include "lock_file.h"
-#include "message_text.h"
 
 #include <flutter_linux/flutter_linux.h>
 #include <gtk/gtk.h>
@@ -274,15 +273,11 @@ static void show_message_dialog(const gchar* title, const gchar* message, gboole
 // Message utilities
 // ============================================================
 
-// Show "already running" notification dialog. Text selection lives in the pure
-// message_text seam so it can be unit-tested without a display.
-static void notify_already_running(const gchar* type, const gchar* custom_title,
-                                    const gchar* custom_message, gboolean show_message_box) {
-  std::string title = flutter_alone::TitleForType(
-      type ? type : "", custom_title ? custom_title : "");
-  std::string message = flutter_alone::MessageForType(
-      type ? type : "", custom_message ? custom_message : "");
-  show_message_dialog(title.c_str(), message.c_str(), show_message_box);
+// Show "already running" notification dialog. The title and message are resolved
+// on the Dart side (single source of truth); this only displays them.
+static void notify_already_running(const gchar* title, const gchar* message,
+                                    gboolean show_message_box) {
+  show_message_dialog(title, message, show_message_box);
 }
 
 // ============================================================
@@ -321,20 +316,18 @@ static void handle_check_and_run(FlutterAlonePlugin* self, FlValue* args, FlMeth
     return;
   }
 
-  // Get message config
-  FlValue* type_value = fl_value_lookup_string(args, "type");
-  const gchar* type = type_value ? fl_value_get_string(type_value) : "en";
-
+  // Message config. Title/message are resolved on the Dart side (single source
+  // of truth); Linux only displays them.
   FlValue* show_msg_value = fl_value_lookup_string(args, "showMessageBox");
   gboolean show_message_box = show_msg_value ? fl_value_get_bool(show_msg_value) : TRUE;
 
-  FlValue* custom_title_value = fl_value_lookup_string(args, "customTitle");
-  const gchar* custom_title = (custom_title_value && fl_value_get_type(custom_title_value) != FL_VALUE_TYPE_NULL)
-      ? fl_value_get_string(custom_title_value) : "";
+  FlValue* title_value = fl_value_lookup_string(args, "title");
+  const gchar* title = (title_value && fl_value_get_type(title_value) != FL_VALUE_TYPE_NULL)
+      ? fl_value_get_string(title_value) : "";
 
-  FlValue* custom_message_value = fl_value_lookup_string(args, "customMessage");
-  const gchar* custom_message = (custom_message_value && fl_value_get_type(custom_message_value) != FL_VALUE_TYPE_NULL)
-      ? fl_value_get_string(custom_message_value) : "";
+  FlValue* message_value = fl_value_lookup_string(args, "message");
+  const gchar* message = (message_value && fl_value_get_type(message_value) != FL_VALUE_TYPE_NULL)
+      ? fl_value_get_string(message_value) : "";
 
   // Build lock file path
   std::string lock_path = get_lock_file_path(lock_file_name);
@@ -354,10 +347,10 @@ static void handle_check_and_run(FlutterAlonePlugin* self, FlValue* args, FlMeth
     if (existing_pid > 0 && is_process_running(existing_pid) &&
         is_same_executable(existing_pid)) {
       if (!activate_existing_window(existing_pid)) {
-        notify_already_running(type, custom_title, custom_message, show_message_box);
+        notify_already_running(title, message, show_message_box);
       }
     } else {
-      notify_already_running(type, custom_title, custom_message, show_message_box);
+      notify_already_running(title, message, show_message_box);
     }
 
     g_autoptr(FlValue) result = fl_value_new_bool(FALSE);

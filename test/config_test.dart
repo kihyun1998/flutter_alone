@@ -49,12 +49,30 @@ void main() {
   group('MessageConfig', () {
     test('EnMessageConfig serializes type "en"', () {
       const config = EnMessageConfig();
-      expect(config.toMap(), {'type': 'en', 'showMessageBox': true});
+      expect(config.toMap()['type'], 'en');
+      expect(config.toMap()['showMessageBox'], true);
+    });
+
+    test('EnMessageConfig resolves the English title and message', () {
+      const config = EnMessageConfig();
+      expect(config.toMap()['title'], 'Notice');
+      expect(config.toMap()['message'],
+          'Application is already running in another account.');
     });
 
     test('KoMessageConfig serializes type "ko" and honors showMessageBox', () {
       const config = KoMessageConfig(showMessageBox: false);
-      expect(config.toMap(), {'type': 'ko', 'showMessageBox': false});
+      expect(config.toMap()['type'], 'ko');
+      expect(config.toMap()['showMessageBox'], false);
+    });
+
+    test('KoMessageConfig resolves the Korean title and message', () {
+      const config = KoMessageConfig();
+      expect(config.toMap()['title'], '알림');
+      expect(
+        config.toMap()['message'],
+        '이미 다른 계정에서 앱을 실행중입니다.',
+      );
     });
 
     test('CustomMessageConfig serializes custom title and message', () {
@@ -67,6 +85,25 @@ void main() {
       expect(map['customTitle'], 'Notice');
       expect(map['customMessage'], 'Already running');
       expect(map['showMessageBox'], true);
+    });
+
+    test('CustomMessageConfig resolves title/message from the custom values',
+        () {
+      const config = CustomMessageConfig(
+        customTitle: 'My Title',
+        customMessage: 'My Message',
+      );
+      expect(config.toMap()['title'], 'My Title');
+      expect(config.toMap()['message'], 'My Message');
+    });
+
+    test(
+        'CustomMessageConfig falls back to English when a custom value is empty',
+        () {
+      const config = CustomMessageConfig(customTitle: '', customMessage: '');
+      expect(config.toMap()['title'], 'Notice');
+      expect(config.toMap()['message'],
+          'Application is already running in another account.');
     });
   });
 

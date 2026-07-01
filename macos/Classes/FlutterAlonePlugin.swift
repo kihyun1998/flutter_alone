@@ -39,20 +39,17 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
       let tempDirectory = FileManager.default.temporaryDirectory
       let lockFilePath = tempDirectory.appendingPathComponent(lockFileName).path
 
-      // Message config (previously ignored on macOS). Used to notify the user
-      // when a duplicate is detected but the existing instance cannot be
-      // activated -- parity with Windows and Linux.
-      let messageType = args["type"] as? String ?? "en"
+      // Title and message are resolved on the Dart side (single source of
+      // truth); macOS only displays them when activation is not possible.
       let showMessageBox = args["showMessageBox"] as? Bool ?? true
-      let customTitle = args["customTitle"] as? String ?? ""
-      let customMessage = args["customMessage"] as? String ?? ""
+      let title = args["title"] as? String ?? ""
+      let message = args["message"] as? String ?? ""
 
       let canRun = self.checkAndRun(
         lockFilePath: lockFilePath,
-        messageType: messageType,
         showMessageBox: showMessageBox,
-        customTitle: customTitle,
-        customMessage: customMessage)
+        title: title,
+        message: message)
       result(canRun)
 
     case "dispose":
@@ -68,10 +65,9 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
 
   private func checkAndRun(
     lockFilePath: String,
-    messageType: String,
     showMessageBox: Bool,
-    customTitle: String,
-    customMessage: String
+    title: String,
+    message: String
   ) -> Bool {
     let currentPid = ProcessInfo.processInfo.processIdentifier
 
@@ -92,9 +88,7 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
         let activated =
           readPid(from: lockFilePath).map { activateExistingInstance(pid: $0) } ?? false
         if !activated && showMessageBox {
-          showAlreadyRunningAlert(
-            title: DuplicateMessage.title(type: messageType, custom: customTitle),
-            message: DuplicateMessage.body(type: messageType, custom: customMessage))
+          showAlreadyRunningAlert(title: title, message: message)
         }
       } else {
         NSLog("flutter_alone: flock failed with errno %d", flockErrno)

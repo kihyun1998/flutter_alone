@@ -30,14 +30,5 @@ add_executable(lock_file_test
 target_include_directories(lock_file_test PRIVATE ..)
 target_link_libraries(lock_file_test PRIVATE GTest::gtest_main)
 
-# Pure C++ (no POSIX), so this target also builds on non-Linux hosts.
-add_executable(message_text_test
-  message_text_test.cc
-  ../message_text.cc
-)
-target_include_directories(message_text_test PRIVATE ..)
-target_link_libraries(message_text_test PRIVATE GTest::gtest_main)
-
 include(GoogleTest)
 gtest_discover_tests(lock_file_test)
-gtest_discover_tests(message_text_test)
