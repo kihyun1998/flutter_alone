@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Pinned so CI does not drift with the runner's default Flutter.
+env:
+  FLUTTER_VERSION: "3.41.9"
+
+jobs:
+  dart:
+    name: Dart (format, analyze, test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter --version
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test
+
+  linux:
+    name: Linux (build + native gtest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Install Linux build dependencies
+        # gtk/x11/clang/cmake/ninja for the plugin; appindicator for the
+        # example's system_tray dependency.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake clang pkg-config \
+            libgtk-3-dev libx11-dev libayatana-appindicator3-dev
+      - name: Build Linux example (compiles the native plugin)
+        working-directory: example
+        run: flutter build linux --debug
+      # The lock-file seam is pure POSIX (no Flutter/GTK), so it builds and runs
+      # standalone via FetchContent GoogleTest. This is the regression gate for
+      # the issue #1 lock-file ownership bug.
+      - name: Configure native tests
+        run: cmake -S linux/test -B build/linux-test -G Ninja -DCMAKE_BUILD_TYPE=Debug
+      - name: Build native tests
+        run: cmake --build build/linux-test
+      - name: Run native tests
+        run: ctest --test-dir build/linux-test --output-on-failure
+
+  windows:
+    name: Windows (build)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build Windows example (compiles the native plugin)
+        working-directory: example
+        run: flutter build windows --debug
+      # NOTE: The native gtest under windows/test is intentionally NOT run yet.
+      # It is a stale stub asserting a getPlatformVersion method that no longer
+      # exists, and it has no CMakeLists. Wiring a real Windows native test is
+      # tracked in the test-coverage issue. This job still validates that the
+      # native C++ compiles.
+
+  macos:
+    name: macOS (build)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build macOS example (compiles the native plugin)
+        working-directory: example
+        run: flutter build macos --debug
