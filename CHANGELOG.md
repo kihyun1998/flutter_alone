@@ -1,3 +1,8 @@
+## 4.0.8
+
+*   **Bug Fixes**
+    *   **macOS**: The message configuration (`type`, `showMessageBox`, `customTitle`, `customMessage`) was previously ignored. When a duplicate instance was detected but the existing instance could not be activated (e.g. a different bundle identifier), the user received no feedback at all. macOS now shows an `NSAlert` with the localized or custom title and message in that case (gated by `showMessageBox`), matching the Windows and Linux behavior. The dialog text selection is factored into a pure `DuplicateMessage` helper covered by the example's XCTest target, which now runs in CI.
+
 ## 4.0.7
 
 *   **Bug Fixes**

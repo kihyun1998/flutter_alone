@@ -80,7 +80,7 @@ jobs:
       # native C++ compiles.
 
   macos:
-    name: macOS (build)
+    name: macOS (build + XCTest)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -89,6 +89,18 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+      # Build first, or the generated Flutter/ephemeral/*.xcfilelist files are
+      # missing and the xcodebuild test step fails.
       - name: Build macOS example (compiles the native plugin)
         working-directory: example
         run: flutter build macos --debug
+      # Runs the RunnerTests XCTest target, which unit-tests the plugin's pure
+      # DuplicateMessage string table.
+      - name: Run XCTest (native macOS unit tests)
+        working-directory: example
+        run: |
+          xcodebuild test \
+            -workspace macos/Runner.xcworkspace \
+            -scheme Runner \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO
