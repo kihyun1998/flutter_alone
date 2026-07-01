@@ -1,3 +1,8 @@
+## 4.0.10
+
+*   **Internal**
+    *   **Linux**: Extracted the localized message-string selection out of the plugin into a pure, GTK-independent `message_text` seam (`linux/message_text.{h,cc}`), covered by a `linux/test` gtest that now runs in CI. No change in observable behavior. This completes unit-test coverage of the "already running" string table across all three platforms (Windows `MessageUtils`, macOS `DuplicateMessage`, Linux `message_text`).
+
 ## 4.0.9
 
 *   **Internal**
