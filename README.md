@@ -12,7 +12,7 @@ When a duplicate is launched, it automatically focuses the original window and s
 |    ✅    |   ✅   |      ✅      |   ⚠️ Partial    |
 
 - **Windows**: Detects duplicates using system-level Mutex with cross-user support
-- **macOS**: Detects duplicates using advisory file locks (`flock`). When a duplicate is launched, the running instance is restored via `NSWorkspace.open()` (sends `applicationShouldHandleReopen`), so Cmd+H-hidden and Dock-minimized windows are correctly brought back
+- **macOS**: Detects duplicates using advisory file locks (`flock`). When a duplicate is launched, the running instance is restored via `NSWorkspace.open()` (sends `applicationShouldHandleReopen`), so Cmd+H-hidden and Dock-minimized windows are correctly brought back. If the running instance cannot be activated (e.g. a different bundle identifier), the alert dialog is shown instead
 - **Linux (X11)**: Full support — duplicate detection via `flock` and window activation via `_NET_ACTIVE_WINDOW`
 - **Linux (Wayland)**: **Partial support** — duplicate detection works reliably, but window activation is best-effort only. Wayland does not provide an API for cross-process window raising by design. The plugin falls back to `xdotool` via XWayland; if `xdotool` is unavailable or the app is a native Wayland client, only the alert dialog is shown (no window activation).
 
@@ -20,7 +20,7 @@ When a duplicate is launched, it automatically focuses the original window and s
 
 ```yaml
 dependencies:
-  flutter_alone: ^4.0.4
+  flutter_alone: ^4.1.0
 ```
 
 ```bash
@@ -134,6 +134,8 @@ FlutterAloneConfig.forLinux(
 ### Windows Mutex Config
 
 Configures the system mutex name used for duplicate detection.
+
+> **Note**: The generated mutex name must be non-empty, at most 260 characters, and contain no backslash after the `Global\` prefix. An invalid name throws an `ArgumentError` when the config is serialized (at `checkAndRun`), rather than letting the app fail silently.
 
 #### `DefaultWindowsMutexConfig`
 

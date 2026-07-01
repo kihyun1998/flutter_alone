@@ -1,52 +1,19 @@
-## 4.0.14
+## 4.1.0
 
-*   **Internal**
-    *   Added unit coverage for the remaining pure logic: the `FlutterAlone` debug-mode skip and platform delegation, `AloneException.toString()`, and Windows `ProcessUtils::IsSameExecutable` (a new `process_utils_test` gtest; the method was made public so it can be tested). No behavior change.
-
-## 4.0.13
-
-*   **Internal**
-    *   **Windows**: Broke the `process_utils` <-> `window_utils` circular dependency (issue #5 / F6). The existing-instance window lookup moved from `ProcessUtils::GetProcessInfoById` into the plugin, so `process_utils` no longer depends on `window_utils` (the dependency is now one-way). Also made the `ShowMessageBox` CBT-hook state `thread_local` instead of `static` (F7), removing a data race if the dialog is ever shown from multiple threads. No behavior change.
-
-## 4.0.12
-
-*   **Internal**
-    *   Centralized the method-channel argument keys into a single `MethodChannelKeys` source on the Dart side, so the config classes no longer repeat the key strings as scattered literals (issue #5 / F5). No behavior change.
-
-## 4.0.11
-
-*   **Consistency**
-    *   Unified the "already running" dialog strings into a single source of truth on the Dart side. `MessageConfig` now resolves the `title`/`message` and sends them to every platform, which simply displays them; the per-platform native string tables (Windows `MessageUtils` selection, macOS `DuplicateMessage`, Linux `message_text`) have been removed. This fixes cross-platform drift: the Windows dialog **title** for the built-in `ko`/`en` messages was `실행 오류` / `Execution Error` and is now `알림` / `Notice`, matching macOS and Linux. Message bodies and custom messages are unchanged.
-
-## 4.0.10
-
-*   **Internal**
-    *   **Linux**: Extracted the localized message-string selection out of the plugin into a pure, GTK-independent `message_text` seam (`linux/message_text.{h,cc}`), covered by a `linux/test` gtest that now runs in CI. No change in observable behavior. This completes unit-test coverage of the "already running" string table across all three platforms (Windows `MessageUtils`, macOS `DuplicateMessage`, Linux `message_text`).
-
-## 4.0.9
-
-*   **Internal**
-    *   **Windows**: Extracted the named-mutex logic into a standalone, Flutter-independent `MutexGuard` seam (`windows/mutex_guard.{h,cpp}`), covered by a `windows/test` gtest suite that now runs in CI via cmake/ctest. No change in observable behavior; the stale `getPlatformVersion` test stub was removed.
-
-## 4.0.8
+*   **Features**
+    *   Added `FlutterAloneConfig.toMapFor(AlonePlatform)` — a platform-explicit serialization that can be exercised on any OS — plus the public `AlonePlatform` enum. `toMap()` now delegates to it using the current OS (no behavior change for existing callers).
+    *   **macOS**: the message configuration is now honored. When a duplicate is detected but the running instance cannot be activated (e.g. a different bundle identifier), macOS shows an `NSAlert` instead of silently doing nothing — matching Windows and Linux.
 
 *   **Bug Fixes**
-    *   **macOS**: The message configuration (`type`, `showMessageBox`, `customTitle`, `customMessage`) was previously ignored. When a duplicate instance was detected but the existing instance could not be activated (e.g. a different bundle identifier), the user received no feedback at all. macOS now shows an `NSAlert` with the localized or custom title and message in that case (gated by `showMessageBox`), matching the Windows and Linux behavior. The dialog text selection is factored into a pure `DuplicateMessage` helper covered by the example's XCTest target, which now runs in CI.
+    *   **Linux**: fixed a duplicate launch being able to delete the *primary* instance's lock file, which broke the single-instance guarantee on later launches. The lock path is now recorded only after the advisory `flock` is actually acquired.
+    *   **Windows**: an invalid mutex name (empty, longer than 260 characters, or containing a backslash after the `Global\` prefix) now throws `ArgumentError` at `checkAndRun` time instead of causing the app to silently exit.
 
-## 4.0.7
+*   **Changed**
+    *   The "already running" dialog strings are now resolved in one place on the Dart side and passed to every platform. As a result the Windows dialog **title** for the built-in `ko` / `en` messages is now `알림` / `Notice` (was `실행 오류` / `Execution Error`), matching macOS and Linux. Message bodies and custom messages are unchanged.
 
-*   **Bug Fixes**
-    *   **Windows**: An invalid mutex name (empty, longer than 260 characters, or containing a backslash after the `Global\` prefix) previously made the native layer return `false`, which `checkAndRun` reports as "already running" — so the app would **silently exit** instead of surfacing the misconfiguration. `WindowsMutexConfig` now validates the generated mutex name and throws `ArgumentError` (consistent with the existing `MacOSConfig`/`LinuxConfig` lock-file-name validation), so a bad configuration fails loudly at `checkAndRun` time. Valid names are unaffected.
-
-## 4.0.6
-
-*   **Refactor**
-    *   Decoupled `FlutterAloneConfig.toMap()` from the runtime OS. The serialization logic moved into a new pure method `toMapFor(AlonePlatform)` that takes the target platform as a parameter; `toMap()` now delegates to it using the current OS. Every platform's serialization branch is now unit-testable on any OS/CI runner (previously `toMap()` threw `StateError` for the non-host platform, making off-platform branches untestable). No behavior change for existing callers. Adds the public `AlonePlatform` enum and `FlutterAloneConfig.toMapFor` method.
-
-## 4.0.5
-
-*   **Bug Fixes**
-    *   **Linux**: Fixed a duplicate launch being able to delete the primary instance's lock file, which broke the single-instance guarantee on subsequent launches. Previously the lock-file path was recorded before the advisory `flock` was acquired, so a non-owning (duplicate) instance would `unlink` the holder's lock file on dispose. The lock logic is now isolated in a dedicated, ownership-scoped module (`lock_file.h` / `lock_file.cc`): the file path is recorded only when the lock is actually acquired, making the "path recorded but lock not held" state unrepresentable. A standalone gtest regression suite was added under `linux/test/` (buildable independently of the Flutter/GTK toolchain).
+*   **Internal**
+    *   Extracted the native single-instance and message logic into testable, Flutter-independent seams (`windows/mutex_guard`, `linux/lock_file`, and per-platform message tables), centralized the Dart method-channel keys, broke the Windows `process_utils` <-> `window_utils` circular dependency, and made the Windows dialog hook state `thread_local`.
+    *   Added a GitHub Actions CI pipeline (Dart analyze/format/test plus native builds and gtest/XCTest on Windows, macOS, and Linux) and comprehensive unit tests across the Dart layer and all three platforms' pure native logic.
 
 ## 4.0.4
 
