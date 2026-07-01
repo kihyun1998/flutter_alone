@@ -1,3 +1,8 @@
+## 4.0.6
+
+*   **Refactor**
+    *   Decoupled `FlutterAloneConfig.toMap()` from the runtime OS. The serialization logic moved into a new pure method `toMapFor(AlonePlatform)` that takes the target platform as a parameter; `toMap()` now delegates to it using the current OS. Every platform's serialization branch is now unit-testable on any OS/CI runner (previously `toMap()` threw `StateError` for the non-host platform, making off-platform branches untestable). No behavior change for existing callers. Adds the public `AlonePlatform` enum and `FlutterAloneConfig.toMapFor` method.
+
 ## 4.0.5
 
 *   **Bug Fixes**

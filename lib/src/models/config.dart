@@ -5,6 +5,12 @@ import 'macos_config.dart';
 import 'message_config.dart';
 import 'windows_config.dart';
 
+/// The desktop platform a [FlutterAloneConfig] is serialized for.
+///
+/// Passed to [FlutterAloneConfig.toMapFor] so serialization does not depend on
+/// the runtime OS and can be unit-tested for every platform on any OS.
+enum AlonePlatform { windows, macOS, linux, other }
+
 /// Base configuration interface
 abstract class AloneConfig {
   /// Convert to map for MethodChannel communication.
@@ -120,30 +126,52 @@ class FlutterAloneConfig implements AloneConfig {
   }
 
   @override
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap() => toMapFor(_currentPlatform());
+
+  /// Serializes this config for an explicit [platform].
+  ///
+  /// Unlike [toMap], this does not read the runtime OS, so every platform
+  /// branch is testable on any OS. [toMap] delegates here with the current
+  /// platform. Throws [StateError] if the config lacks the platform-specific
+  /// section required by [platform] (e.g. a config built with
+  /// [FlutterAloneConfig.forMacOS] serialized for [AlonePlatform.windows]).
+  Map<String, dynamic> toMapFor(AlonePlatform platform) {
     final map = <String, dynamic>{};
     map.addAll(duplicateCheckConfig.toMap());
 
-    if (Platform.isWindows) {
-      if (windowsConfig == null) {
-        throw StateError(
-            'FlutterAloneConfig.forWindows must be used on Windows');
-      }
-      map.addAll(windowsConfig!.toMap());
-    } else if (Platform.isMacOS) {
-      if (macOSConfig == null) {
-        throw StateError('FlutterAloneConfig.forMacOS must be used on macOS');
-      }
-      map.addAll(macOSConfig!.toMap());
-    } else if (Platform.isLinux) {
-      if (linuxConfig == null) {
-        throw StateError('FlutterAloneConfig.forLinux must be used on Linux');
-      }
-      map.addAll(linuxConfig!.toMap());
+    switch (platform) {
+      case AlonePlatform.windows:
+        if (windowsConfig == null) {
+          throw StateError(
+              'FlutterAloneConfig.forWindows must be used on Windows');
+        }
+        map.addAll(windowsConfig!.toMap());
+        break;
+      case AlonePlatform.macOS:
+        if (macOSConfig == null) {
+          throw StateError('FlutterAloneConfig.forMacOS must be used on macOS');
+        }
+        map.addAll(macOSConfig!.toMap());
+        break;
+      case AlonePlatform.linux:
+        if (linuxConfig == null) {
+          throw StateError('FlutterAloneConfig.forLinux must be used on Linux');
+        }
+        map.addAll(linuxConfig!.toMap());
+        break;
+      case AlonePlatform.other:
+        break;
     }
 
     map.addAll(windowConfig.toMap());
     map.addAll(messageConfig.toMap());
     return map;
+  }
+
+  static AlonePlatform _currentPlatform() {
+    if (Platform.isWindows) return AlonePlatform.windows;
+    if (Platform.isMacOS) return AlonePlatform.macOS;
+    if (Platform.isLinux) return AlonePlatform.linux;
+    return AlonePlatform.other;
   }
 }
