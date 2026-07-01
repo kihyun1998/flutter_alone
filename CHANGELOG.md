@@ -1,3 +1,8 @@
+## 4.0.11
+
+*   **Consistency**
+    *   Unified the "already running" dialog strings into a single source of truth on the Dart side. `MessageConfig` now resolves the `title`/`message` and sends them to every platform, which simply displays them; the per-platform native string tables (Windows `MessageUtils` selection, macOS `DuplicateMessage`, Linux `message_text`) have been removed. This fixes cross-platform drift: the Windows dialog **title** for the built-in `ko`/`en` messages was `실행 오류` / `Execution Error` and is now `알림` / `Notice`, matching macOS and Linux. Message bodies and custom messages are unchanged.
+
 ## 4.0.10
 
 *   **Internal**

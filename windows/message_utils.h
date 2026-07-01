@@ -5,23 +5,12 @@
 
 namespace flutter_alone {
 
-enum class MessageType {
-    Korean,
-    English,
-    Custom
-};
-
 class MessageUtils {
 public:
-    static std::wstring GetTitleText(MessageType type, const std::wstring& customTitle = L"");
-    static std::wstring GetMessageText(MessageType type, const std::wstring& customMessage = L"");
+    // Converts a UTF-8 std::string (as received over the method channel) to a
+    // wide string for the Win32 API. The dialog title/message text itself is
+    // resolved on the Dart side (single source of truth) and passed through.
     static std::wstring Utf8ToWide(const std::string& str);
-
-private:
-    static std::wstring GetKoreanTitle() { return L"\xC2E4\xD589 \xC624\xB958"; }
-    static std::wstring GetEnglishTitle() { return L"Execution Error"; }
-    static std::wstring GetKoreanMessageText();
-    static std::wstring GetEnglishMessageText();
 };
 
 }  // namespace flutter_alone

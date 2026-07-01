@@ -135,14 +135,13 @@ void FlutterAlonePlugin::CleanupResources() {
     mutex_.Release();
 }
 
-bool FlutterAlonePlugin::ParseCheckAndRunArgs(
+void FlutterAlonePlugin::ParseCheckAndRunArgs(
     const flutter::EncodableMap* arguments,
     std::wstring& windowTitle,
     std::wstring& mutexName,
     bool& showMessageBox,
-    MessageType& type,
-    std::wstring& customTitle,
-    std::wstring& customMessage) {
+    std::wstring& title,
+    std::wstring& message) {
 
     auto windowTitleIt = arguments->find(flutter::EncodableValue(kArgWindowTitle));
     if (windowTitleIt != arguments->end() && !windowTitleIt->second.IsNull()) {
@@ -162,33 +161,18 @@ bool FlutterAlonePlugin::ParseCheckAndRunArgs(
         if (val) showMessageBox = *val;
     }
 
-    auto typeIt = arguments->find(flutter::EncodableValue(kArgType));
-    if (typeIt != arguments->end() && !typeIt->second.IsNull()) {
-        auto* typeStr = std::get_if<std::string>(&typeIt->second);
-        if (typeStr) {
-            if (*typeStr == "ko") type = MessageType::Korean;
-            else if (*typeStr == "en") type = MessageType::English;
-            else type = MessageType::Custom;
-        }
-    } else {
-        return false;
+    // Title and message are resolved on the Dart side (single source of truth).
+    auto titleIt = arguments->find(flutter::EncodableValue(kArgTitle));
+    if (titleIt != arguments->end() && !titleIt->second.IsNull()) {
+        auto* str = std::get_if<std::string>(&titleIt->second);
+        if (str) title = MessageUtils::Utf8ToWide(*str);
     }
 
-    if (type == MessageType::Custom) {
-        auto titleIt = arguments->find(flutter::EncodableValue(kArgCustomTitle));
-        if (titleIt != arguments->end() && !titleIt->second.IsNull()) {
-            auto* str = std::get_if<std::string>(&titleIt->second);
-            if (str) customTitle = MessageUtils::Utf8ToWide(*str);
-        }
-
-        auto msgIt = arguments->find(flutter::EncodableValue(kArgCustomMessage));
-        if (msgIt != arguments->end() && !msgIt->second.IsNull()) {
-            auto* str = std::get_if<std::string>(&msgIt->second);
-            if (str) customMessage = MessageUtils::Utf8ToWide(*str);
-        }
+    auto msgIt = arguments->find(flutter::EncodableValue(kArgMessage));
+    if (msgIt != arguments->end() && !msgIt->second.IsNull()) {
+        auto* str = std::get_if<std::string>(&msgIt->second);
+        if (str) message = MessageUtils::Utf8ToWide(*str);
     }
-
-    return true;
 }
 
 void FlutterAlonePlugin::HandleMethodCall(
@@ -202,15 +186,11 @@ void FlutterAlonePlugin::HandleMethodCall(
             return;
         }
 
-        std::wstring windowTitle, mutexName, customTitle, customMessage;
+        std::wstring windowTitle, mutexName, title, message;
         bool showMessageBox = true;
-        MessageType type = MessageType::English;
 
-        if (!ParseCheckAndRunArgs(arguments, windowTitle, mutexName,
-                                   showMessageBox, type, customTitle, customMessage)) {
-            result->Error("BAD_ARGS", "Required argument 'type' is missing");
-            return;
-        }
+        ParseCheckAndRunArgs(arguments, windowTitle, mutexName,
+                             showMessageBox, title, message);
 
         auto checkResult = CheckRunningInstance(mutexName, windowTitle);
 
@@ -220,8 +200,6 @@ void FlutterAlonePlugin::HandleMethodCall(
                 WindowUtils::BringWindowToFront(checkResult.existingWindow);
                 WindowUtils::FocusWindow(checkResult.existingWindow);
             } else {
-                std::wstring title = MessageUtils::GetTitleText(type, customTitle);
-                std::wstring message = MessageUtils::GetMessageText(type, customMessage);
                 ShowAlreadyRunningMessage(title, message, showMessageBox);
             }
 

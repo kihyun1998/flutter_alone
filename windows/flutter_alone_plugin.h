@@ -20,9 +20,8 @@ constexpr char kMethodDispose[] = "dispose";
 constexpr char kArgWindowTitle[] = "windowTitle";
 constexpr char kArgMutexName[] = "mutexName";
 constexpr char kArgShowMessageBox[] = "showMessageBox";
-constexpr char kArgType[] = "type";
-constexpr char kArgCustomTitle[] = "customTitle";
-constexpr char kArgCustomMessage[] = "customMessage";
+constexpr char kArgTitle[] = "title";
+constexpr char kArgMessage[] = "message";
 
 struct ProcessCheckResult {
   bool canRun;
@@ -66,14 +65,13 @@ class FlutterAlonePlugin : public flutter::Plugin {
 
   void ShowMessageBox(const MessageBoxInfo& info);
 
-  bool ParseCheckAndRunArgs(
+  void ParseCheckAndRunArgs(
       const flutter::EncodableMap* arguments,
       std::wstring& windowTitle,
       std::wstring& mutexName,
       bool& showMessageBox,
-      MessageType& type,
-      std::wstring& customTitle,
-      std::wstring& customMessage);
+      std::wstring& title,
+      std::wstring& message);
 
   MutexGuard mutex_;
 };
