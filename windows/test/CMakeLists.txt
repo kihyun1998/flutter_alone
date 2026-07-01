@@ -41,6 +41,14 @@ add_executable(message_utils_test
 target_include_directories(message_utils_test PRIVATE ..)
 target_link_libraries(message_utils_test PRIVATE GTest::gtest_main)
 
+add_executable(process_utils_test
+  process_utils_test.cpp
+  ../process_utils.cpp
+)
+target_include_directories(process_utils_test PRIVATE ..)
+target_link_libraries(process_utils_test PRIVATE GTest::gtest_main)
+
 include(GoogleTest)
 gtest_discover_tests(mutex_guard_test)
 gtest_discover_tests(message_utils_test)
+gtest_discover_tests(process_utils_test)

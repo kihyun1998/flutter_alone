@@ -25,7 +25,7 @@ public:
     static std::wstring GetProcessPath(DWORD processId);
     static FILETIME GetProcessStartTime(HANDLE hProcess);
 
-private:
+    // Public so it can be unit-tested; it is a pure, normalized path comparison.
     static bool IsSameExecutable(const std::wstring& path1, const std::wstring& path2);
 };
 
