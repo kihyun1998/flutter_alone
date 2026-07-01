@@ -1,3 +1,8 @@
+## 4.0.14
+
+*   **Internal**
+    *   Added unit coverage for the remaining pure logic: the `FlutterAlone` debug-mode skip and platform delegation, `AloneException.toString()`, and Windows `ProcessUtils::IsSameExecutable` (a new `process_utils_test` gtest; the method was made public so it can be tested). No behavior change.
+
 ## 4.0.13
 
 *   **Internal**
