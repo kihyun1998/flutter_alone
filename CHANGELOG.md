@@ -1,3 +1,8 @@
+## 4.0.7
+
+*   **Bug Fixes**
+    *   **Windows**: An invalid mutex name (empty, longer than 260 characters, or containing a backslash after the `Global\` prefix) previously made the native layer return `false`, which `checkAndRun` reports as "already running" — so the app would **silently exit** instead of surfacing the misconfiguration. `WindowsMutexConfig` now validates the generated mutex name and throws `ArgumentError` (consistent with the existing `MacOSConfig`/`LinuxConfig` lock-file-name validation), so a bad configuration fails loudly at `checkAndRun` time. Valid names are unaffected.
+
 ## 4.0.6
 
 *   **Refactor**
