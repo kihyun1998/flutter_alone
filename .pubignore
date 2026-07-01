@@ -9,3 +9,12 @@ old_main.dart.md
 # Repo/AI-workflow metadata, not consumer package docs.
 docs/
 CLAUDE.md
+
+# Build & tooling artifacts. A .pubignore REPLACES .gitignore for publishing,
+# so the .gitignore build excludes must be repeated here (without these, pub
+# ships example/build, .dart_tool caches, etc. -- ~44 MB of dill cache alone).
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
