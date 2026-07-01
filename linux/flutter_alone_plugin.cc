@@ -1,5 +1,7 @@
 #include "include/flutter_alone/flutter_alone_plugin.h"
 
+#include "lock_file.h"
+
 #include <flutter_linux/flutter_linux.h>
 #include <gtk/gtk.h>
 
@@ -9,8 +11,8 @@
 #include <sstream>
 #include <cstdlib>
 #include <cerrno>
+#include <utility>
 
-#include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -34,8 +36,7 @@ static constexpr char kMethodDispose[] = "dispose";
 
 struct _FlutterAlonePlugin {
   GObject parent_instance;
-  gchar* lock_file_path;
-  int lock_fd;
+  flutter_alone::LockHandle* lock;
 };
 
 G_DEFINE_TYPE(FlutterAlonePlugin, flutter_alone_plugin, g_object_get_type())
@@ -47,19 +48,6 @@ G_DEFINE_TYPE(FlutterAlonePlugin, flutter_alone_plugin, g_object_get_type())
 static std::string get_lock_file_path(const gchar* lock_file_name) {
   const gchar* tmp_dir = g_get_tmp_dir();
   return std::string(tmp_dir) + "/" + lock_file_name;
-}
-
-// Read PID from an already-opened file descriptor (avoids re-open TOCTOU)
-static pid_t read_pid_from_fd(int fd) {
-  char buf[32];
-  if (lseek(fd, 0, SEEK_SET) != 0) return -1;
-  ssize_t n = read(fd, buf, sizeof(buf) - 1);
-  if (n <= 0) return -1;
-  buf[n] = '\0';
-  char* end = nullptr;
-  long pid = strtol(buf, &end, 10);
-  if (end == buf || pid <= 0) return -1;
-  return static_cast<pid_t>(pid);
 }
 
 static bool is_process_running(pid_t pid) {
@@ -87,20 +75,6 @@ static bool is_same_executable(pid_t pid) {
   target_path[target_len] = '\0';
 
   return strcmp(self_path, target_path) == 0;
-}
-
-// Overwrites fd content with the decimal PID.
-// fd must be open for write and advisory-locked by the caller.
-static bool write_pid_to_fd(int fd, pid_t pid) {
-  if (ftruncate(fd, 0) != 0) return false;
-  if (lseek(fd, 0, SEEK_SET) != 0) return false;
-
-  std::string pid_str = std::to_string(pid);
-  ssize_t written = write(fd, pid_str.c_str(), pid_str.length());
-  if (written < 0 || static_cast<size_t>(written) != pid_str.length()) return false;
-
-  fdatasync(fd);
-  return true;
 }
 
 // ============================================================
@@ -333,20 +307,7 @@ static void notify_already_running(const gchar* type, const gchar* custom_title,
 // ============================================================
 
 static void release_lock(FlutterAlonePlugin* self) {
-  if (self->lock_fd >= 0) {
-    if (flock(self->lock_fd, LOCK_UN) != 0) {
-      g_warning("flutter_alone: flock LOCK_UN failed: errno %d", errno);
-    }
-    close(self->lock_fd);
-    self->lock_fd = -1;
-  }
-  if (self->lock_file_path) {
-    if (unlink(self->lock_file_path) != 0 && errno != ENOENT) {
-      g_warning("flutter_alone: unlink failed for %s: errno %d", self->lock_file_path, errno);
-    }
-    g_free(self->lock_file_path);
-    self->lock_file_path = nullptr;
-  }
+  flutter_alone::ReleaseLock(self->lock);
 }
 
 // ============================================================
@@ -395,27 +356,21 @@ static void handle_check_and_run(FlutterAlonePlugin* self, FlValue* args, FlMeth
   // Build lock file path
   std::string lock_path = get_lock_file_path(lock_file_name);
 
-  g_free(self->lock_file_path);
-  self->lock_file_path = g_strdup(lock_path.c_str());
+  flutter_alone::LockResult lock =
+      flutter_alone::AcquireLock(lock_path, getpid());
 
-  // Open lock file with O_NOFOLLOW to prevent symlink attacks
-  int fd = open(lock_path.c_str(), O_CREAT | O_RDWR | O_NOFOLLOW, 0644);
-  if (fd < 0) {
+  if (lock.outcome == flutter_alone::LockOutcome::kIoError) {
     response = FL_METHOD_RESPONSE(fl_method_error_response_new(
-        "IO_ERROR", "Failed to open lock file", nullptr));
+        "IO_ERROR", "Failed to open or write lock file", nullptr));
     fl_method_call_respond(method_call, response, nullptr);
     return;
   }
 
-  // Try to acquire exclusive advisory lock (non-blocking)
-  if (flock(fd, LOCK_EX | LOCK_NB) != 0) {
-    // Read PID from the already-opened fd to avoid re-open TOCTOU
-    pid_t existing_pid = read_pid_from_fd(fd);
-    close(fd);
-
-    if (existing_pid > 0 && is_process_running(existing_pid) && is_same_executable(existing_pid)) {
-      bool activated = activate_existing_window(existing_pid);
-      if (!activated) {
+  if (lock.outcome == flutter_alone::LockOutcome::kHeldByOther) {
+    pid_t existing_pid = lock.existing_pid;
+    if (existing_pid > 0 && is_process_running(existing_pid) &&
+        is_same_executable(existing_pid)) {
+      if (!activate_existing_window(existing_pid)) {
         notify_already_running(type, custom_title, custom_message, show_message_box);
       }
     } else {
@@ -428,19 +383,13 @@ static void handle_check_and_run(FlutterAlonePlugin* self, FlValue* args, FlMeth
     return;
   }
 
-  // We hold the lock. Write our PID.
-  pid_t current_pid = getpid();
-  if (!write_pid_to_fd(fd, current_pid)) {
-    flock(fd, LOCK_UN);
-    close(fd);
-    response = FL_METHOD_RESPONSE(fl_method_error_response_new(
-        "IO_ERROR", "Failed to write PID to lock file", nullptr));
-    fl_method_call_respond(method_call, response, nullptr);
-    return;
-  }
-
-  // Keep fd open for the lifetime of the plugin
-  self->lock_fd = fd;
+  // kAcquired: adopt ownership on the plugin, releasing any lock we held before.
+  // self->lock is only ever populated from an acquired handle, so a non-owning
+  // (duplicate) instance can never own (and thus never unlink) the primary's
+  // lock file (issue #1). The moved-from local handle is safe to drop because
+  // LockHandle has no destructor (see lock_file.h).
+  flutter_alone::ReleaseLock(self->lock);
+  *self->lock = std::move(lock.handle);
 
   g_autoptr(FlValue) result = fl_value_new_bool(TRUE);
   response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
@@ -479,7 +428,11 @@ static void flutter_alone_plugin_handle_method_call(
 
 static void flutter_alone_plugin_dispose(GObject* object) {
   FlutterAlonePlugin* self = FLUTTER_ALONE_PLUGIN(object);
-  release_lock(self);
+  if (self->lock != nullptr) {
+    flutter_alone::ReleaseLock(self->lock);
+    delete self->lock;
+    self->lock = nullptr;
+  }
   G_OBJECT_CLASS(flutter_alone_plugin_parent_class)->dispose(object);
 }
 
@@ -488,8 +441,7 @@ static void flutter_alone_plugin_class_init(FlutterAlonePluginClass* klass) {
 }
 
 static void flutter_alone_plugin_init(FlutterAlonePlugin* self) {
-  self->lock_file_path = nullptr;
-  self->lock_fd = -1;
+  self->lock = new flutter_alone::LockHandle();
 }
 
 static void method_call_cb(FlMethodChannel* channel, FlMethodCall* method_call,

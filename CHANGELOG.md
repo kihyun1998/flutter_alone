@@ -1,3 +1,8 @@
+## 4.0.5
+
+*   **Bug Fixes**
+    *   **Linux**: Fixed a duplicate launch being able to delete the primary instance's lock file, which broke the single-instance guarantee on subsequent launches. Previously the lock-file path was recorded before the advisory `flock` was acquired, so a non-owning (duplicate) instance would `unlink` the holder's lock file on dispose. The lock logic is now isolated in a dedicated, ownership-scoped module (`lock_file.h` / `lock_file.cc`): the file path is recorded only when the lock is actually acquired, making the "path recorded but lock not held" state unrepresentable. A standalone gtest regression suite was added under `linux/test/` (buildable independently of the Flutter/GTK toolchain).
+
 ## 4.0.4
 
 *   **Bug Fixes**
