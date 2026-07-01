@@ -135,7 +135,7 @@ void FlutterAlonePlugin::CleanupResources() {
     mutex_.Release();
 }
 
-bool FlutterAlonePlugin::ParseCheckAndRunArgs(
+void FlutterAlonePlugin::ParseCheckAndRunArgs(
     const flutter::EncodableMap* arguments,
     std::wstring& windowTitle,
     std::wstring& mutexName,
