@@ -5,6 +5,7 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include "message_utils.h"
+#include "mutex_guard.h"
 
 #include <memory>
 
@@ -22,13 +23,6 @@ constexpr char kArgShowMessageBox[] = "showMessageBox";
 constexpr char kArgType[] = "type";
 constexpr char kArgCustomTitle[] = "customTitle";
 constexpr char kArgCustomMessage[] = "customMessage";
-
-// Mutex name length limit (application-level policy, not a kernel limit)
-constexpr size_t kMaxMutexNameLength = 260;
-
-// SDDL: Everyone gets SYNCHRONIZE only, Creator/Owner gets full mutex access
-constexpr wchar_t kMutexSecurityDescriptor[] =
-    L"D:(A;;0x00100000;;;WD)(A;;0x001F0001;;;CO)";
 
 struct ProcessCheckResult {
   bool canRun;
@@ -81,8 +75,7 @@ class FlutterAlonePlugin : public flutter::Plugin {
       std::wstring& customTitle,
       std::wstring& customMessage);
 
-  HANDLE mutex_handle_;
-  std::wstring current_mutex_name_;
+  MutexGuard mutex_;
 };
 
 }  // namespace flutter_alone

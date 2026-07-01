@@ -61,7 +61,7 @@ jobs:
         run: ctest --test-dir build/linux-test --output-on-failure
 
   windows:
-    name: Windows (build)
+    name: Windows (build + native gtest)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,11 +73,16 @@ jobs:
       - name: Build Windows example (compiles the native plugin)
         working-directory: example
         run: flutter build windows --debug
-      # NOTE: The native gtest under windows/test is intentionally NOT run yet.
-      # It is a stale stub asserting a getPlatformVersion method that no longer
-      # exists, and it has no CMakeLists. Wiring a real Windows native test is
-      # tracked in the test-coverage issue. This job still validates that the
-      # native C++ compiles.
+      # Put cl/link on PATH so CMake drives MSVC for the standalone gtest that
+      # exercises the pure Win32 MutexGuard seam (no Flutter dependency).
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Configure native tests
+        run: cmake -S windows/test -B build/win-test -G Ninja -DCMAKE_BUILD_TYPE=Debug
+      - name: Build native tests
+        run: cmake --build build/win-test
+      - name: Run native tests
+        run: ctest --test-dir build/win-test --output-on-failure
 
   macos:
     name: macOS (build + XCTest)

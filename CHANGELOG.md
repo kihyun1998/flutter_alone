@@ -1,3 +1,8 @@
+## 4.0.9
+
+*   **Internal**
+    *   **Windows**: Extracted the named-mutex logic into a standalone, Flutter-independent `MutexGuard` seam (`windows/mutex_guard.{h,cpp}`), covered by a `windows/test` gtest suite that now runs in CI via cmake/ctest. No change in observable behavior; the stale `getPlatformVersion` test stub was removed.
+
 ## 4.0.8
 
 *   **Bug Fixes**
