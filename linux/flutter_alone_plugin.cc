@@ -1,6 +1,7 @@
 #include "include/flutter_alone/flutter_alone_plugin.h"
 
 #include "lock_file.h"
+#include "message_text.h"
 
 #include <flutter_linux/flutter_linux.h>
 #include <gtk/gtk.h>
@@ -273,33 +274,15 @@ static void show_message_dialog(const gchar* title, const gchar* message, gboole
 // Message utilities
 // ============================================================
 
-static const gchar* get_localized_string(const gchar* locale_key,
-                                          const gchar* ko_str,
-                                          const gchar* en_str,
-                                          const gchar* custom_str) {
-  if (strcmp(locale_key, "ko") == 0) return ko_str;
-  if (strcmp(locale_key, "en") == 0) return en_str;
-  if (strcmp(locale_key, "custom") == 0 && custom_str && strlen(custom_str) > 0) return custom_str;
-  return en_str;
-}
-
-static const gchar* get_title_for_type(const gchar* type, const gchar* custom_title) {
-  return get_localized_string(type, "\xEC\x95\x8C\xEB\xA6\xBC", "Notice", custom_title);
-}
-
-static const gchar* get_message_for_type(const gchar* type, const gchar* custom_message) {
-  return get_localized_string(type,
-      "\xEC\x9D\xB4\xEB\xAF\xB8 \xEB\x8B\xA4\xEB\xA5\xB8 \xEA\xB3\x84\xEC\xA0\x95\xEC\x97\x90\xEC\x84\x9C \xEC\x95\xB1\xEC\x9D\x84 \xEC\x8B\xA4\xED\x96\x89\xEC\xA4\x91\xEC\x9E\x85\xEB\x8B\x88\xEB\x8B\xA4.",
-      "Application is already running in another account.",
-      custom_message);
-}
-
-// Show "already running" notification dialog
+// Show "already running" notification dialog. Text selection lives in the pure
+// message_text seam so it can be unit-tested without a display.
 static void notify_already_running(const gchar* type, const gchar* custom_title,
                                     const gchar* custom_message, gboolean show_message_box) {
-  const gchar* title = get_title_for_type(type, custom_title);
-  const gchar* message = get_message_for_type(type, custom_message);
-  show_message_dialog(title, message, show_message_box);
+  std::string title = flutter_alone::TitleForType(
+      type ? type : "", custom_title ? custom_title : "");
+  std::string message = flutter_alone::MessageForType(
+      type ? type : "", custom_message ? custom_message : "");
+  show_message_dialog(title.c_str(), message.c_str(), show_message_box);
 }
 
 // ============================================================

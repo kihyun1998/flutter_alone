@@ -15,6 +15,7 @@ set(PLUGIN_NAME "flutter_alone_plugin")
 list(APPEND PLUGIN_SOURCES
   "flutter_alone_plugin.cc"
   "lock_file.cc"
+  "message_text.cc"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
