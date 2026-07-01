@@ -1,9 +1,9 @@
+import '../method_channel_keys.dart';
 import 'config.dart';
 
 /// Base abstract class for Windows mutex configuration
 abstract class WindowsMutexConfig implements AloneConfig {
   static const String _globalPrefix = r'Global\';
-  static const String _mutexNameKey = 'mutexName';
 
   const WindowsMutexConfig();
 
@@ -41,7 +41,7 @@ abstract class WindowsMutexConfig implements AloneConfig {
   @override
   Map<String, dynamic> toMap() {
     return {
-      _mutexNameKey: getMutexName(),
+      MethodChannelKeys.mutexName: getMutexName(),
     };
   }
 }

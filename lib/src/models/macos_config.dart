@@ -1,3 +1,4 @@
+import '../method_channel_keys.dart';
 import 'config.dart';
 
 /// Configuration for macOS lock file.
@@ -31,7 +32,7 @@ class MacOSConfig implements AloneConfig {
   @override
   Map<String, dynamic> toMap() {
     return {
-      'lockFileName': lockFileName,
+      MethodChannelKeys.lockFileName: lockFileName,
     };
   }
 }

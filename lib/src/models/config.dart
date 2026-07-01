@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import '../method_channel_keys.dart';
 import 'linux_config.dart';
 import 'macos_config.dart';
 import 'message_config.dart';
@@ -31,7 +32,7 @@ class DuplicateCheckConfig implements AloneConfig {
   @override
   Map<String, dynamic> toMap() {
     return {
-      'enableInDebugMode': enableInDebugMode,
+      MethodChannelKeys.enableInDebugMode: enableInDebugMode,
     };
   }
 }
@@ -49,7 +50,7 @@ class WindowConfig implements AloneConfig {
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{};
     if (windowTitle != null) {
-      map['windowTitle'] = windowTitle;
+      map[MethodChannelKeys.windowTitle] = windowTitle;
     }
     return map;
   }

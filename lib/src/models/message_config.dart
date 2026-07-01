@@ -1,3 +1,4 @@
+import '../method_channel_keys.dart';
 import 'config.dart';
 
 /// Base abstract class for message configuration.
@@ -35,10 +36,10 @@ abstract class MessageConfig implements AloneConfig {
   @override
   Map<String, dynamic> toMap() {
     return {
-      'type': typeString,
-      'showMessageBox': showMessageBox,
-      'title': title,
-      'message': message,
+      MethodChannelKeys.type: typeString,
+      MethodChannelKeys.showMessageBox: showMessageBox,
+      MethodChannelKeys.title: title,
+      MethodChannelKeys.message: message,
     };
   }
 }
@@ -105,8 +106,8 @@ class CustomMessageConfig extends MessageConfig {
   Map<String, dynamic> toMap() {
     return {
       ...super.toMap(),
-      'customTitle': customTitle,
-      'customMessage': customMessage,
+      MethodChannelKeys.customTitle: customTitle,
+      MethodChannelKeys.customMessage: customMessage,
     };
   }
 }
