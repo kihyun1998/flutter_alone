@@ -14,7 +14,7 @@ Each native handler decides its own branches — Windows `HandleMethodCall`, Lin
 - [already-running-dialog](../territory/already-running-dialog.md) — the fallback each branch calls
 
 ## What a violation looks like
-The user double-clicks the app and nothing happens. A failure that is not contention is reported as an error (`AloneException`) rather than as `false`: Linux and macOS `IO_ERROR`, Windows `INVALID_ARGUMENT` / `MUTEX_ERROR`. No known silent path remains.
+The user double-clicks the app and nothing happens. A failure that is not contention is reported as an error (`AloneException`) rather than as `false`: Linux and macOS `IO_ERROR`, Windows `INVALID_ARGUMENT` / `MUTEX_ERROR`. No known silent path remains. Error rather than `false` + dialog is the maintainer's call, shown that bool-only consumers now see an exception at startup (maintainer, 2026-10-24).
 
 ## Discovery history
 - #3 — macOS did not honour the message config; fixed in 363cf8b (CHANGELOG 4.1.0).

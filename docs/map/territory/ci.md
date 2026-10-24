@@ -35,4 +35,4 @@ From `.github/workflows/ci.yml`:
 
 ## Known holes / open
 - Whether Dependabot's first run succeeds is visible only in the repository's Dependabot status, not in CI.
-- No test runs two real instances against each other on any platform; `example/integration_test/plugin_integration_test.dart` is entirely commented out and targets an API that no longer exists (`FlutterAloneConfig(mutexConfig: …)`).
+- No test runs two real instances against each other on any platform (the commented-out `example/integration_test/plugin_integration_test.dart` was deleted 2026-10-24). Tracked: [#23](https://github.com/kihyun1998/flutter_alone/issues/23).

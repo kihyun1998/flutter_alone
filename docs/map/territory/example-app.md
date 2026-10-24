@@ -19,7 +19,6 @@ From the source:
 - `example/lib/main.dart — main`, `_MyAppState`; `example/lib/const.dart — appTitle`
 - `example/pubspec.yaml`, `example/pubspec.lock`
 - `example/windows/runner/main.cpp`, `example/linux/runner/`, `example/macos/Runner/`
-- `example/integration_test/plugin_integration_test.dart` (commented out)
 
 ## Reference behaviour
 **None.**
