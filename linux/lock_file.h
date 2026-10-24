@@ -31,6 +31,8 @@ enum class LockOutcome {
   kAcquired,     // we now hold the lock
   kHeldByOther,  // another open file description holds it; existing_pid may be set
   kIoError,      // open()/write() failed
+  kStale,        // the opened file was unlinked or replaced before the lock was
+                 // taken; owns nothing (AcquireLock retries on this)
 };
 
 struct LockResult {
@@ -50,6 +52,13 @@ struct LockResult {
 // The returned handle only ever owns the lock on the kAcquired path, so a caller
 // that records ownership from `handle` can never adopt a file it does not hold.
 LockResult AcquireLock(const std::string& lock_path, pid_t current_pid);
+
+// Takes the lock on `fd`, a descriptor already opened on `lock_path`, and takes
+// ownership of `fd` (it is closed unless the outcome is kAcquired). Returns
+// kStale when `fd` no longer refers to the file at `lock_path`. AcquireLock is
+// open() followed by this; it is separate so tests can act between the two.
+LockResult LockOpenedFile(int fd, const std::string& lock_path,
+                          pid_t current_pid);
 
 // Releases a held lock: unlocks, closes the fd, and unlinks the lock file (which
 // only the owner ever holds). A no-op for a non-holding handle. After return,

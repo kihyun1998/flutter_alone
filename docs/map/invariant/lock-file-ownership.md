@@ -7,8 +7,8 @@ On Linux and macOS a process records the lock file's path — and so may later u
 The same lock-file scheme is implemented twice, in C++ for Linux and in Swift for macOS, with no shared code. Linux enforces the rule with a type (`LockHandle`: path non-empty iff held); macOS keeps it by convention (`currentLockFilePath` assigned after the lock). A fix to either that is not carried to the other leaves one platform with the bug.
 
 ## Territories it holds in
-- [instance-lock-linux](../territory/instance-lock-linux.md) — `AcquireLock` (only success sets `handle.path`), `ReleaseLock`, `handle_check_and_run` (adopts only an acquired handle)
-- [instance-lock-macos](../territory/instance-lock-macos.md) — `checkAndRun(lockFilePath:…)` (sets `currentLockFilePath` last), `dispose()`
+- [instance-lock-linux](../territory/instance-lock-linux.md) — `AcquireLock`, `LockOpenedFile` (only success sets `handle.path`; inode check), `ReleaseLock`, `handle_check_and_run` (adopts only an acquired handle)
+- [instance-lock-macos](../territory/instance-lock-macos.md) — `checkAndRun(lockFilePath:…)` (inode check; sets `currentLockFilePath` last), `dispose()`
 
 ## What a violation looks like
 A duplicate that recorded the path calls `dispose`, unlinks the primary's lock file, and the next launch creates a fresh file and acquires it — two instances run (issue #1, fixed on Linux in fd10e3a; regression test `ReleasingAFailedDuplicateDoesNotDeleteOwnersLockFile`).
@@ -20,5 +20,7 @@ A duplicate that recorded the path calls `dispose`, unlinks the primary's lock f
 ## Where it will recur
 If a function opens, locks, records, releases or unlinks the lock file on either Unix platform, it is subject to this.
 
+A second rule rides on the first: because the owner unlinks on release, a lock is kept only if the locked fd is still the file at the lock path (same device and inode); otherwise the launch drops it and reopens. Linux `LockOpenedFile` → `FdIsFileAtPath`, returning `kStale` to `AcquireLock`'s bounded retry; Swift `fdIsFile(_:atPath:)` inside `checkAndRun`'s loop.
+
 ## Known holes
-- **Unlink race on release.** Both release in the order unlock → close → unlink (`ReleaseLock`; Swift `dispose`). A launch B that opened the old file before the unlink can take the lock on the now-unlinked inode, and a later launch C creates a new file and takes that lock too — two instances. Not known before this reading (maintainer, 2026-10-24); open.
+**None.** The unlink race (a launch that opened the file before the owner's unlink locking the deleted inode while the next launch locks a new file) was found by reading on 2026-10-24 and fixed by the inode check above; regression test `LockingAFileTheOwnerUnlinkedIsRefused` (Linux). The macOS copy has no test.
