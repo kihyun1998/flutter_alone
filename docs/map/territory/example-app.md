@@ -13,7 +13,7 @@ From the source:
 - It can hide its window to the tray (`windowManager.hide`) — the scenario the Windows no-visibility-filter and the xdotool no-`--onlyvisible` rules exist for.
 - `windowTitle` is `appTitle` ('Flutter Alone Example', set by `window_manager`); the Windows runner's native title is `FlutterAloneExample`. README's FAQ explains why the two differ when `window_manager` is used.
 - `dispose` calls `FlutterAlone.instance.dispose()`.
-- Depends on the plugin by `path: ../`; `example/pubspec.lock` is committed.
+- Depends on the plugin by `path: ../`; `example/pubspec.lock` is committed. Its dependencies are updated by one grouped monthly Dependabot PR (see [ci](ci.md)).
 
 ## Code
 - `example/lib/main.dart — main`, `_MyAppState`; `example/lib/const.dart — appTitle`
@@ -33,4 +33,3 @@ From the source:
 
 ## Known holes / open
 - `example/pubspec.lock` is stale against the pinned Flutter SDK: `flutter pub get` rewrites it (e.g. `characters` 1.4.0→1.4.1, the plugin's own version 4.0.3→4.1.0), so every fresh checkout that runs pub get leaves it modified.
-- Dependency updates for `system_tray`, `window_manager`, `mockito` are not watched — Tracked: [#21](https://github.com/kihyun1998/flutter_alone/issues/21).
