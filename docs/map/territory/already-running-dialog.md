@@ -33,5 +33,3 @@ From the source:
 
 ## Known holes / open
 - The Linux and macOS natives fall back to an empty title/message when the keys are missing; Windows to empty `std::wstring` — harmless only while Dart always sends them.
-- ADR-0001's "Negative" paragraph still describes duplicated strings and macOS not honouring the message config; both are fixed (b8c1561, 363cf8b).
-- CHANGELOG 4.1.0 "Internal" still mentions "per-platform message tables" extracted as seams; the tables were removed by b8c1561.

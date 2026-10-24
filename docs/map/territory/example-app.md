@@ -32,4 +32,4 @@ From the source:
 - [activation-windows](activation-windows.md) — its tray-hide is the reference manual test for restoring a hidden window.
 
 ## Known holes / open
-- `example/pubspec.lock` is stale against the pinned Flutter SDK: `flutter pub get` rewrites it (e.g. `characters` 1.4.0→1.4.1, the plugin's own version 4.0.3→4.1.0), so every fresh checkout that runs pub get leaves it modified.
+- `example/pubspec.lock` records the plugin's own version, so it goes stale on every release until someone runs `flutter pub get` in `example/` (it had drifted to 4.0.3 until 2026-10-24).
