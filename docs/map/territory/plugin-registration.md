@@ -16,7 +16,7 @@ From the source:
 
 ## Code
 - `pubspec.yaml — flutter.plugin.platforms`
-- `windows/flutter_alone_plugin_c_api.cpp — FlutterAlonePluginCApiRegisterWithRegistrar`; `windows/include/flutter_alone/flutter_alone_plugin_c_api.h`; `windows/flutter_alone_plugin.cpp — FlutterAlonePlugin::RegisterWithRegistrar`, `~FlutterAlonePlugin`, `FlutterAlonePluginRegisterWithRegistrar`
+- `windows/flutter_alone_plugin_c_api.cpp — FlutterAlonePluginCApiRegisterWithRegistrar`; `windows/include/flutter_alone/flutter_alone_plugin_c_api.h`; `windows/flutter_alone_plugin.cpp — FlutterAlonePlugin::RegisterWithRegistrar`, `~FlutterAlonePlugin`
 - `linux/include/flutter_alone/flutter_alone_plugin.h`; `linux/flutter_alone_plugin.cc — flutter_alone_plugin_register_with_registrar`, `flutter_alone_plugin_init`, `flutter_alone_plugin_dispose`, `method_call_cb`
 - `macos/Classes/FlutterAlonePlugin.swift — register(with:)`
 - `windows/CMakeLists.txt`, `linux/CMakeLists.txt` — `PLUGIN_SOURCES`, link libraries
@@ -33,4 +33,4 @@ From the source:
 - [instance-lock-windows](instance-lock-windows.md), [instance-lock-linux](instance-lock-linux.md) — the plugin lifetime is when the lock is released if `dispose` was never called.
 
 ## Known holes / open
-- `FlutterAlonePluginRegisterWithRegistrar` in `flutter_alone_plugin.cpp` is declared in no header and named by no pubspec entry; it looks like a leftover of an earlier template.
+**None.** (An unreferenced `FlutterAlonePluginRegisterWithRegistrar` export in `flutter_alone_plugin.cpp` was removed on 2026-10-24.)

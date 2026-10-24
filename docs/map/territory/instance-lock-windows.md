@@ -11,13 +11,13 @@ From ADR-0001 and the source:
 - `MutexGuard` is move-only RAII; a held guard releases and closes on destruction (`mutex_guard.h`).
 - `Acquire` returns `kAcquired` only when this call created the mutex. `ERROR_ALREADY_EXISTS` with a handle, or `ERROR_ACCESS_DENIED` with none (the restrictive DACL denies a second user full access), both mean **held by another** (`MutexGuard::Acquire`).
 - DACL `D:(A;;0x00100000;;;WD)(A;;0x001F0001;;;CO)`: Everyone gets `SYNCHRONIZE` only, creator/owner full access — enough for `OpenMutexW(SYNCHRONIZE)` from any user, not enough to squat (CHANGELOG 4.0.0, "prevent mutex squatting").
-- The plugin checks `MutexGuard::Exists` first and only then `Acquire` (`FlutterAlonePlugin::CheckRunningInstance`, `HandleMethodCall`). The two calls are not atomic.
+- The plugin checks `MutexGuard::Exists` first and only then `Acquire` (`FlutterAlonePlugin::CheckRunningInstance`, `HandleMethodCall`). The two calls are not atomic, so `HandleMethodCall` maps every `Acquire` outcome: `kAcquired` → `true`; `kAlreadyExists` (lost the race) → `HandleDuplicate` and `false`; `kInvalidName` → error `INVALID_ARGUMENT`; `kError` → error `MUTEX_ERROR`.
 - `IsValidMutexName`: non-empty, ≤ `kMaxMutexNameLength` (260, an app policy, not a kernel limit), no `\` from index 7 on.
 
 ## Code
 - `windows/mutex_guard.h — kMaxMutexNameLength`, `MutexAcquireOutcome`, `MutexGuard`
 - `windows/mutex_guard.cpp — IsValidMutexName`, `MutexGuard::Acquire`, `::Release`, `::Exists`, `kMutexSecurityDescriptor`
-- `windows/flutter_alone_plugin.cpp — CheckRunningInstance`, `CheckAndCreateMutex`, `CleanupResources`, `HandleMethodCall`
+- `windows/flutter_alone_plugin.cpp — CheckRunningInstance`, `CheckAndCreateMutex`, `HandleDuplicate`, `CleanupResources`, `HandleMethodCall`
 - Tests: `windows/test/mutex_guard_test.cpp`
 
 ## Reference behaviour
@@ -34,6 +34,4 @@ From ADR-0001 and the source:
 - [ci](ci.md) — `windows/test/CMakeLists.txt` compiles `mutex_guard.cpp` standalone; a new dependency of it must be added there.
 
 ## Known holes / open
-- `Exists` → `Acquire` race: if another instance creates the mutex between the two, `Acquire` returns `kAlreadyExists`, `checkAndRun` returns `false`, and neither activation nor the dialog runs (`HandleMethodCall`) — a silent exit. See [duplicate-launch-is-never-silent](../invariant/duplicate-launch-is-never-silent.md).
-- `kError` (any other `CreateMutexW` failure) and `kInvalidName` also surface as a plain `false`, not as an error.
 - A failed `ConvertStringSecurityDescriptorToSecurityDescriptorW` silently falls back to default security, losing cross-user detection.

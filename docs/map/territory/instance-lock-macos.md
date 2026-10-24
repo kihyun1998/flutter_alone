@@ -8,13 +8,13 @@ The macOS single-instance primitive: the same `flock`-on-a-lock-file scheme as L
 
 ## Design model
 From the source:
-- `checkAndRun(lockFilePath:…)`: `open(O_CREAT|O_RDWR|O_NOFOLLOW, 0644)`, `flock(LOCK_EX|LOCK_NB)`; on `EWOULDBLOCK`/`EAGAIN` read the PID by path and try activation; on success write the PID and keep the fd open.
+- `checkAndRun(lockFilePath:…)`: `open(O_CREAT|O_RDWR|O_NOFOLLOW, 0644)`, `flock(LOCK_EX|LOCK_NB)`; on `EWOULDBLOCK`/`EAGAIN` read the PID by path and try activation; after a successful lock `fdIsFile(_:atPath:)` checks the fd is still the file at the path and reopens if not (up to `maxStaleRetries`, 8); then write the PID and keep the fd open.
 - `currentLockFilePath` is set only after the lock and the PID write succeed, so `dispose` unlinks only a file this process owns — the Swift copy of Linux's `LockHandle` rule, without a type enforcing it.
-- Every failure — open, non-contention `flock` error, PID write — returns `false` (logged with `NSLog`), unlike Linux, which reports `kIoError` as an error.
+- Every I/O failure — open, non-contention `flock` error, PID write, a file that kept being replaced — returns `FlutterError("IO_ERROR")` through `ioError(_:)`, matching Linux; `handle(_:result:)` passes either the `Bool` or the error to `result`.
 - The temp dir is per user on macOS (`/var/folders/.../T/`), so the lock is per user.
 
 ## Code
-- `macos/Classes/FlutterAlonePlugin.swift — handle(_:result:)`, `checkAndRun(lockFilePath:showMessageBox:title:message:)`, `writePid(to:pid:)`, `readPid(from:)`, `dispose()`, `removeLockFile(path:)`
+- `macos/Classes/FlutterAlonePlugin.swift — handle(_:result:)`, `checkAndRun(lockFilePath:showMessageBox:title:message:)`, `fdIsFile(_:atPath:)`, `ioError(_:)`, `writePid(to:pid:)`, `readPid(from:)`, `dispose()`, `removeLockFile(path:)`
 - Tests: `example/macos/RunnerTests/RunnerTests.swift` (argument handling only; no lock test)
 
 ## Reference behaviour
@@ -33,4 +33,3 @@ From the source:
 ## Known holes / open
 - No unit test covers the lock itself on macOS (Linux has `lock_file_test.cc`).
 - Because the temp dir is per user, ADR-0001's "cross-user awareness" does not hold on macOS; whether that is intended is not recorded.
-- I/O failures return `false` silently — the app exits with no dialog and no error.

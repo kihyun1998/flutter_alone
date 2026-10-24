@@ -1,3 +1,13 @@
+## Unreleased
+
+*   **Bug Fixes**
+    *   **Linux / macOS**: fixed a race where a launch that opened the lock file just before the running instance exited could lock the deleted file, letting it and the next launch both run. A lock is now kept only if the file is still the one at the lock path; otherwise the launch reopens it.
+    *   **Windows**: a duplicate launch that loses the race between the existence check and creating the mutex now brings the running instance forward or shows the message, instead of exiting silently.
+
+*   **Changed**
+    *   **Windows**: an invalid mutex name or a failure to create the mutex now throws `AloneException` (`INVALID_ARGUMENT` / `MUTEX_ERROR`) from `checkAndRun` instead of returning `false`.
+    *   **macOS**: a lock-file I/O failure now throws `AloneException` (`IO_ERROR`) from `checkAndRun` instead of returning `false`, matching Linux.
+
 ## 4.1.0
 
 *   **Features**
@@ -12,7 +22,7 @@
     *   The "already running" dialog strings are now resolved in one place on the Dart side and passed to every platform. As a result the Windows dialog **title** for the built-in `ko` / `en` messages is now `알림` / `Notice` (was `실행 오류` / `Execution Error`), matching macOS and Linux. Message bodies and custom messages are unchanged.
 
 *   **Internal**
-    *   Extracted the native single-instance and message logic into testable, Flutter-independent seams (`windows/mutex_guard`, `linux/lock_file`, and per-platform message tables), centralized the Dart method-channel keys, broke the Windows `process_utils` <-> `window_utils` circular dependency, and made the Windows dialog hook state `thread_local`.
+    *   Extracted the native single-instance and message logic into testable, Flutter-independent seams (`windows/mutex_guard`, `linux/lock_file`), centralized the Dart method-channel keys, broke the Windows `process_utils` <-> `window_utils` circular dependency, and made the Windows dialog hook state `thread_local`.
     *   Added a GitHub Actions CI pipeline (Dart analyze/format/test plus native builds and gtest/XCTest on Windows, macOS, and Linux) and comprehensive unit tests across the Dart layer and all three platforms' pure native logic.
 
 ## 4.0.4

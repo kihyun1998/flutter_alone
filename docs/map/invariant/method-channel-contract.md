@@ -18,7 +18,7 @@ Hand-written part — what each native reads:
 - Linux `handle_check_and_run`: `lockFileName` (required), `showMessageBox`, `title`, `message`.
 - macOS `handle(_:result:)`: `lockFileName` (required), `showMessageBox`, `title`, `message`.
 - Sent and read by no native: `enableInDebugMode` (consumed in Dart before the call), `type`, `customTitle`, `customMessage`; `windowTitle` on Linux/macOS.
-- Error codes differ: Windows `BAD_ARGS`; Linux `INVALID_ARGUMENT`, `IO_ERROR`; macOS `INVALID_ARGUMENT`.
+- Error codes differ: Windows `BAD_ARGS`, `INVALID_ARGUMENT`, `MUTEX_ERROR`; Linux `INVALID_ARGUMENT`, `IO_ERROR`; macOS `INVALID_ARGUMENT`, `IO_ERROR`.
 
 ## What a violation looks like
 A renamed key: Windows reads an empty `mutexName`, `Exists` returns false, `Acquire` returns `kInvalidName`, `checkAndRun` returns `false` — the app exits silently on every launch. Linux/macOS return `INVALID_ARGUMENT` for a missing `lockFileName` (an `AloneException`). A renamed `title`/`message` gives an empty dialog.
