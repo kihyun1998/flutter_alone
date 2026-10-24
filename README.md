@@ -12,7 +12,7 @@ When a duplicate is launched, it automatically focuses the original window and s
 |    ✅    |   ✅   |      ✅      |   ⚠️ Partial    |
 
 - **Windows**: Detects duplicates using system-level Mutex with cross-user support
-- **macOS**: Detects duplicates using advisory file locks (`flock`). When a duplicate is launched, the running instance is restored via `NSWorkspace.open()` (sends `applicationShouldHandleReopen`), so Cmd+H-hidden and Dock-minimized windows are correctly brought back. If the running instance cannot be activated (e.g. a different bundle identifier), the alert dialog is shown instead
+- **macOS**: Detects duplicates using advisory file locks (`flock`). When a duplicate is launched, the running instance is restored via `NSWorkspace.open()` (sends `applicationShouldHandleReopen`), so Cmd+H-hidden and Dock-minimized windows are correctly brought back. If the running instance cannot be activated (e.g. a different bundle identifier), the alert dialog is shown instead. The lock file lives in the user's temporary directory (inside the app container for sandboxed apps), so detection is per user, not across accounts
 - **Linux (X11)**: Full support — duplicate detection via `flock` and window activation via `_NET_ACTIVE_WINDOW`
 - **Linux (Wayland)**: **Partial support** — duplicate detection works reliably, but window activation is best-effort only. Wayland does not provide an API for cross-process window raising by design. The plugin falls back to `xdotool` via XWayland; if `xdotool` is unavailable or the app is a native Wayland client, only the alert dialog is shown (no window activation).
 
@@ -257,7 +257,7 @@ const WindowConfig(
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `windowTitle` | `String?` | No | `null` | Window title used to locate the original window. **Essential for system tray apps** where the window may not be immediately visible. On Windows, the plugin enumerates all top-level windows matching this title and verifies the owning process path, so hidden/minimized windows are still reachable and windows from a different build that happens to share the same title are filtered out |
+| `windowTitle` | `String?` | No | `null` | **Windows only** (ignored on macOS and Linux). Window title used to locate the original window. **Essential for system tray apps** where the window may not be immediately visible. On Windows, the plugin enumerates all top-level windows matching this title and verifies the owning process path, so hidden/minimized windows are still reachable and windows from a different build that happens to share the same title are filtered out |
 
 ---
 

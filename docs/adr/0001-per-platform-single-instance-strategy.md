@@ -43,6 +43,10 @@ surface (`FlutterAloneConfig.forWindows/forMacOS/forLinux` → `checkAndRun`).
 - The advisory lock is bound to the open file description and released by the kernel
   on process death ⇒ no stale lock. The holder writes its PID into the file so a
   second launcher can identify and activate the existing instance.
+- **macOS** lock scope: the lock file lives in `FileManager.default.temporaryDirectory`, which is
+  per user (and per app container when sandboxed), so macOS detection is per user, not
+  cross-user. *(Added 2026-10-24: accepted by the maintainer — a shared path would break
+  sandboxed apps, which cannot write outside their container.)*
 - **macOS**: locate via `NSRunningApplication(processIdentifier:)`, verify bundle IDs
   match, then unhide / `NSWorkspace.open` to restore.
 - **Linux**: verify identity via `/proc/<pid>/exe`, then activate through X11

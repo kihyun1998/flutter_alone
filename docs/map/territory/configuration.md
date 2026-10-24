@@ -38,5 +38,5 @@ From the source:
 - [shipping](shipping.md) — every public config class is published API.
 
 ## Known holes / open
-- `windowTitle` is serialized on every platform but only Windows reads it; nothing tells a macOS/Linux consumer it is ignored.
+- `windowTitle` is serialized on every platform but only Windows reads it; documented as Windows-only in `WindowConfig.windowTitle` and the README (maintainer, 2026-10-24). `type`, `customTitle` and `customMessage` are kept in `toMap()` though no native reads them, since `toMap()` output is public (maintainer, 2026-10-24).
 - No Dart length bound on `lockFileName`.

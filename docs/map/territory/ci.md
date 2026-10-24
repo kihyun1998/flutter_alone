@@ -12,7 +12,7 @@ From `.github/workflows/ci.yml`:
 - Jobs: `dart` (format with `--set-exit-if-changed`, `flutter analyze`, `flutter test`); `linux` (build example, then `linux/test` gtest); `windows` (build example, then `windows/test` gtest under MSVC); `macos` (build example, then XCTest `RunnerTests`).
 - The native harnesses compile the pure seams alone — `lock_file.cc`, `mutex_guard.cpp`, `message_utils.cpp`, `process_utils.cpp` — with GoogleTest v1.15.2 fetched at configure time; the seams must stay free of Flutter/GTK headers to remain testable (commits 60fa1cb, fd10e3a).
 - The plugin's activation and dialog code is compiled by the example builds but executed by no test.
-- `.github/dependabot.yml`: root pub weekly with `increase-if-necessary`, one PR per dependency — each a floor decision for consumers, since the root commits no lockfile; `/example` pub and GitHub Actions monthly, each grouped into one PR; all labelled `needs-triage` ([#21](https://github.com/kihyun1998/flutter_alone/issues/21)). The Flutter pin `FLUTTER_VERSION` is a workflow env value, which the actions ecosystem does not update.
+- `.github/dependabot.yml`: root pub weekly with `increase-if-necessary`, one PR per dependency (`plugin_platform_interface`, `flutter_lints`) — each a floor decision for consumers, since the root commits no lockfile; `/example` pub and GitHub Actions monthly, each grouped into one PR; all labelled `needs-triage` ([#21](https://github.com/kihyun1998/flutter_alone/issues/21)). The Flutter pin `FLUTTER_VERSION` is a workflow env value, which the actions ecosystem does not update.
 
 ## Code
 - `.github/workflows/ci.yml`
