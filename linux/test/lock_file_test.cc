@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -103,6 +104,32 @@ TEST(LockFileTest, OwnerReleaseRemovesFileAndAllowsReacquire) {
   LockResult again = AcquireLock(path, 222);
   EXPECT_EQ(again.outcome, LockOutcome::kAcquired);
   ReleaseLock(&again.handle);
+}
+
+// Behavior 5: a launch that opened the file before the owner released it must
+// not lock the unlinked file, or it and the next launch would both run.
+TEST(LockFileTest, LockingAFileTheOwnerUnlinkedIsRefused) {
+  const std::string path = MakeTempLockPath("unlinked");
+  unlink(path.c_str());
+
+  LockResult owner = AcquireLock(path, 111);
+  ASSERT_EQ(owner.outcome, LockOutcome::kAcquired);
+
+  // A second launch has opened the file but not yet locked it...
+  int late_fd = open(path.c_str(), O_RDWR | O_NOFOLLOW);
+  ASSERT_GE(late_fd, 0);
+
+  // ...when the owner exits: unlock, close, unlink.
+  ReleaseLock(&owner.handle);
+
+  LockResult late = LockOpenedFile(late_fd, path, 222);
+  EXPECT_EQ(late.outcome, LockOutcome::kStale);
+  EXPECT_FALSE(late.handle.held());
+
+  // The next launch creates a fresh file and is the only instance.
+  LockResult next = AcquireLock(path, 333);
+  EXPECT_EQ(next.outcome, LockOutcome::kAcquired);
+  ReleaseLock(&next.handle);
 }
 
 }  // namespace

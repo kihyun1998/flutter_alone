@@ -4,13 +4,13 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_alone'
-  s.version          = '3.2.4'
+  s.version          = '4.1.0'
   s.summary          = 'Flutter desktop plugin to ensure only a single instance of an application runs.'
   s.description      = <<-DESC
 A Flutter desktop plugin that prevents multiple instances of an application from running simultaneously.
 Supports Windows, macOS, and Linux with customizable messages and cross-user detection.
                        DESC
-  s.homepage         = 'https://github.com/kihyun-park/flutter_alone'
+  s.homepage         = 'https://github.com/kihyun1998/flutter_alone'
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Ki Hyun Park' => 'kihyun.park@example.com' }
 

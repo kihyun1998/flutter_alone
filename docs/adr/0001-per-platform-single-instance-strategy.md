@@ -43,6 +43,10 @@ surface (`FlutterAloneConfig.forWindows/forMacOS/forLinux` → `checkAndRun`).
 - The advisory lock is bound to the open file description and released by the kernel
   on process death ⇒ no stale lock. The holder writes its PID into the file so a
   second launcher can identify and activate the existing instance.
+- **macOS** lock scope: the lock file lives in `FileManager.default.temporaryDirectory`, which is
+  per user (and per app container when sandboxed), so macOS detection is per user, not
+  cross-user. *(Added 2026-10-24: accepted by the maintainer — a shared path would break
+  sandboxed apps, which cannot write outside their container.)*
 - **macOS**: locate via `NSRunningApplication(processIdentifier:)`, verify bundle IDs
   match, then unhide / `NSWorkspace.open` to restore.
 - **Linux**: verify identity via `/proc/<pid>/exe`, then activate through X11
@@ -61,6 +65,9 @@ surface (`FlutterAloneConfig.forWindows/forMacOS/forLinux` → `checkAndRun`).
   Divergence is a real risk — e.g. localized message strings are currently duplicated
   in Windows and Linux native code, and macOS does not yet honor the message config
   at all (tracked in the issue tracker).
+  *(Update 2026-10-24: both examples are resolved — the strings are resolved once in
+  Dart since #17, and macOS honors the message config since #12. The risk itself
+  stands.)*
 - The lock-file approach requires careful ownership handling: the lock is on the fd,
   but the lock *file* is a separate resource that must only be unlinked by the true
   owner (see the Linux lock-file ownership bug, issue #1).

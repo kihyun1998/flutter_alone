@@ -132,8 +132,22 @@ ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& 
     return result;
 }
 
-bool FlutterAlonePlugin::CheckAndCreateMutex(const std::wstring& mutexName) {
-    return mutex_.Acquire(mutexName) == MutexAcquireOutcome::kAcquired;
+MutexAcquireOutcome FlutterAlonePlugin::CheckAndCreateMutex(const std::wstring& mutexName) {
+    return mutex_.Acquire(mutexName);
+}
+
+void FlutterAlonePlugin::HandleDuplicate(
+    const ProcessCheckResult& checkResult,
+    const std::wstring& title,
+    const std::wstring& message,
+    bool showMessageBox) {
+    if (checkResult.existingWindow != NULL) {
+        WindowUtils::RestoreWindow(checkResult.existingWindow);
+        WindowUtils::BringWindowToFront(checkResult.existingWindow);
+        WindowUtils::FocusWindow(checkResult.existingWindow);
+    } else {
+        ShowAlreadyRunningMessage(title, message, showMessageBox);
+    }
 }
 
 void FlutterAlonePlugin::CleanupResources() {
@@ -200,20 +214,29 @@ void FlutterAlonePlugin::HandleMethodCall(
         auto checkResult = CheckRunningInstance(mutexName, windowTitle);
 
         if (!checkResult.canRun) {
-            if (checkResult.existingWindow != NULL) {
-                WindowUtils::RestoreWindow(checkResult.existingWindow);
-                WindowUtils::BringWindowToFront(checkResult.existingWindow);
-                WindowUtils::FocusWindow(checkResult.existingWindow);
-            } else {
-                ShowAlreadyRunningMessage(title, message, showMessageBox);
-            }
-
+            HandleDuplicate(checkResult, title, message, showMessageBox);
             result->Success(flutter::EncodableValue(false));
             return;
         }
 
-        bool success = CheckAndCreateMutex(mutexName);
-        result->Success(flutter::EncodableValue(success));
+        switch (CheckAndCreateMutex(mutexName)) {
+            case MutexAcquireOutcome::kAcquired:
+                result->Success(flutter::EncodableValue(true));
+                return;
+            case MutexAcquireOutcome::kAlreadyExists:
+                // Another instance created the mutex after the Exists check.
+                HandleDuplicate(CheckRunningInstance(mutexName, windowTitle),
+                                title, message, showMessageBox);
+                result->Success(flutter::EncodableValue(false));
+                return;
+            case MutexAcquireOutcome::kInvalidName:
+                result->Error("INVALID_ARGUMENT", "Invalid mutex name");
+                return;
+            case MutexAcquireOutcome::kError:
+            default:
+                result->Error("MUTEX_ERROR", "Failed to create the mutex");
+                return;
+        }
     }
     else if (method_call.method_name().compare(kMethodDispose) == 0) {
         CleanupResources();
@@ -225,10 +248,3 @@ void FlutterAlonePlugin::HandleMethodCall(
 }
 
 }  // namespace flutter_alone
-
-void FlutterAlonePluginRegisterWithRegistrar(
-    FlutterDesktopPluginRegistrarRef registrar) {
-  flutter_alone::FlutterAlonePlugin::RegisterWithRegistrar(
-      flutter::PluginRegistrarManager::GetInstance()
-          ->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
-}

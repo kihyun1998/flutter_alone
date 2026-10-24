@@ -39,7 +39,10 @@ class DuplicateCheckConfig implements AloneConfig {
 
 /// Configuration for window management
 class WindowConfig implements AloneConfig {
-  /// Window title for window identification
+  /// Window title for window identification.
+  ///
+  /// Read only on Windows, where it is the fallback for finding the running
+  /// instance's window; macOS and Linux ignore it.
   final String? windowTitle;
 
   const WindowConfig({

@@ -44,7 +44,7 @@ class FlutterAlonePlugin : public flutter::Plugin {
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
-  bool CheckAndCreateMutex(const std::wstring& mutexName);
+  MutexAcquireOutcome CheckAndCreateMutex(const std::wstring& mutexName);
 
   void ShowAlreadyRunningMessage(
       const std::wstring& title,
@@ -64,6 +64,13 @@ class FlutterAlonePlugin : public flutter::Plugin {
   };
 
   void ShowMessageBox(const MessageBoxInfo& info);
+
+  // Brings the running instance's window forward, or shows the message when
+  // none was found.
+  void HandleDuplicate(const ProcessCheckResult& checkResult,
+                       const std::wstring& title,
+                       const std::wstring& message,
+                       bool showMessageBox);
 
   void ParseCheckAndRunArgs(
       const flutter::EncodableMap* arguments,

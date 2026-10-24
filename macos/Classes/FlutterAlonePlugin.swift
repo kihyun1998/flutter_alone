@@ -4,6 +4,7 @@ import FlutterMacOS
 public class FlutterAlonePlugin: NSObject, FlutterPlugin {
   private static let channelName = "flutter_alone"
   private static let lockFilePermissions: mode_t = 0o644
+  private static let maxStaleRetries = 8
 
   private var currentLockFilePath: String?
   private var lockFd: Int32 = -1
@@ -45,12 +46,13 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
       let title = args["title"] as? String ?? ""
       let message = args["message"] as? String ?? ""
 
-      let canRun = self.checkAndRun(
+      // Bool when the check ran; FlutterError("IO_ERROR") when the lock file
+      // could not be used, matching Linux.
+      result(self.checkAndRun(
         lockFilePath: lockFilePath,
         showMessageBox: showMessageBox,
         title: title,
-        message: message)
-      result(canRun)
+        message: message))
 
     case "dispose":
       self.dispose()
@@ -68,47 +70,68 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
     showMessageBox: Bool,
     title: String,
     message: String
-  ) -> Bool {
+  ) -> Any {
     let currentPid = ProcessInfo.processInfo.processIdentifier
 
-    let fd = open(lockFilePath, O_CREAT | O_RDWR | O_NOFOLLOW, Self.lockFilePermissions)
-    if fd < 0 {
-      NSLog("flutter_alone: failed to open lock file at %@: errno %d", lockFilePath, errno)
-      return false
-    }
-
-    if flock(fd, LOCK_EX | LOCK_NB) != 0 {
-      let flockErrno = errno
-      close(fd)
-
-      if flockErrno == EWOULDBLOCK || flockErrno == EAGAIN {
-        // Another instance holds the lock. Try to activate it; if we cannot
-        // (no PID, dead process, or a different bundle id), notify the user so
-        // a duplicate launch is never a silent no-op (parity with Win/Linux).
-        let activated =
-          readPid(from: lockFilePath).map { activateExistingInstance(pid: $0) } ?? false
-        if !activated && showMessageBox {
-          showAlreadyRunningAlert(title: title, message: message)
-        }
-      } else {
-        NSLog("flutter_alone: flock failed with errno %d", flockErrno)
+    for _ in 0..<Self.maxStaleRetries {
+      let fd = open(lockFilePath, O_CREAT | O_RDWR | O_NOFOLLOW, Self.lockFilePermissions)
+      if fd < 0 {
+        return ioError("failed to open lock file at \(lockFilePath): errno \(errno)")
       }
-      return false
+
+      if flock(fd, LOCK_EX | LOCK_NB) != 0 {
+        let flockErrno = errno
+        close(fd)
+
+        if flockErrno == EWOULDBLOCK || flockErrno == EAGAIN {
+          // Another instance holds the lock. Try to activate it; if we cannot
+          // (no PID, dead process, or a different bundle id), notify the user so
+          // a duplicate launch is never a silent no-op (parity with Win/Linux).
+          let activated =
+            readPid(from: lockFilePath).map { activateExistingInstance(pid: $0) } ?? false
+          if !activated && showMessageBox {
+            showAlreadyRunningAlert(title: title, message: message)
+          }
+          return false
+        }
+        return ioError("flock failed with errno \(flockErrno)")
+      }
+
+      // A releasing owner unlinks the file after unlocking it, so a lock taken
+      // on an fd opened before that unlink guards a file nobody else will open.
+      if !fdIsFile(fd, atPath: lockFilePath) {
+        flock(fd, LOCK_UN)
+        close(fd)
+        continue
+      }
+
+      // We hold the lock. Write our PID.
+      if !writePid(to: fd, pid: currentPid) {
+        flock(fd, LOCK_UN)
+        close(fd)
+        return ioError("failed to write PID to lock file")
+      }
+
+      // Do NOT close fd here — advisory flock is released when all fds are closed.
+      // The kernel will release it automatically on process death.
+      self.lockFd = fd
+      self.currentLockFilePath = lockFilePath
+      return true
     }
 
-    // We hold the lock. Write our PID.
-    if !writePid(to: fd, pid: currentPid) {
-      NSLog("flutter_alone: failed to write PID to lock file")
-      flock(fd, LOCK_UN)
-      close(fd)
-      return false
-    }
+    return ioError("lock file at \(lockFilePath) kept being replaced")
+  }
 
-    // Do NOT close fd here — advisory flock is released when all fds are closed.
-    // The kernel will release it automatically on process death.
-    self.lockFd = fd
-    self.currentLockFilePath = lockFilePath
-    return true
+  private func ioError(_ message: String) -> FlutterError {
+    NSLog("flutter_alone: %@", message)
+    return FlutterError(code: "IO_ERROR", message: message, details: nil)
+  }
+
+  private func fdIsFile(_ fd: Int32, atPath path: String) -> Bool {
+    var byFd = stat()
+    var byPath = stat()
+    guard fstat(fd, &byFd) == 0, lstat(path, &byPath) == 0 else { return false }
+    return byFd.st_dev == byPath.st_dev && byFd.st_ino == byPath.st_ino
   }
 
   private func writePid(to fd: Int32, pid: pid_t) -> Bool {
