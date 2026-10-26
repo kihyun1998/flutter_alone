@@ -13,6 +13,7 @@ From the source:
 - It can hide its window to the tray (`windowManager.hide`) — the scenario the Windows no-visibility-filter and the xdotool no-`--onlyvisible` rules exist for.
 - `windowTitle` is `appTitle` ('Flutter Alone Example', set by `window_manager`); the Windows runner's native title is `FlutterAloneExample`. README's FAQ explains why the two differ when `window_manager` is used.
 - `dispose` calls `FlutterAlone.instance.dispose()`.
+- `environment.flutter` is the exact Flutter version CI, Dependabot and the session hook all use. Pub refuses `flutter pub get` here under any other Flutter (see [ci](ci.md)).
 - Depends on the plugin by `path: ../`; `example/pubspec.lock` is committed. Its dependencies are updated by one grouped monthly Dependabot PR (see [ci](ci.md)).
 
 ## Code
