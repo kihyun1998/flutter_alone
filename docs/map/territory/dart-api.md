@@ -28,7 +28,7 @@ From the source and ADR-0001:
 ## Blast radius
 - [configuration](configuration.md) — `checkAndRun` sends whatever `config.toMap()` returns; a change in what the transport expects (a key, a null) must match what serialization produces.
 - [plugin-registration](plugin-registration.md) — the channel name `flutter_alone` here must equal the name each native registrar opens.
-- [example-app](example-app.md) — the example is the only in-repo caller and shows the `if (!await checkAndRun) exit(0)` contract consumers copy.
+- [example-app](example-app.md) — the example is the only in-repo caller, and `checkAndRunOrExit` shows the exit-on-`false` contract consumers copy; its two-instance test fails if `checkAndRun` stops returning `false` to a duplicate launch.
 - [shipping](shipping.md) — this is the published API; any signature change is a semver decision recorded in `CHANGELOG.md`.
 
 ## Known holes / open

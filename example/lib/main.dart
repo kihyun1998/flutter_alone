@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_alone/flutter_alone.dart';
 import 'package:flutter_alone_example/const.dart';
+import 'package:flutter_alone_example/self_test.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -21,11 +22,17 @@ void main() async {
     await windowManager.focus();
   });
 
+  final lockFileName = SelfTest.enabled
+      ? 'flutter_alone_example.selftest.lock'
+      : 'flutter_alone_example.lock';
+  final messageConfig = EnMessageConfig(showMessageBox: !SelfTest.enabled);
+
   if (Platform.isWindows) {
     final config = FlutterAloneConfig.forWindows(
-      windowsConfig: const DefaultWindowsMutexConfig(
+      windowsConfig: DefaultWindowsMutexConfig(
         packageId: 'com.example.flutter_alone_example',
         appName: appTitle,
+        mutexSuffix: SelfTest.enabled ? 'selftest' : null,
       ),
       windowConfig: const WindowConfig(
         windowTitle: appTitle,
@@ -33,15 +40,13 @@ void main() async {
       duplicateCheckConfig: const DuplicateCheckConfig(
         enableInDebugMode: true,
       ),
-      messageConfig: const EnMessageConfig(),
+      messageConfig: messageConfig,
     );
-    if (!await FlutterAlone.instance.checkAndRun(config: config)) {
-      exit(0);
-    }
+    await checkAndRunOrExit(config);
   } else if (Platform.isMacOS) {
     final config = FlutterAloneConfig.forMacOS(
       macOSConfig: MacOSConfig(
-        lockFileName: 'flutter_alone_example.lock',
+        lockFileName: lockFileName,
       ),
       windowConfig: const WindowConfig(
         windowTitle: appTitle,
@@ -49,15 +54,13 @@ void main() async {
       duplicateCheckConfig: const DuplicateCheckConfig(
         enableInDebugMode: true,
       ),
-      messageConfig: const EnMessageConfig(),
+      messageConfig: messageConfig,
     );
-    if (!await FlutterAlone.instance.checkAndRun(config: config)) {
-      exit(0);
-    }
+    await checkAndRunOrExit(config);
   } else if (Platform.isLinux) {
     final config = FlutterAloneConfig.forLinux(
       linuxConfig: LinuxConfig(
-        lockFileName: 'flutter_alone_example.lock',
+        lockFileName: lockFileName,
       ),
       windowConfig: const WindowConfig(
         windowTitle: appTitle,
@@ -65,14 +68,27 @@ void main() async {
       duplicateCheckConfig: const DuplicateCheckConfig(
         enableInDebugMode: true,
       ),
-      messageConfig: const EnMessageConfig(),
+      messageConfig: messageConfig,
     );
-    if (!await FlutterAlone.instance.checkAndRun(config: config)) {
-      exit(0);
-    }
+    await checkAndRunOrExit(config);
   }
 
   runApp(const MyApp());
+}
+
+/// Exits the process when another instance is already running.
+Future<void> checkAndRunOrExit(FlutterAloneConfig config) async {
+  final bool canRun;
+  try {
+    canRun = await FlutterAlone.instance.checkAndRun(config: config);
+  } on AloneException catch (error) {
+    if (SelfTest.enabled) SelfTest.reportError(error);
+    rethrow;
+  }
+  if (!canRun) {
+    exit(SelfTest.enabled ? SelfTest.duplicateLaunchExitCode : 0);
+  }
+  if (SelfTest.enabled) SelfTest.reportAcquired();
 }
 
 class MyApp extends StatefulWidget {
@@ -88,7 +104,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _initSystemTray();
+    if (!SelfTest.enabled) _initSystemTray();
   }
 
   @override

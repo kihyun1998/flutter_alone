@@ -10,6 +10,7 @@ old_main.dart.md
 docs/
 CLAUDE.md
 GLOSSARY.md
+tool/
 
 # Build & tooling artifacts. A .pubignore REPLACES .gitignore for publishing,
 # so the .gitignore build excludes must be repeated here (without these, pub
