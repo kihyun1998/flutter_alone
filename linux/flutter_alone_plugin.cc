@@ -333,7 +333,9 @@ static void handle_check_and_run(FlutterAlonePlugin* self, FlValue* args, FlMeth
   std::string lock_path = get_lock_file_path(lock_file_name);
 
   flutter_alone::LockResult lock =
-      flutter_alone::AcquireLock(lock_path, getpid());
+      access(lock_path.c_str(), F_OK) == 0
+          ? flutter_alone::LockResult{{}, flutter_alone::LockOutcome::kHeldByOther, -1}
+          : flutter_alone::AcquireLock(lock_path, getpid());
 
   if (lock.outcome == flutter_alone::LockOutcome::kIoError) {
     response = FL_METHOD_RESPONSE(fl_method_error_response_new(
