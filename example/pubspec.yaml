@@ -13,7 +13,7 @@ dependencies:
     path: ../
   cupertino_icons: ^1.0.8
   system_tray: ^2.0.3
-  window_manager: ^0.4.3
+  window_manager: ^0.5.2
 
 
 dev_dependencies:
@@ -21,8 +21,8 @@ dev_dependencies:
     sdk: flutter
   flutter_test:
     sdk: flutter
-  mockito: ^5.4.0
-  flutter_lints: ^5.0.0
+  mockito: ^5.6.4
+  flutter_lints: ^6.0.0
 
 
 
