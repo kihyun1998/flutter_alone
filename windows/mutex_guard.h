@@ -12,7 +12,8 @@ namespace flutter_alone {
 constexpr size_t kMaxMutexNameLength = 260;
 
 enum class MutexAcquireOutcome {
-  kAcquired,       // this guard now owns the mutex (created or taken over)
+  kAcquired,       // this guard created and now owns the mutex
+  kTakenOver,      // this guard took over an existing mutex with no live owner
   kAlreadyExists,  // a live owner holds a mutex with this name
   kInvalidName,    // name failed validation (empty / too long / embedded '\')
   kError,          // CreateMutexW failed for another reason
@@ -35,9 +36,9 @@ class MutexGuard {
   MutexGuard(MutexGuard&& other) noexcept;
   MutexGuard& operator=(MutexGuard&& other) noexcept;
 
-  // Creates and takes ownership of the named mutex, or takes over an existing
-  // one with no live owner (abandoned or unowned). Returns kAlreadyExists only
-  // when a live owner holds it.
+  // Creates and takes ownership of the named mutex (kAcquired), or takes over
+  // an existing one with no live owner, abandoned or unowned (kTakenOver).
+  // Returns kAlreadyExists only when a live owner holds it.
   MutexAcquireOutcome Acquire(const std::wstring& name);
 
   // Releases and closes a held mutex. A no-op when not held.

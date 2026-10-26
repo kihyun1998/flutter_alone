@@ -93,4 +93,54 @@ FILETIME ProcessUtils::GetProcessStartTime(HANDLE hProcess) {
     return creation;
 }
 
+bool ProcessUtils::IsStillActive(DWORD processId) {
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId);
+    if (!hProcess) {
+        return false;
+    }
+    DWORD exitCode = 0;
+    const bool active = GetExitCodeProcess(hProcess, &exitCode) && exitCode == STILL_ACTIVE;
+    CloseHandle(hProcess);
+    return active;
+}
+
+bool ProcessUtils::StartedBefore(const FILETIME& a, const FILETIME& b) {
+    if (a.dwHighDateTime == 0 && a.dwLowDateTime == 0) {
+        return false;
+    }
+    return CompareFileTime(&a, &b) < 0;
+}
+
+bool ProcessUtils::OlderInstanceRunning() {
+    const DWORD currentPid = GetCurrentProcessId();
+    const std::wstring currentPath = GetProcessPath(currentPid);
+    const FILETIME currentStart = GetProcessStartTime(GetCurrentProcess());
+    if (currentPath.empty()) {
+        return false;
+    }
+
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snapshot == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+    auto snapshotGuard = std::unique_ptr<void, decltype(&CloseHandle)>(snapshot, CloseHandle);
+
+    PROCESSENTRY32W processEntry;
+    processEntry.dwSize = sizeof(processEntry);
+    if (Process32FirstW(snapshot, &processEntry)) {
+        do {
+            if (processEntry.th32ProcessID == currentPid) {
+                continue;
+            }
+            ProcessInfo info = GetProcessInfoById(processEntry.th32ProcessID);
+            if (IsSameExecutable(currentPath, info.processPath) &&
+                StartedBefore(info.startTime, currentStart) &&
+                IsStillActive(processEntry.th32ProcessID)) {
+                return true;
+            }
+        } while (Process32NextW(snapshot, &processEntry));
+    }
+    return false;
+}
+
 }  // namespace flutter_alone

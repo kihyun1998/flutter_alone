@@ -209,8 +209,20 @@ void FlutterAlonePlugin::HandleMethodCall(
         ParseCheckAndRunArgs(arguments, windowTitle, mutexName,
                              showMessageBox, title, message);
 
+        // The mutex exists while an older copy of this executable runs: that
+        // copy is the running instance, so this launch is a duplicate launch.
+        if (MutexGuard::Exists(mutexName) && ProcessUtils::OlderInstanceRunning()) {
+            HandleDuplicate(CheckRunningInstance(mutexName, windowTitle),
+                            title, message, showMessageBox);
+            result->Success(flutter::EncodableValue(false));
+            return;
+        }
+
         switch (CheckAndCreateMutex(mutexName)) {
             case MutexAcquireOutcome::kAcquired:
+                result->Success(flutter::EncodableValue(true));
+                return;
+            case MutexAcquireOutcome::kTakenOver:
                 result->Success(flutter::EncodableValue(true));
                 return;
             case MutexAcquireOutcome::kAlreadyExists:

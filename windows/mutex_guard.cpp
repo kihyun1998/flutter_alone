@@ -114,7 +114,8 @@ MutexAcquireOutcome MutexGuard::TakeOver(HANDLE existing,
                                          const std::wstring& name) {
   const DWORD waited = WaitForSingleObject(existing, 0);
   if (waited == WAIT_ABANDONED || waited == WAIT_OBJECT_0) {
-    return Adopt(existing, name);
+    Adopt(existing, name);
+    return MutexAcquireOutcome::kTakenOver;
   }
   CloseHandle(existing);
   return waited == WAIT_TIMEOUT ? MutexAcquireOutcome::kAlreadyExists

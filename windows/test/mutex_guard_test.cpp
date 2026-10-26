@@ -172,7 +172,7 @@ TEST(MutexGuardTest, AbandonedMutexKeptOpenByAnotherHandleIsTakenOver) {
   ASSERT_NE(outside, nullptr);
   ASSERT_TRUE(exited);
   ASSERT_TRUE(exists_after) << "the open handle should keep the name alive";
-  EXPECT_EQ(taken, MutexAcquireOutcome::kAcquired);
+  EXPECT_EQ(taken, MutexAcquireOutcome::kTakenOver);
   EXPECT_TRUE(next_holds);
 }
 
@@ -188,7 +188,7 @@ TEST(MutexGuardTest, UnownedMutexIsTakenOver) {
   if (unowned != nullptr) CloseHandle(unowned);
 
   ASSERT_NE(unowned, nullptr);
-  EXPECT_EQ(taken, MutexAcquireOutcome::kAcquired);
+  EXPECT_EQ(taken, MutexAcquireOutcome::kTakenOver);
   EXPECT_TRUE(guard_holds);
 }
 

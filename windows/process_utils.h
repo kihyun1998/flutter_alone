@@ -27,6 +27,18 @@ public:
 
     // Public so it can be unit-tested; it is a pure, normalized path comparison.
     static bool IsSameExecutable(const std::wstring& path1, const std::wstring& path2);
+
+    // True if `a` is a known start time earlier than `b`. A zero start time
+    // (one that could not be read) is never earlier.
+    static bool StartedBefore(const FILETIME& a, const FILETIME& b);
+
+    // True if another process of this executable, started before this one,
+    // is running. Processes whose path or start time cannot be read (another
+    // user's), and ones that have exited but are still open, are not counted.
+    static bool OlderInstanceRunning();
+
+    // True if the process has not exited (exit code STILL_ACTIVE).
+    static bool IsStillActive(DWORD processId);
 };
 
 }  // namespace flutter_alone
