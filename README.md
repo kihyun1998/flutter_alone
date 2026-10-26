@@ -137,6 +137,8 @@ Configures the system mutex name used for duplicate detection.
 
 > **Note**: The generated mutex name must be non-empty, at most 260 characters, and contain no backslash after the `Global\` prefix. An invalid name throws an `ArgumentError` when the config is serialized (at `checkAndRun`), rather than letting the app fail silently.
 
+> **Note**: On Windows the mutex belongs to the thread that called `checkAndRun`. Call it from your app's main engine at startup, as in the Quick Start: that engine's thread lives as long as the process. If the owning thread ends while the process keeps running, a later launch treats the instance as gone. The one exception is an older copy of the same executable, run by the same user, that is still running: it is still detected, and the launch is refused.
+
 #### `DefaultWindowsMutexConfig`
 
 Auto-generates a mutex name from your package ID and app name.

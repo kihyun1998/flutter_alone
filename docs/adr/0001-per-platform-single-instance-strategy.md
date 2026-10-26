@@ -30,6 +30,9 @@ surface (`FlutterAloneConfig.forWindows/forMacOS/forLinux` → `checkAndRun`).
 ### Windows — named mutex
 - Create a named mutex via `CreateMutexW` with a `Global\` (cross-session) or
   `Local\` (per-session) prefix. `ERROR_ALREADY_EXISTS` ⇒ another instance owns it.
+  *(Added 2026-10-26: only if a live owner holds it. Since #38 the launch waits on the
+  existing mutex with a zero timeout and takes it over when abandoned or unowned; see
+  [instance-lock-windows](../map/territory/instance-lock-windows.md).)*
 - A SDDL security descriptor grants `SYNCHRONIZE` to Everyone and full access to the
   creator/owner, so a mutex created by one user is detectable by another.
 - Kernel releases the mutex when the owning process exits ⇒ no stale lock.
@@ -39,7 +42,9 @@ surface (`FlutterAloneConfig.forWindows/forMacOS/forLinux` → `checkAndRun`).
   *(Added 2026-10-26, later: that covers inherited handles only. The mutex lives until its
   last handle closes, and the DACL lets any process open it with `SYNCHRONIZE`. A handle
   opened by name keeps the abandoned mutex existing after the owner dies, and `Exists`
-  then refuses every launch (measured by probe; #38).)*
+  then refused every launch (measured by probe; #38). Since #38 a launch that finds the
+  name waits on it with a zero timeout and takes it over when it is abandoned or unowned,
+  so a dead owner no longer blocks launches; a live owner still does.)*
 - To re-activate the existing window: enumerate processes (Toolhelp snapshot) for the
   same executable path, then `EnumWindows` matching window title **and** owning-process
   path (so a portable build and an installed build with the same title are not confused).

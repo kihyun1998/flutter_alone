@@ -99,13 +99,11 @@ void FlutterAlonePlugin::ShowMessageBox(const MessageBoxInfo& info) {
 
 ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& mutexName, const std::wstring& windowTitle) {
     ProcessCheckResult result;
-    result.canRun = true;
 
     if (MutexGuard::Exists(mutexName)) {
 #ifdef _DEBUG
         OutputDebugStringW((L"[DEBUG] Existing mutex found: " + mutexName + L"\n").c_str());
 #endif
-        result.canRun = false;
 
         auto existingProcess = ProcessUtils::FindExistingProcess();
         if (existingProcess.has_value()) {
@@ -211,10 +209,11 @@ void FlutterAlonePlugin::HandleMethodCall(
         ParseCheckAndRunArgs(arguments, windowTitle, mutexName,
                              showMessageBox, title, message);
 
-        auto checkResult = CheckRunningInstance(mutexName, windowTitle);
-
-        if (!checkResult.canRun) {
-            HandleDuplicate(checkResult, title, message, showMessageBox);
+        // The mutex exists while an older copy of this executable runs: that
+        // copy is the running instance, so this launch is a duplicate launch.
+        if (MutexGuard::Exists(mutexName) && ProcessUtils::OlderInstanceRunning()) {
+            HandleDuplicate(CheckRunningInstance(mutexName, windowTitle),
+                            title, message, showMessageBox);
             result->Success(flutter::EncodableValue(false));
             return;
         }
@@ -223,8 +222,11 @@ void FlutterAlonePlugin::HandleMethodCall(
             case MutexAcquireOutcome::kAcquired:
                 result->Success(flutter::EncodableValue(true));
                 return;
+            case MutexAcquireOutcome::kTakenOver:
+                result->Success(flutter::EncodableValue(true));
+                return;
             case MutexAcquireOutcome::kAlreadyExists:
-                // Another instance created the mutex after the Exists check.
+                // A live owner holds the mutex; find its window to bring forward.
                 HandleDuplicate(CheckRunningInstance(mutexName, windowTitle),
                                 title, message, showMessageBox);
                 result->Success(flutter::EncodableValue(false));
