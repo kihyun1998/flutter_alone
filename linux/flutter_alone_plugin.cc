@@ -353,7 +353,7 @@ static void handle_check_and_run(FlutterAlonePlugin* self, FlValue* args, FlMeth
       notify_already_running(title, message, show_message_box);
     }
 
-    g_autoptr(FlValue) result = fl_value_new_bool(TRUE);
+    g_autoptr(FlValue) result = fl_value_new_bool(FALSE);
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
     fl_method_call_respond(method_call, response, nullptr);
     return;
