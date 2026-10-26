@@ -215,7 +215,7 @@ void FlutterAlonePlugin::HandleMethodCall(
 
         if (!checkResult.canRun) {
             HandleDuplicate(checkResult, title, message, showMessageBox);
-            result->Success(flutter::EncodableValue(true));
+            result->Success(flutter::EncodableValue(false));
             return;
         }
 
