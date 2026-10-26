@@ -74,7 +74,9 @@ public class FlutterAlonePlugin: NSObject, FlutterPlugin {
     let currentPid = ProcessInfo.processInfo.processIdentifier
 
     for _ in 0..<Self.maxStaleRetries {
-      let fd = open(lockFilePath, O_CREAT | O_RDWR | O_NOFOLLOW, Self.lockFilePermissions)
+      // O_CLOEXEC keeps an exec'd child from inheriting the lock.
+      let fd = open(
+        lockFilePath, O_CREAT | O_RDWR | O_NOFOLLOW | O_CLOEXEC, Self.lockFilePermissions)
       if fd < 0 {
         return ioError("failed to open lock file at \(lockFilePath): errno \(errno)")
       }

@@ -33,6 +33,9 @@ surface (`FlutterAloneConfig.forWindows/forMacOS/forLinux` → `checkAndRun`).
 - A SDDL security descriptor grants `SYNCHRONIZE` to Everyone and full access to the
   creator/owner, so a mutex created by one user is detectable by another.
 - Kernel releases the mutex when the owning process exits ⇒ no stale lock.
+  *(Added 2026-10-26: this holds because the handle is created non-inheritable
+  (`bInheritHandle = FALSE`), so no child keeps the mutex alive; see
+  [lock-not-inherited](../map/invariant/lock-not-inherited.md), #33.)*
 - To re-activate the existing window: enumerate processes (Toolhelp snapshot) for the
   same executable path, then `EnumWindows` matching window title **and** owning-process
   path (so a portable build and an installed build with the same title are not confused).
@@ -43,6 +46,10 @@ surface (`FlutterAloneConfig.forWindows/forMacOS/forLinux` → `checkAndRun`).
 - The advisory lock is bound to the open file description and released by the kernel
   on process death ⇒ no stale lock. The holder writes its PID into the file so a
   second launcher can identify and activate the existing instance.
+  *(Added 2026-10-26: the kernel releases it only once every process sharing that
+  description is gone. A child exec'd by the holder used to share it and keep the
+  lock after the holder died, so the file is now opened with `O_CLOEXEC` as well;
+  see [lock-not-inherited](../map/invariant/lock-not-inherited.md), #33.)*
 - **macOS** lock scope: the lock file lives in `FileManager.default.temporaryDirectory`, which is
   per user (and per app container when sandboxed), so macOS detection is per user, not
   cross-user. *(Added 2026-10-24: accepted by the maintainer — a shared path would break
