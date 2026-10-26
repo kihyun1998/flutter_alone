@@ -19,7 +19,7 @@ reads hand-written notes as leads and keeps their paths.
 - Source files and issues are text inside notes, not nodes — the map cannot list "every note that mentions file X" except by grep.
 
 ## The shape of the repo
-A Flutter desktop plugin with a thin Dart surface and three independent native implementations ([ADR-0001](../adr/0001-per-platform-single-instance-strategy.md)). A launch serializes a config, crosses one method channel, and the native side takes a kernel-backed lock (Windows named mutex; Linux/macOS `flock` on a temp-dir file). On contention it tries to bring the running instance forward, else shows a dialog, and the Dart caller exits. The largest gap: activation and dialogs are verified only by reading and manual runs, and two real instances are run against each other only on Linux CI ([ci](territory/ci.md)).
+A Flutter desktop plugin with a thin Dart surface and three independent native implementations ([ADR-0001](../adr/0001-per-platform-single-instance-strategy.md)). A launch serializes a config, crosses one method channel, and the native side takes a kernel-backed lock (Windows named mutex; Linux/macOS `flock` on a temp-dir file). On contention it tries to bring the running instance forward, else shows a dialog, and the Dart caller exits. The largest gap: activation and dialogs are verified only by reading and manual runs, and two real instances are run against each other only on Linux and Windows CI ([ci](territory/ci.md)).
 
 ## Territories
 - [dart-api](territory/dart-api.md)

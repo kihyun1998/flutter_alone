@@ -21,6 +21,7 @@ The user double-clicks the app and nothing happens. A failure that is not conten
 - #2 — Windows invalid name exited silently; fixed in Dart (a9308a0).
 - Reading 2026-10-24: found the Windows `Exists`→`Acquire` race and the `kInvalidName`/`kError` and macOS I/O paths returning a silent `false`; all fixed the same day (Windows `HandleDuplicate` and outcome switch; macOS `ioError(_:)`). Verified by reading and by CI builds only — no test drives these branches.
 - #27 — the Linux `kHeldByOther` branch is driven by the two-instance test in CI, with `showMessageBox: false`. It asserts that the branch returns `false`, not that activation or the dialog happen.
+- #28 — the Windows `canRun == false` branch of `HandleMethodCall` (through `HandleDuplicate`) is driven the same way in the `windows` job. The `kAlreadyExists` race branch is not reached deterministically.
 
 ## Where it will recur
 If a native code path returns `false` from `checkAndRun`, it is subject to this: it must have activated, shown the dialog, or be the `showMessageBox == false` case.
