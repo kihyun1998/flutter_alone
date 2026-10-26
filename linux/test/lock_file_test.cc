@@ -3,7 +3,9 @@
 #include <gtest/gtest.h>
 
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <cstdlib>
@@ -130,6 +132,64 @@ TEST(LockFileTest, LockingAFileTheOwnerUnlinkedIsRefused) {
   LockResult next = AcquireLock(path, 333);
   EXPECT_EQ(next.outcome, LockOutcome::kAcquired);
   ReleaseLock(&next.handle);
+}
+
+// Behavior 6: a child the owner exec'd must not inherit the lock, or it keeps
+// the lock after the owner dies and every new launch is refused.
+TEST(LockFileTest, ChildOfAKilledOwnerDoesNotKeepTheLock) {
+  const std::string path = MakeTempLockPath("inherited");
+  unlink(path.c_str());
+
+  int report[2];
+  ASSERT_EQ(pipe2(report, O_CLOEXEC), 0);
+
+  pid_t owner = fork();
+  ASSERT_GE(owner, 0);
+  if (owner == 0) {
+    // The owner acquires, then starts a long-running child the way Dart's
+    // Process.start does on Linux: fork and exec, no descriptor cleanup.
+    pid_t helper = -1;
+    int execd[2];
+    if (AcquireLock(path, getpid()).outcome == LockOutcome::kAcquired &&
+        pipe2(execd, O_CLOEXEC) == 0) {
+      helper = fork();
+      if (helper == 0) {
+        execlp("sleep", "sleep", "30", static_cast<char*>(nullptr));
+        char failed = 1;
+        ssize_t ignored = write(execd[1], &failed, 1);
+        (void)ignored;
+        _exit(127);
+      }
+      // Until the exec, the helper is a fork that still shares every
+      // descriptor; EOF on the close-on-exec pipe marks the exec itself.
+      close(execd[1]);
+      char failed;
+      if (read(execd[0], &failed, 1) != 0) helper = -1;
+      close(execd[0]);
+    }
+    ssize_t sent = write(report[1], &helper, sizeof(helper));
+    (void)sent;
+    pause();
+    _exit(0);
+  }
+
+  pid_t helper = -1;
+  ssize_t got = read(report[0], &helper, sizeof(helper));
+  close(report[0]);
+  close(report[1]);
+  kill(owner, SIGKILL);
+  waitpid(owner, nullptr, 0);
+  ASSERT_EQ(got, static_cast<ssize_t>(sizeof(helper)));
+  ASSERT_GT(helper, 0) << "the owner did not acquire the lock";
+  const bool helper_outlived_owner = kill(helper, 0) == 0;
+
+  LockResult next = AcquireLock(path, 444);
+  kill(helper, SIGKILL);
+  ReleaseLock(&next.handle);
+  unlink(path.c_str());
+
+  ASSERT_TRUE(helper_outlived_owner);
+  EXPECT_EQ(next.outcome, LockOutcome::kAcquired);
 }
 
 }  // namespace

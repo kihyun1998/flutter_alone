@@ -41,6 +41,7 @@ A Flutter desktop plugin with a thin Dart surface and three independent native i
 - [name-validation-mirror](invariant/name-validation-mirror.md)
 - [lock-file-ownership](invariant/lock-file-ownership.md)
 - [duplicate-launch-is-never-silent](invariant/duplicate-launch-is-never-silent.md)
+- [lock-not-inherited](invariant/lock-not-inherited.md)
 
 ## Scope
 Maps the plugin, its example, its release and its CI. Out of scope: agent tooling (`.claude/`, `docs/agents/`), the personal VM notes in `ubunt.md`, and generated `ephemeral/` directories. A territory appears when something in the repo commits to it — code, a decision record, or an open issue with a design; an absent note means nothing has yet. A new native platform, or a new mechanism on an existing one, is owed a note.

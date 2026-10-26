@@ -59,8 +59,10 @@ bool WritePidToFd(int fd, pid_t pid) {
 LockResult AcquireLock(const std::string& lock_path, pid_t current_pid) {
   LockResult result;
   for (int attempt = 0; attempt < kMaxStaleRetries; ++attempt) {
-    // O_NOFOLLOW prevents a symlink at lock_path from redirecting the open.
-    int fd = open(lock_path.c_str(), O_CREAT | O_RDWR | O_NOFOLLOW, 0644);
+    // O_NOFOLLOW prevents a symlink at lock_path from redirecting the open;
+    // O_CLOEXEC keeps an exec'd child from inheriting the lock.
+    int fd = open(lock_path.c_str(), O_CREAT | O_RDWR | O_NOFOLLOW | O_CLOEXEC,
+                  0644);
     if (fd < 0) {
       result = LockResult();
       result.outcome = LockOutcome::kIoError;

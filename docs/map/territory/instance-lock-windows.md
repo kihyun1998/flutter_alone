@@ -26,6 +26,7 @@ From ADR-0001 and the source:
 ## Cross-cutting invariants
 - [name-validation-mirror](../invariant/name-validation-mirror.md)
 - [duplicate-launch-is-never-silent](../invariant/duplicate-launch-is-never-silent.md)
+- [lock-not-inherited](../invariant/lock-not-inherited.md)
 
 ## Blast radius
 - [activation-windows](activation-windows.md) — activation runs only on the "exists" branch; changing when `Exists` reports true changes when a window is brought forward.
