@@ -35,4 +35,5 @@ From `.github/workflows/ci.yml`:
 
 ## Known holes / open
 - Whether Dependabot's first run succeeds is visible only in the repository's Dependabot status, not in CI.
+- Dependabot resolves pub updates without the `FLUTTER_VERSION` SDK, so it proposes versions that do not resolve under the pin: either a newer Dart SDK floor or a dependency on a package the Flutter SDK pins lower (`meta`, `matcher`, `test_api`, `vector_math`). Seen in [#25](https://github.com/kihyun1998/flutter_alone/pull/25) (2026-10-24): `cupertino_icons 2.0.0` needs Dart ^3.12.0, and `mockito 5.8.1` needs `meta ^1.18.3` against the pinned 1.17.0. Both were held back by hand (`^1.0.8`, `^5.6.4`). A grouped PR fails as a whole on the first unresolvable package, so packages listed after it go unverified until it is held back. Nothing stops the same proposals next month.
 - No test runs two real instances against each other on any platform (the commented-out `example/integration_test/plugin_integration_test.dart` was deleted 2026-10-24). Tracked: [#23](https://github.com/kihyun1998/flutter_alone/issues/23).
