@@ -1,6 +1,6 @@
 #!/bin/bash
 # SessionStart hook for Claude Code cloud sessions: installs the Flutter SDK
-# pinned in .github/workflows/ci.yml and fetches pub dependencies so
+# pinned in example/pubspec.yaml and fetches pub dependencies so
 # `dart format`, `flutter analyze` and `flutter test` work out of the box.
 set -euo pipefail
 
@@ -10,10 +10,13 @@ fi
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
-# Keep in sync with FLUTTER_VERSION in .github/workflows/ci.yml.
-FLUTTER_VERSION="$(sed -n 's/^ *FLUTTER_VERSION: *"\{0,1\}\([0-9.]*\)"\{0,1\}.*/\1/p' \
-  "$PROJECT_DIR/.github/workflows/ci.yml" | head -n1)"
-FLUTTER_VERSION="${FLUTTER_VERSION:-3.41.9}"
+# environment.flutter in example/pubspec.yaml, the version CI installs.
+FLUTTER_VERSION="$(sed -n 's/^  flutter: *"\{0,1\}\([0-9][0-9.]*\)"\{0,1\}[[:space:]]*$/\1/p' \
+  "$PROJECT_DIR/example/pubspec.yaml" | head -n1)"
+if [ -z "$FLUTTER_VERSION" ]; then
+  echo "No exact environment.flutter in example/pubspec.yaml" >&2
+  exit 1
+fi
 FLUTTER_ROOT="$HOME/flutter-sdk/$FLUTTER_VERSION"
 
 if [ ! -x "$FLUTTER_ROOT/bin/flutter" ]; then
