@@ -9,6 +9,7 @@ old_main.dart.md
 # Repo/AI-workflow metadata, not consumer package docs.
 docs/
 CLAUDE.md
+GLOSSARY.md
 
 # Build & tooling artifacts. A .pubignore REPLACES .gitignore for publishing,
 # so the .gitignore build excludes must be repeated here (without these, pub
