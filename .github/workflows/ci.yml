@@ -84,6 +84,10 @@ jobs:
         run: cmake --build build/win-test
       - name: Run native tests
         run: ctest --test-dir build/win-test --output-on-failure
+      # Launches the example three times: a duplicate launch must lose, and the
+      # mutex must be free once the first is terminated.
+      - name: Two-instance test
+        run: dart tool/two_instance_test.dart example/build/windows/x64/runner/Debug/flutter_alone_example.exe
 
   macos:
     name: macOS (build + XCTest)

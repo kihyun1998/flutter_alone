@@ -34,7 +34,7 @@ From the source:
 **None.**
 
 ## Blast radius
-- [ci](ci.md) — all native jobs build this app first; the `linux` job also launches it three times in self-test mode, so a change to `SelfTest` or `checkAndRunOrExit` is a change to the test.
+- [ci](ci.md) — all native jobs build this app first; the `linux` and `windows` jobs also launch it three times in self-test mode, so a change to `SelfTest` or `checkAndRunOrExit` is a change to the test.
 - [activation-windows](activation-windows.md) — its tray-hide is the reference manual test for restoring a hidden window.
 
 ## Known holes / open
