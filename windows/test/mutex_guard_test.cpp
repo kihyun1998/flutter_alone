@@ -176,7 +176,23 @@ TEST(MutexGuardTest, AbandonedMutexKeptOpenByAnotherHandleIsTakenOver) {
   EXPECT_TRUE(next_holds);
 }
 
-// Behavior 9: a live owner is never taken over, even while another process
+// Behavior 9: an existing mutex that nobody owns is taken over.
+TEST(MutexGuardTest, UnownedMutexIsTakenOver) {
+  const std::wstring name = UniqueName(L"unowned");
+
+  HANDLE unowned = CreateMutexW(nullptr, FALSE, name.c_str());
+  MutexGuard guard;
+  const MutexAcquireOutcome taken = guard.Acquire(name);
+  const bool guard_holds = guard.held();
+  guard.Release();
+  if (unowned != nullptr) CloseHandle(unowned);
+
+  ASSERT_NE(unowned, nullptr);
+  EXPECT_EQ(taken, MutexAcquireOutcome::kAcquired);
+  EXPECT_TRUE(guard_holds);
+}
+
+// Behavior 10: a live owner is never taken over, even while another process
 // also has the mutex open.
 TEST(MutexGuardTest, LiveOwnerIsNotTakenOverWhileAnotherHandleIsOpen) {
   const std::wstring name = UniqueName(L"live_owner");

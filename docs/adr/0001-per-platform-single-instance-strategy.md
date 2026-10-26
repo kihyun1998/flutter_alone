@@ -30,6 +30,9 @@ surface (`FlutterAloneConfig.forWindows/forMacOS/forLinux` → `checkAndRun`).
 ### Windows — named mutex
 - Create a named mutex via `CreateMutexW` with a `Global\` (cross-session) or
   `Local\` (per-session) prefix. `ERROR_ALREADY_EXISTS` ⇒ another instance owns it.
+  *(Added 2026-10-26: only if a live owner holds it. Since #38 the launch waits on the
+  existing mutex with a zero timeout and takes it over when abandoned or unowned; see
+  [instance-lock-windows](../map/territory/instance-lock-windows.md).)*
 - A SDDL security descriptor grants `SYNCHRONIZE` to Everyone and full access to the
   creator/owner, so a mutex created by one user is detectable by another.
 - Kernel releases the mutex when the owning process exits ⇒ no stale lock.

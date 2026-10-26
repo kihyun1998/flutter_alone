@@ -63,8 +63,7 @@ MutexAcquireOutcome MutexGuard::Acquire(const std::wstring& name) {
   if (!IsValidMutexName(name)) {
     return MutexAcquireOutcome::kInvalidName;
   }
-  // A name another guard in this process holds is a live owner. Checking
-  // before any wait keeps the owning thread from re-acquiring it recursively.
+  // A name another guard in this process holds is refused before any wait.
   std::lock_guard<std::mutex> held_lock(HeldNamesLock());
   if (HeldNames().count(name) != 0) {
     return MutexAcquireOutcome::kAlreadyExists;
@@ -98,8 +97,8 @@ MutexAcquireOutcome MutexGuard::Acquire(const std::wstring& name) {
 
   // CreateMutexW returned null. ERROR_ACCESS_DENIED means the named mutex
   // already exists but its restrictive DACL (Everyone gets SYNCHRONIZE only, not
-  // the full access CreateMutexW requests) denies us; SYNCHRONIZE is enough to
-  // take it over when it has no live owner. Any other failure is an error.
+  // the full access CreateMutexW requests) denies us, so it is reopened with
+  // SYNCHRONIZE for the takeover wait. Any other failure is an error.
   if (last_error == ERROR_ACCESS_DENIED) {
     HANDLE existing = OpenMutexW(SYNCHRONIZE, FALSE, name.c_str());
     if (existing == nullptr) return MutexAcquireOutcome::kAlreadyExists;
@@ -109,8 +108,8 @@ MutexAcquireOutcome MutexGuard::Acquire(const std::wstring& name) {
 }
 
 // Takes ownership of an existing mutex through `existing` when nobody owns it
-// or its owner died (abandoned); otherwise closes `existing`. The caller holds
-// HeldNamesLock().
+// or its owner died (abandoned); otherwise closes `existing` and reports a live
+// owner (timeout) or an error (failed wait). The caller holds HeldNamesLock().
 MutexAcquireOutcome MutexGuard::TakeOver(HANDLE existing,
                                          const std::wstring& name) {
   const DWORD waited = WaitForSingleObject(existing, 0);
@@ -118,7 +117,8 @@ MutexAcquireOutcome MutexGuard::TakeOver(HANDLE existing,
     return Adopt(existing, name);
   }
   CloseHandle(existing);
-  return MutexAcquireOutcome::kAlreadyExists;
+  return waited == WAIT_TIMEOUT ? MutexAcquireOutcome::kAlreadyExists
+                                : MutexAcquireOutcome::kError;
 }
 
 // Records `handle` as this guard's owned mutex. The caller holds

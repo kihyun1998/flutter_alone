@@ -21,7 +21,7 @@ Hand-written part — what each native reads:
 - Error codes differ: Windows `BAD_ARGS`, `INVALID_ARGUMENT`, `MUTEX_ERROR`; Linux `INVALID_ARGUMENT`, `IO_ERROR`; macOS `INVALID_ARGUMENT`, `IO_ERROR`.
 
 ## What a violation looks like
-A renamed key: Windows reads an empty `mutexName`, `Exists` returns false, `Acquire` returns `kInvalidName`, `checkAndRun` returns `false` — the app exits silently on every launch. Linux/macOS return `INVALID_ARGUMENT` for a missing `lockFileName` (an `AloneException`). A renamed `title`/`message` gives an empty dialog.
+A renamed key: Windows reads an empty `mutexName`, `Acquire` returns `kInvalidName`, and `checkAndRun` fails with `INVALID_ARGUMENT` (an `AloneException`) on every launch. Linux/macOS return `INVALID_ARGUMENT` for a missing `lockFileName` (an `AloneException`). A renamed `title`/`message` gives an empty dialog.
 
 ## Discovery history
 - `method_channel_keys.dart` was introduced to centralize the Dart side and its doc names the native copies (commit 6339811, #5/F5).
