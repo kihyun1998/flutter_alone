@@ -26,3 +26,4 @@ If a function creates or duplicates the lock's handle or descriptor on any platf
 
 ## Known holes
 - `O_CLOEXEC` acts only at exec. A child that forks without exec'ing (native daemonizing code, for example) still shares the description and keeps the lock after the running instance dies. So does any child between its fork and its exec. Dart's `Process.start` always execs, so it is not affected; native code in the consumer app could be.
+- On Windows the handle is not inherited, but any process may still open the mutex by name, and that handle keeps it alive after the owner dies ([instance-lock-windows](../territory/instance-lock-windows.md), #38). This rule covers inheritance only.
