@@ -23,4 +23,4 @@ If a function opens, locks, records, releases or unlinks the lock file on either
 A second rule rides on the first: because the owner unlinks on release, a lock is kept only if the locked fd is still the file at the lock path (same device and inode); otherwise the launch drops it and reopens. Linux `LockOpenedFile` → `FdIsFileAtPath`, returning `kStale` to `AcquireLock`'s bounded retry; Swift `fdIsFile(_:atPath:)` inside `checkAndRun`'s loop.
 
 ## Known holes
-**None.** The unlink race (a launch that opened the file before the owner's unlink locking the deleted inode while the next launch locks a new file) was found by reading on 2026-10-24 and fixed by the inode check above; regression test `LockingAFileTheOwnerUnlinkedIsRefused` (Linux). The macOS copy has no test.
+**None.** The unlink race (a launch that opened the file before the owner's unlink locking the deleted inode while the next launch locks a new file) was found by reading on 2026-10-24 and fixed by the inode check above; regression tests `LockingAFileTheOwnerUnlinkedIsRefused` and, with the owner in another process, `LockingAFileAnotherProcessUnlinkedIsRefused` (Linux). The macOS copy has no test.
