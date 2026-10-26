@@ -24,10 +24,9 @@ constexpr char kArgTitle[] = "title";
 constexpr char kArgMessage[] = "message";
 
 struct ProcessCheckResult {
-  bool canRun;
   HWND existingWindow;
 
-  ProcessCheckResult() : canRun(true), existingWindow(NULL) {}
+  ProcessCheckResult() : existingWindow(NULL) {}
 };
 
 class FlutterAlonePlugin : public flutter::Plugin {

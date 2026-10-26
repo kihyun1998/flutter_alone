@@ -80,7 +80,7 @@ TEST(MutexGuardTest, AcquireRejectsAnInvalidName) {
 // Names the mutex the helper below holds; unset in normal runs.
 constexpr wchar_t kHoldMutexVariable[] = L"FLUTTER_ALONE_TEST_HOLD_MUTEX";
 
-// Helper mode, started by Behavior 7 in a separate process: holds the named
+// Helper mode, started by StartHelper in a separate process: holds the named
 // mutex until the process is terminated. Skipped when the variable is unset.
 TEST(MutexGuardHelper, HoldsTheNamedMutexUntilTerminated) {
   wchar_t name[256];
@@ -91,47 +91,110 @@ TEST(MutexGuardHelper, HoldsTheNamedMutexUntilTerminated) {
   Sleep(INFINITE);
 }
 
-// Behavior 7: a mutex another process holds makes Exists() true and Acquire()
-// lose, until that process is terminated.
-TEST(MutexGuardTest, AnotherProcessHoldsTheMutexUntilTerminated) {
-  const std::wstring name = UniqueName(L"other_process");
+// A helper process started in helper mode, holding the mutex `name`.
+struct HelperProcess {
+  PROCESS_INFORMATION process = {};
+  bool started = false;
+  bool holds = false;  // the helper was seen holding the mutex
+};
 
+// Relaunches this test binary in helper mode and waits until it holds `name`.
+HelperProcess StartHelper(const std::wstring& name) {
+  HelperProcess helper;
   wchar_t exe[MAX_PATH];
-  ASSERT_GT(GetModuleFileNameW(nullptr, exe, MAX_PATH), 0u);
+  if (GetModuleFileNameW(nullptr, exe, MAX_PATH) == 0) return helper;
   std::wstring command = L"\"" + std::wstring(exe) +
                          L"\" --gtest_filter=MutexGuardHelper.*";
   SetEnvironmentVariableW(kHoldMutexVariable, name.c_str());
   STARTUPINFOW startup = {};
   startup.cb = sizeof(startup);
-  PROCESS_INFORMATION helper = {};
-  const BOOL started =
+  helper.started =
       CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE,
-                     CREATE_NO_WINDOW, nullptr, nullptr, &startup, &helper);
+                     CREATE_NO_WINDOW, nullptr, nullptr, &startup,
+                     &helper.process) != FALSE;
   SetEnvironmentVariableW(kHoldMutexVariable, nullptr);
-  ASSERT_TRUE(started);
-
-  bool held_by_helper = false;
-  for (int i = 0; i < 200 && !held_by_helper; ++i) {
-    held_by_helper = MutexGuard::Exists(name);
-    if (!held_by_helper) Sleep(50);
+  for (int i = 0; helper.started && i < 200 && !helper.holds; ++i) {
+    helper.holds = MutexGuard::Exists(name);
+    if (!helper.holds) Sleep(50);
   }
+  return helper;
+}
+
+// Terminates the helper; returns whether it exited within 10 seconds.
+bool StopHelper(HelperProcess* helper) {
+  if (!helper->started) return false;
+  TerminateProcess(helper->process.hProcess, 1);
+  const bool exited =
+      WaitForSingleObject(helper->process.hProcess, 10000) == WAIT_OBJECT_0;
+  CloseHandle(helper->process.hThread);
+  CloseHandle(helper->process.hProcess);
+  helper->started = false;
+  return exited;
+}
+
+// Behavior 7: a mutex another process holds makes Exists() true and Acquire()
+// lose, until that process is terminated.
+TEST(MutexGuardTest, AnotherProcessHoldsTheMutexUntilTerminated) {
+  const std::wstring name = UniqueName(L"other_process");
+
+  HelperProcess helper = StartHelper(name);
   MutexGuard ours;
   const MutexAcquireOutcome while_held = ours.Acquire(name);
   ours.Release();
-
-  TerminateProcess(helper.hProcess, 1);
-  const DWORD waited = WaitForSingleObject(helper.hProcess, 10000);
-  CloseHandle(helper.hThread);
-  CloseHandle(helper.hProcess);
+  const bool exited = StopHelper(&helper);
   const bool exists_after = MutexGuard::Exists(name);
   MutexGuard after;
   const MutexAcquireOutcome after_kill = after.Acquire(name);
 
-  ASSERT_TRUE(held_by_helper);
-  ASSERT_EQ(waited, WAIT_OBJECT_0) << "the helper did not exit after terminate";
+  ASSERT_TRUE(helper.holds);
+  ASSERT_TRUE(exited) << "the helper did not exit after terminate";
   EXPECT_EQ(while_held, MutexAcquireOutcome::kAlreadyExists);
   EXPECT_FALSE(exists_after);
   EXPECT_EQ(after_kill, MutexAcquireOutcome::kAcquired);
+}
+
+// Behavior 8: when the owner dies while another process still has the mutex
+// open, the abandoned mutex is taken over by the next acquire.
+TEST(MutexGuardTest, AbandonedMutexKeptOpenByAnotherHandleIsTakenOver) {
+  const std::wstring name = UniqueName(L"abandoned");
+
+  HelperProcess helper = StartHelper(name);
+  HANDLE outside = OpenMutexW(SYNCHRONIZE, FALSE, name.c_str());
+  const bool exited = StopHelper(&helper);
+  const bool exists_after = MutexGuard::Exists(name);
+  MutexGuard next;
+  const MutexAcquireOutcome taken = next.Acquire(name);
+  const bool next_holds = next.held();
+  next.Release();
+  if (outside != nullptr) CloseHandle(outside);
+
+  ASSERT_TRUE(helper.holds);
+  ASSERT_NE(outside, nullptr);
+  ASSERT_TRUE(exited);
+  ASSERT_TRUE(exists_after) << "the open handle should keep the name alive";
+  EXPECT_EQ(taken, MutexAcquireOutcome::kAcquired);
+  EXPECT_TRUE(next_holds);
+}
+
+// Behavior 9: a live owner is never taken over, even while another process
+// also has the mutex open.
+TEST(MutexGuardTest, LiveOwnerIsNotTakenOverWhileAnotherHandleIsOpen) {
+  const std::wstring name = UniqueName(L"live_owner");
+
+  HelperProcess helper = StartHelper(name);
+  HANDLE outside = OpenMutexW(SYNCHRONIZE, FALSE, name.c_str());
+  MutexGuard ours;
+  const MutexAcquireOutcome while_alive = ours.Acquire(name);
+  const bool ours_holds = ours.held();
+  ours.Release();
+  if (outside != nullptr) CloseHandle(outside);
+  const bool exited = StopHelper(&helper);
+
+  ASSERT_TRUE(helper.holds);
+  ASSERT_NE(outside, nullptr);
+  ASSERT_TRUE(exited);
+  EXPECT_EQ(while_alive, MutexAcquireOutcome::kAlreadyExists);
+  EXPECT_FALSE(ours_holds);
 }
 
 }  // namespace

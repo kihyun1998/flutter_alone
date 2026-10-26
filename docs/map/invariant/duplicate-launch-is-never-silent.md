@@ -7,7 +7,7 @@ When `checkAndRun` returns `false` because another instance holds the lock, the 
 Each native handler decides its own branches — Windows `HandleMethodCall`, Linux `handle_check_and_run`, macOS `checkAndRun(lockFilePath:…)` — and they share no code. The rule was made explicit when macOS was brought to "parity with Win/Linux" (commit 363cf8b, #3; comment in the Swift contention branch). Changing a branch on one platform without the others makes the same misconfiguration silent on one OS only.
 
 ## Territories it holds in
-- [instance-lock-windows](../territory/instance-lock-windows.md) — the `canRun == false` branch and the `kAlreadyExists` case of `HandleMethodCall`, both through `HandleDuplicate`
+- [instance-lock-windows](../territory/instance-lock-windows.md) — the `kAlreadyExists` case of `HandleMethodCall`, through `HandleDuplicate` (the only refuse path since #38)
 - [instance-lock-linux](../territory/instance-lock-linux.md) — the `kHeldByOther` branch of `handle_check_and_run`
 - [instance-lock-macos](../territory/instance-lock-macos.md) — the `EWOULDBLOCK`/`EAGAIN` branch
 - [activation-windows](../territory/activation-windows.md), [activation-linux](../territory/activation-linux.md), [activation-macos](../territory/activation-macos.md) — "activated" is what suppresses the dialog
@@ -21,7 +21,8 @@ The user double-clicks the app and nothing happens. A failure that is not conten
 - #2 — Windows invalid name exited silently; fixed in Dart (a9308a0).
 - Reading 2026-10-24: found the Windows `Exists`→`Acquire` race and the `kInvalidName`/`kError` and macOS I/O paths returning a silent `false`; all fixed the same day (Windows `HandleDuplicate` and outcome switch; macOS `ioError(_:)`). Verified by reading and by CI builds only — no test drives these branches.
 - #27 — the Linux `kHeldByOther` branch is driven by the two-instance test in CI, with `showMessageBox: false`. It asserts that the branch returns `false`, not that activation or the dialog happen.
-- #28 — the Windows `canRun == false` branch of `HandleMethodCall` (through `HandleDuplicate`) is driven the same way in the `windows` job. The `kAlreadyExists` race branch is not reached deterministically.
+- #28 — the Windows duplicate branch of `HandleMethodCall` (through `HandleDuplicate`) is driven the same way in the `windows` job.
+- #38 — the Windows `Exists`-first refuse branch was removed. The refusal now follows `Acquire`'s `kAlreadyExists`, which the `windows` job drives on every run.
 
 ## Where it will recur
 If a native code path returns `false` from `checkAndRun`, it is subject to this: it must have activated, shown the dialog, or be the `showMessageBox == false` case.

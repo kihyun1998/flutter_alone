@@ -12,8 +12,8 @@ namespace flutter_alone {
 constexpr size_t kMaxMutexNameLength = 260;
 
 enum class MutexAcquireOutcome {
-  kAcquired,       // this guard created and now owns the mutex
-  kAlreadyExists,  // another owner already holds a mutex with this name
+  kAcquired,       // this guard now owns the mutex (created or taken over)
+  kAlreadyExists,  // a live owner holds a mutex with this name
   kInvalidName,    // name failed validation (empty / too long / embedded '\')
   kError,          // CreateMutexW failed for another reason
 };
@@ -35,8 +35,9 @@ class MutexGuard {
   MutexGuard(MutexGuard&& other) noexcept;
   MutexGuard& operator=(MutexGuard&& other) noexcept;
 
-  // Creates and takes ownership of the named mutex. Returns kAcquired only when
-  // this call created it; kAlreadyExists when another owner already holds it.
+  // Creates and takes ownership of the named mutex, or takes over an existing
+  // one with no live owner (abandoned or unowned). Returns kAlreadyExists only
+  // when a live owner holds it.
   MutexAcquireOutcome Acquire(const std::wstring& name);
 
   // Releases and closes a held mutex. A no-op when not held.
@@ -44,11 +45,16 @@ class MutexGuard {
 
   bool held() const { return handle_ != nullptr; }
 
-  // True if a mutex with this name currently exists (held by anyone).
+  // True if a mutex with this name currently exists, whether or not a live
+  // owner holds it. Never waits, so it never changes ownership.
   static bool Exists(const std::wstring& name);
 
  private:
+  MutexAcquireOutcome TakeOver(HANDLE existing, const std::wstring& name);
+  MutexAcquireOutcome Adopt(HANDLE handle, const std::wstring& name);
+
   HANDLE handle_ = nullptr;
+  std::wstring name_;  // the held mutex's name; empty when not held
 };
 
 }  // namespace flutter_alone

@@ -2,6 +2,9 @@
 
 #include <sddl.h>
 
+#include <mutex>
+#include <set>
+
 namespace flutter_alone {
 
 namespace {
@@ -9,6 +12,16 @@ namespace {
 // mutex created by one user be detected by another (cross-user detection).
 constexpr wchar_t kMutexSecurityDescriptor[] =
     L"D:(A;;0x00100000;;;WD)(A;;0x001F0001;;;CO)";
+
+// Names held by a MutexGuard in this process, and the lock guarding them.
+std::mutex& HeldNamesLock() {
+  static std::mutex lock;
+  return lock;
+}
+std::set<std::wstring>& HeldNames() {
+  static std::set<std::wstring> names;
+  return names;
+}
 }  // namespace
 
 bool IsValidMutexName(const std::wstring& name) {
@@ -25,15 +38,19 @@ bool IsValidMutexName(const std::wstring& name) {
 
 MutexGuard::~MutexGuard() { Release(); }
 
-MutexGuard::MutexGuard(MutexGuard&& other) noexcept : handle_(other.handle_) {
+MutexGuard::MutexGuard(MutexGuard&& other) noexcept
+    : handle_(other.handle_), name_(std::move(other.name_)) {
   other.handle_ = nullptr;
+  other.name_.clear();
 }
 
 MutexGuard& MutexGuard::operator=(MutexGuard&& other) noexcept {
   if (this != &other) {
     Release();
     handle_ = other.handle_;
+    name_ = std::move(other.name_);
     other.handle_ = nullptr;
+    other.name_.clear();
   }
   return *this;
 }
@@ -45,6 +62,12 @@ MutexAcquireOutcome MutexGuard::Acquire(const std::wstring& name) {
   }
   if (!IsValidMutexName(name)) {
     return MutexAcquireOutcome::kInvalidName;
+  }
+  // A name another guard in this process holds is a live owner. Checking
+  // before any wait keeps the owning thread from re-acquiring it recursively.
+  std::lock_guard<std::mutex> held_lock(HeldNamesLock());
+  if (HeldNames().count(name) != 0) {
+    return MutexAcquireOutcome::kAlreadyExists;
   }
 
   SECURITY_ATTRIBUTES sa;
@@ -67,22 +90,44 @@ MutexAcquireOutcome MutexGuard::Acquire(const std::wstring& name) {
 
   if (handle != nullptr) {
     if (last_error == ERROR_ALREADY_EXISTS) {
-      // Existed and we could open it; we never owned it, so drop our handle.
-      CloseHandle(handle);
-      return MutexAcquireOutcome::kAlreadyExists;
+      // Existed and we could open it: ours only if it has no live owner.
+      return TakeOver(handle, name);
     }
-    handle_ = handle;
-    return MutexAcquireOutcome::kAcquired;
+    return Adopt(handle, name);
   }
 
   // CreateMutexW returned null. ERROR_ACCESS_DENIED means the named mutex
   // already exists but its restrictive DACL (Everyone gets SYNCHRONIZE only, not
-  // the full access CreateMutexW requests) denies us -- i.e. another instance
-  // owns it. Any other failure is a genuine error.
+  // the full access CreateMutexW requests) denies us; SYNCHRONIZE is enough to
+  // take it over when it has no live owner. Any other failure is an error.
   if (last_error == ERROR_ACCESS_DENIED) {
-    return MutexAcquireOutcome::kAlreadyExists;
+    HANDLE existing = OpenMutexW(SYNCHRONIZE, FALSE, name.c_str());
+    if (existing == nullptr) return MutexAcquireOutcome::kAlreadyExists;
+    return TakeOver(existing, name);
   }
   return MutexAcquireOutcome::kError;
+}
+
+// Takes ownership of an existing mutex through `existing` when nobody owns it
+// or its owner died (abandoned); otherwise closes `existing`. The caller holds
+// HeldNamesLock().
+MutexAcquireOutcome MutexGuard::TakeOver(HANDLE existing,
+                                         const std::wstring& name) {
+  const DWORD waited = WaitForSingleObject(existing, 0);
+  if (waited == WAIT_ABANDONED || waited == WAIT_OBJECT_0) {
+    return Adopt(existing, name);
+  }
+  CloseHandle(existing);
+  return MutexAcquireOutcome::kAlreadyExists;
+}
+
+// Records `handle` as this guard's owned mutex. The caller holds
+// HeldNamesLock().
+MutexAcquireOutcome MutexGuard::Adopt(HANDLE handle, const std::wstring& name) {
+  handle_ = handle;
+  name_ = name;
+  HeldNames().insert(name);
+  return MutexAcquireOutcome::kAcquired;
 }
 
 void MutexGuard::Release() {
@@ -90,6 +135,9 @@ void MutexGuard::Release() {
     ReleaseMutex(handle_);
     CloseHandle(handle_);
     handle_ = nullptr;
+    std::lock_guard<std::mutex> held_lock(HeldNamesLock());
+    HeldNames().erase(name_);
+    name_.clear();
   }
 }
 

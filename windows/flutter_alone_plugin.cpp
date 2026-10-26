@@ -99,13 +99,11 @@ void FlutterAlonePlugin::ShowMessageBox(const MessageBoxInfo& info) {
 
 ProcessCheckResult FlutterAlonePlugin::CheckRunningInstance(const std::wstring& mutexName, const std::wstring& windowTitle) {
     ProcessCheckResult result;
-    result.canRun = true;
 
     if (MutexGuard::Exists(mutexName)) {
 #ifdef _DEBUG
         OutputDebugStringW((L"[DEBUG] Existing mutex found: " + mutexName + L"\n").c_str());
 #endif
-        result.canRun = false;
 
         auto existingProcess = ProcessUtils::FindExistingProcess();
         if (existingProcess.has_value()) {
@@ -211,20 +209,12 @@ void FlutterAlonePlugin::HandleMethodCall(
         ParseCheckAndRunArgs(arguments, windowTitle, mutexName,
                              showMessageBox, title, message);
 
-        auto checkResult = CheckRunningInstance(mutexName, windowTitle);
-
-        if (!checkResult.canRun) {
-            HandleDuplicate(checkResult, title, message, showMessageBox);
-            result->Success(flutter::EncodableValue(false));
-            return;
-        }
-
         switch (CheckAndCreateMutex(mutexName)) {
             case MutexAcquireOutcome::kAcquired:
                 result->Success(flutter::EncodableValue(true));
                 return;
             case MutexAcquireOutcome::kAlreadyExists:
-                // Another instance created the mutex after the Exists check.
+                // A live owner holds the mutex; find its window to bring forward.
                 HandleDuplicate(CheckRunningInstance(mutexName, windowTitle),
                                 title, message, showMessageBox);
                 result->Success(flutter::EncodableValue(false));
