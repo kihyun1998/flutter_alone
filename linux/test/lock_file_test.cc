@@ -80,9 +80,16 @@ void StopHolder(HolderProcess* holder, bool kill_it) {
   if (kill_it) {
     kill(holder->pid, SIGKILL);
   } else {
+    // SIGPIPE is ignored for this write, so a dead holder makes it fail with
+    // EPIPE instead of ending the test binary.
+    struct sigaction ignore = {};
+    struct sigaction previous;
+    ignore.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &ignore, &previous);
     char command = 1;
     ssize_t sent = write(holder->release_fd, &command, 1);
     (void)sent;
+    sigaction(SIGPIPE, &previous, nullptr);
   }
   waitpid(holder->pid, nullptr, 0);
   close(holder->release_fd);

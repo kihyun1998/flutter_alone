@@ -120,7 +120,7 @@ TEST(MutexGuardTest, AnotherProcessHoldsTheMutexUntilTerminated) {
   ours.Release();
 
   TerminateProcess(helper.hProcess, 1);
-  WaitForSingleObject(helper.hProcess, 10000);
+  const DWORD waited = WaitForSingleObject(helper.hProcess, 10000);
   CloseHandle(helper.hThread);
   CloseHandle(helper.hProcess);
   const bool exists_after = MutexGuard::Exists(name);
@@ -128,6 +128,7 @@ TEST(MutexGuardTest, AnotherProcessHoldsTheMutexUntilTerminated) {
   const MutexAcquireOutcome after_kill = after.Acquire(name);
 
   ASSERT_TRUE(held_by_helper);
+  ASSERT_EQ(waited, WAIT_OBJECT_0) << "the helper did not exit after terminate";
   EXPECT_EQ(while_held, MutexAcquireOutcome::kAlreadyExists);
   EXPECT_FALSE(exists_after);
   EXPECT_EQ(after_kill, MutexAcquireOutcome::kAcquired);
