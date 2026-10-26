@@ -77,5 +77,62 @@ TEST(MutexGuardTest, AcquireRejectsAnInvalidName) {
   EXPECT_FALSE(guard.held());
 }
 
+// Names the mutex the helper below holds; unset in normal runs.
+constexpr wchar_t kHoldMutexVariable[] = L"FLUTTER_ALONE_TEST_HOLD_MUTEX";
+
+// Helper mode, started by Behavior 7 in a separate process: holds the named
+// mutex until the process is terminated. Skipped when the variable is unset.
+TEST(MutexGuardHelper, HoldsTheNamedMutexUntilTerminated) {
+  wchar_t name[256];
+  const DWORD length = GetEnvironmentVariableW(kHoldMutexVariable, name, 256);
+  if (length == 0 || length >= 256) GTEST_SKIP() << "helper mode only";
+  MutexGuard guard;
+  if (guard.Acquire(name) != MutexAcquireOutcome::kAcquired) ExitProcess(2);
+  Sleep(INFINITE);
+}
+
+// Behavior 7: a mutex another process holds makes Exists() true and Acquire()
+// lose, until that process is terminated.
+TEST(MutexGuardTest, AnotherProcessHoldsTheMutexUntilTerminated) {
+  const std::wstring name = UniqueName(L"other_process");
+
+  wchar_t exe[MAX_PATH];
+  ASSERT_GT(GetModuleFileNameW(nullptr, exe, MAX_PATH), 0u);
+  std::wstring command = L"\"" + std::wstring(exe) +
+                         L"\" --gtest_filter=MutexGuardHelper.*";
+  SetEnvironmentVariableW(kHoldMutexVariable, name.c_str());
+  STARTUPINFOW startup = {};
+  startup.cb = sizeof(startup);
+  PROCESS_INFORMATION helper = {};
+  const BOOL started =
+      CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE,
+                     CREATE_NO_WINDOW, nullptr, nullptr, &startup, &helper);
+  SetEnvironmentVariableW(kHoldMutexVariable, nullptr);
+  ASSERT_TRUE(started);
+
+  bool held_by_helper = false;
+  for (int i = 0; i < 200 && !held_by_helper; ++i) {
+    held_by_helper = MutexGuard::Exists(name);
+    if (!held_by_helper) Sleep(50);
+  }
+  MutexGuard ours;
+  const MutexAcquireOutcome while_held = ours.Acquire(name);
+  ours.Release();
+
+  TerminateProcess(helper.hProcess, 1);
+  const DWORD waited = WaitForSingleObject(helper.hProcess, 10000);
+  CloseHandle(helper.hThread);
+  CloseHandle(helper.hProcess);
+  const bool exists_after = MutexGuard::Exists(name);
+  MutexGuard after;
+  const MutexAcquireOutcome after_kill = after.Acquire(name);
+
+  ASSERT_TRUE(held_by_helper);
+  ASSERT_EQ(waited, WAIT_OBJECT_0) << "the helper did not exit after terminate";
+  EXPECT_EQ(while_held, MutexAcquireOutcome::kAlreadyExists);
+  EXPECT_FALSE(exists_after);
+  EXPECT_EQ(after_kill, MutexAcquireOutcome::kAcquired);
+}
+
 }  // namespace
 }  // namespace flutter_alone

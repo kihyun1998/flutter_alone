@@ -36,3 +36,4 @@ From ADR-0001 and the source:
 
 ## Known holes / open
 - A failed `ConvertStringSecurityDescriptorToSecurityDescriptorW` silently falls back to default security, losing cross-user detection.
+- Any process holding a `SYNCHRONIZE` handle (granted to Everyone by the DACL) keeps the mutex existing after the owner dies, abandoned. `MutexGuard::Exists` and `Acquire` see only existence, so every launch is refused until that handle closes. Measured by a probe on 2026-10-26: a third handle was opened, the owner was killed, the name survived and a wait reported abandoned. Tracked: [#38](https://github.com/kihyun1998/flutter_alone/issues/38).

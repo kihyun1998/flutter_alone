@@ -28,6 +28,74 @@ bool FileExists(const std::string& path) {
   return stat(path.c_str(), &st) == 0;
 }
 
+// A lock owner running in a forked child process.
+struct HolderProcess {
+  pid_t pid = -1;
+  int release_fd = -1;  // a byte written here makes the holder release and exit
+  bool acquired = false;
+};
+
+// Forks a child that acquires `path`, reports whether it did, then waits on
+// the release pipe; EOF on that pipe ends it without releasing.
+HolderProcess StartHolder(const std::string& path) {
+  HolderProcess holder;
+  int report[2];
+  int release[2];
+  if (pipe2(report, O_CLOEXEC) != 0) return holder;
+  if (pipe2(release, O_CLOEXEC) != 0) {
+    close(report[0]);
+    close(report[1]);
+    return holder;
+  }
+  pid_t pid = fork();
+  if (pid == 0) {
+    close(report[0]);
+    close(release[1]);
+    LockResult held = AcquireLock(path, getpid());
+    char acquired = held.outcome == LockOutcome::kAcquired ? 1 : 0;
+    ssize_t sent = write(report[1], &acquired, 1);
+    (void)sent;
+    char command;
+    if (read(release[0], &command, 1) == 1) ReleaseLock(&held.handle);
+    _exit(0);
+  }
+  close(report[1]);
+  close(release[0]);
+  if (pid < 0) {
+    close(report[0]);
+    close(release[1]);
+    return holder;
+  }
+  holder.pid = pid;
+  holder.release_fd = release[1];
+  char acquired = 0;
+  holder.acquired = read(report[0], &acquired, 1) == 1 && acquired == 1;
+  close(report[0]);
+  return holder;
+}
+
+// Ends the holder: kills it if `kill_it`, otherwise asks it to release.
+void StopHolder(HolderProcess* holder, bool kill_it) {
+  if (holder->pid <= 0) return;
+  if (kill_it) {
+    kill(holder->pid, SIGKILL);
+  } else {
+    // SIGPIPE is ignored for this write, so a dead holder makes it fail with
+    // EPIPE instead of ending the test binary.
+    struct sigaction ignore = {};
+    struct sigaction previous;
+    ignore.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &ignore, &previous);
+    char command = 1;
+    ssize_t sent = write(holder->release_fd, &command, 1);
+    (void)sent;
+    sigaction(SIGPIPE, &previous, nullptr);
+  }
+  waitpid(holder->pid, nullptr, 0);
+  close(holder->release_fd);
+  holder->pid = -1;
+}
+
 // Behavior 1 (tracer): acquiring a fresh path succeeds and creates the file.
 TEST(LockFileTest, AcquiringFreshPathSucceedsAndCreatesFile) {
   const std::string path = MakeTempLockPath("fresh");
@@ -188,6 +256,50 @@ TEST(LockFileTest, ChildOfAKilledOwnerDoesNotKeepTheLock) {
   unlink(path.c_str());
 
   ASSERT_TRUE(helper_outlived_owner);
+  EXPECT_EQ(next.outcome, LockOutcome::kAcquired);
+}
+
+// Behavior 7: a lock another process holds refuses this process and names
+// that process as the holder, until the holder is killed.
+TEST(LockFileTest, AnotherProcessHoldsTheLockUntilItIsKilled) {
+  const std::string path = MakeTempLockPath("other_process");
+  unlink(path.c_str());
+
+  HolderProcess holder = StartHolder(path);
+  const pid_t holder_pid = holder.pid;
+  LockResult while_held = AcquireLock(path, 555);
+  ReleaseLock(&while_held.handle);
+  StopHolder(&holder, /*kill_it=*/true);
+  LockResult after_kill = AcquireLock(path, 556);
+  ReleaseLock(&after_kill.handle);
+  unlink(path.c_str());
+
+  ASSERT_TRUE(holder.acquired);
+  EXPECT_EQ(while_held.outcome, LockOutcome::kHeldByOther);
+  EXPECT_EQ(while_held.existing_pid, holder_pid);
+  EXPECT_EQ(after_kill.outcome, LockOutcome::kAcquired);
+}
+
+// Behavior 8: Behavior 5 holds when the owner that releases and unlinks the
+// file is another process.
+TEST(LockFileTest, LockingAFileAnotherProcessUnlinkedIsRefused) {
+  const std::string path = MakeTempLockPath("other_unlinked");
+  unlink(path.c_str());
+
+  HolderProcess holder = StartHolder(path);
+  int late_fd = open(path.c_str(), O_RDWR | O_NOFOLLOW | O_CLOEXEC);
+  StopHolder(&holder, /*kill_it=*/false);
+  LockResult late;
+  late.outcome = LockOutcome::kIoError;
+  if (late_fd >= 0) late = LockOpenedFile(late_fd, path, 222);
+  ReleaseLock(&late.handle);
+  LockResult next = AcquireLock(path, 333);
+  ReleaseLock(&next.handle);
+  unlink(path.c_str());
+
+  ASSERT_TRUE(holder.acquired);
+  ASSERT_GE(late_fd, 0);
+  EXPECT_EQ(late.outcome, LockOutcome::kStale);
   EXPECT_EQ(next.outcome, LockOutcome::kAcquired);
 }
 

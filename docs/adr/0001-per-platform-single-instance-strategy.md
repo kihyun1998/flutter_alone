@@ -36,6 +36,10 @@ surface (`FlutterAloneConfig.forWindows/forMacOS/forLinux` → `checkAndRun`).
   *(Added 2026-10-26: this holds because the handle is created non-inheritable
   (`bInheritHandle = FALSE`), so no child keeps the mutex alive; see
   [lock-not-inherited](../map/invariant/lock-not-inherited.md), #33.)*
+  *(Added 2026-10-26, later: that covers inherited handles only. The mutex lives until its
+  last handle closes, and the DACL lets any process open it with `SYNCHRONIZE`. A handle
+  opened by name keeps the abandoned mutex existing after the owner dies, and `Exists`
+  then refuses every launch (measured by probe; #38).)*
 - To re-activate the existing window: enumerate processes (Toolhelp snapshot) for the
   same executable path, then `EnumWindows` matching window title **and** owning-process
   path (so a portable build and an installed build with the same title are not confused).
