@@ -38,11 +38,11 @@ jobs:
           cache: true
       - name: Install Linux build dependencies
         # gtk/x11/clang/cmake/ninja for the plugin; appindicator for the
-        # example's system_tray dependency.
+        # example's system_tray dependency; xvfb for the two-instance test.
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build cmake clang pkg-config \
-            libgtk-3-dev libx11-dev libayatana-appindicator3-dev
+            libgtk-3-dev libx11-dev libayatana-appindicator3-dev xvfb
       - name: Build Linux example (compiles the native plugin)
         working-directory: example
         run: flutter build linux --debug
@@ -55,6 +55,11 @@ jobs:
         run: cmake --build build/linux-test
       - name: Run native tests
         run: ctest --test-dir build/linux-test --output-on-failure
+      # Launches the example three times under a virtual X display: a
+      # duplicate launch must lose, and the lock must be free once the first
+      # is killed.
+      - name: Two-instance test
+        run: xvfb-run -a dart tool/two_instance_test.dart example/build/linux/x64/debug/bundle/flutter_alone_example
 
   windows:
     name: Windows (build + native gtest)
