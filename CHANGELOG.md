@@ -1,7 +1,7 @@
 ## Unreleased
 
 *   **Bug Fixes**
-    *   **Linux / macOS**: a child process started by the running instance no longer inherits the lock. If the app crashed or was killed while such a child was still running, every new launch was refused as already running until the child exited. On Linux, this happened with any helper started through Dart's `Process.start` in its default mode.
+    *   **Linux / macOS**: a program the running instance launches (a helper started with exec) no longer inherits the lock. If the app crashed or was killed while such a child was still running, every new launch was refused as already running until the child exited. On Linux this happened with any helper started through Dart's `Process.start` in an attached mode (`normal` or `inheritStdio`, the default). On macOS it happened only with children started outside Dart, since Dart already spawns with `POSIX_SPAWN_CLOEXEC_DEFAULT`.
     *   **Linux / macOS**: fixed a race where a launch that opened the lock file just before the running instance exited could lock the deleted file, letting it and the next launch both run. A lock is now kept only if the file is still the one at the lock path; otherwise the launch reopens it.
     *   **Windows**: a duplicate launch that loses the race between the existence check and creating the mutex now brings the running instance forward or shows the message, instead of exiting silently.
 

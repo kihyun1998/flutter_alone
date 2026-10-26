@@ -4,7 +4,7 @@
 The Linux single-instance primitive: an advisory `flock` on a lock file in the GLib temp dir, holding the owner's PID so a second launch can find it.
 
 ## Governing decisions
-[ADR-0001](../../adr/0001-per-platform-single-instance-strategy.md) — lock file + `flock(LOCK_EX|LOCK_NB)`, `O_NOFOLLOW`, PID in the file, kernel release on death.
+[ADR-0001](../../adr/0001-per-platform-single-instance-strategy.md) — lock file + `flock(LOCK_EX|LOCK_NB)`, `O_NOFOLLOW`, PID in the file, kernel release on death (which needs `O_CLOEXEC`, see [lock-not-inherited](../invariant/lock-not-inherited.md)).
 
 ## Design model
 From ADR-0001 and `lock_file.h`:

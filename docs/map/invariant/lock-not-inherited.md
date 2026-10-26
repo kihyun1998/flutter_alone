@@ -1,7 +1,7 @@
 # lock-not-inherited
 
 ## The fact
-The lock a running instance holds is never inherited by a process it starts. On Linux and macOS the lock file is opened with `O_CLOEXEC`, so an exec'd child does not share the open file description the `flock` belongs to. On Windows the mutex is created with `SECURITY_ATTRIBUTES.bInheritHandle = FALSE`. When the running instance dies, the lock goes with it, even while a child it started is still running.
+The lock a running instance holds is never inherited across exec. On Linux and macOS the lock file is opened with `O_CLOEXEC`, so a child that execs a new program does not share the open file description the `flock` belongs to. On Windows the mutex is created with `SECURITY_ATTRIBUTES.bInheritHandle = FALSE`. When the running instance dies, the lock goes with it, even while a child it exec'd is still running.
 
 ## Why it is cross-cutting
 The three lock implementations share no code: Linux `AcquireLock` (C++), macOS `checkAndRun(lockFilePath:…)` (Swift), Windows `MutexGuard::Acquire`. Each one sets its own flag at its own creation call, and nothing checks one against the others. The rule is what keeps [ADR-0001](../../adr/0001-per-platform-single-instance-strategy.md)'s "released by the kernel on process death ⇒ no stale lock" true. Without it, the kernel only releases the lock once every process sharing it is gone.
@@ -18,8 +18,11 @@ On macOS, Dart spawns every mode with `POSIX_SPAWN_CLOEXEC_DEFAULT`, so children
 
 ## Discovery history
 - #33 — found by the completeness read on #27. Reproduced 2026-10-26 on WSL2 (kernel 6.18) against the unmodified Linux seam: holder killed, child alive → `kHeldByOther` with the dead holder's PID; with `O_CLOEXEC` → `kAcquired`.
-- Regression test `ChildOfAKilledOwnerDoesNotKeepTheLock` (Linux). The owner reports its helper only after the helper's exec, which it detects as EOF on a close-on-exec pipe. Before that, a forked helper still shares every descriptor, and reporting earlier made the test fail even with the fix. Removing `O_CLOEXEC` turns the test red 50 of 50 runs; with it, the suite passed 50 of 50.
+- Regression test `ChildOfAKilledOwnerDoesNotKeepTheLock` (Linux). The owner reports its helper only after the helper's exec, which it detects as EOF on a close-on-exec pipe. Before that, a forked helper still shares every descriptor, and reporting earlier made the test fail even with the fix. The parent closes its write end of the report pipe before reading, so an owner that dies before reporting fails the test instead of hanging it. Removing `O_CLOEXEC` turns the test red 50 of 50 runs; with it, the suite passed 50 of 50.
 - Windows already created the mutex non-inheritable before #33.
 
 ## Where it will recur
 If a function creates or duplicates the lock's handle or descriptor on any platform (`open`, `dup`, `fcntl(F_DUPFD)`, `CreateMutexW`, `DuplicateHandle`), it is subject to this. The macOS copy has no test; it is held by this note and the CI build only.
+
+## Known holes
+- `O_CLOEXEC` acts only at exec. A child that forks without exec'ing (native daemonizing code, for example) still shares the description and keeps the lock after the running instance dies. So does any child between its fork and its exec. Dart's `Process.start` always execs, so it is not affected; native code in the consumer app could be.

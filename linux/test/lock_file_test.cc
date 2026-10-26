@@ -146,8 +146,8 @@ TEST(LockFileTest, ChildOfAKilledOwnerDoesNotKeepTheLock) {
   pid_t owner = fork();
   ASSERT_GE(owner, 0);
   if (owner == 0) {
-    // The owner acquires, then starts a long-running child the way Dart's
-    // Process.start does on Linux: fork and exec, no descriptor cleanup.
+    // The owner acquires, then execs a long-running helper without closing
+    // any descriptor.
     pid_t helper = -1;
     int execd[2];
     if (AcquireLock(path, getpid()).outcome == LockOutcome::kAcquired &&
@@ -160,8 +160,7 @@ TEST(LockFileTest, ChildOfAKilledOwnerDoesNotKeepTheLock) {
         (void)ignored;
         _exit(127);
       }
-      // Until the exec, the helper is a fork that still shares every
-      // descriptor; EOF on the close-on-exec pipe marks the exec itself.
+      // EOF on the close-on-exec pipe: the helper has exec'd.
       close(execd[1]);
       char failed;
       if (read(execd[0], &failed, 1) != 0) helper = -1;
@@ -173,10 +172,10 @@ TEST(LockFileTest, ChildOfAKilledOwnerDoesNotKeepTheLock) {
     _exit(0);
   }
 
+  close(report[1]);
   pid_t helper = -1;
   ssize_t got = read(report[0], &helper, sizeof(helper));
   close(report[0]);
-  close(report[1]);
   kill(owner, SIGKILL);
   waitpid(owner, nullptr, 0);
   ASSERT_EQ(got, static_cast<ssize_t>(sizeof(helper)));
