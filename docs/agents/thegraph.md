@@ -10,3 +10,7 @@ A Flutter desktop plugin that keeps a single instance of an app running on Windo
 |---|---|---|---|
 | Win32 API docs | how it works | Microsoft Learn — **summarized** | binding |
 | Flutter plugin docs | how it works, where files go | docs.flutter.dev — **summarized** | binding |
+
+## Release
+
+pub-ready
